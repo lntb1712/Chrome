@@ -1,9 +1,10 @@
-﻿using Chrome.DTO.LoginDTO;
+﻿using Chrome.DTO;
+using Chrome.DTO.LoginDTO;
 
 namespace Chrome.Services.LoginService
 {
     public interface ILoginService
     {
-        Task<LoginResponse> LoginAsync(LoginRequest loginRequest);
+        Task<ServiceResponse<LoginResponse>> LoginAsync(LoginRequest loginRequest);
     }
 }

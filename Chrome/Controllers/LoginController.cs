@@ -30,12 +30,12 @@ namespace Chrome.Controllers
             try
             {
                 var response = await _loginService.LoginAsync(request);
-                if(!string.IsNullOrEmpty(response.ErrorMessage))
+                if(!response.Success)
                 {
                     return Unauthorized(new
                     {
                         Success = false,
-                        Message = response.ErrorMessage
+                        Message = response.Message
                     });
                 }
                 return Ok(response);
@@ -56,9 +56,13 @@ namespace Chrome.Controllers
             try
             {
                 var response = await _accountManagementService.GetUserInformation(userName);
-                if (response == null)
+                if (!response.Success)
                 {
-                    return NotFound("Không tìm thấy thông tin người dùng");
+                    return NotFound(new
+                    {
+                        Success = false,
+                        Message =response.Message
+                    });
                 }
                 return Ok(response);
             }

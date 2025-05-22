@@ -5,8 +5,8 @@ namespace Chrome.Services.GroupFunctionService
 {
     public interface IGroupFunctionService
     {
-        Task<List<GroupFunctionResponseDTO>> GetGroupFunctionWithGroupID(string groupId);
-        Task<List<GroupFunctionResponseDTO>> GetAllGroupFunctions();
+        Task<ServiceResponse<List<GroupFunctionResponseDTO>>> GetGroupFunctionWithGroupID(string groupId);
+        Task<ServiceResponse<List<GroupFunctionResponseDTO>>> GetAllGroupFunctions();
         Task<ServiceResponse<bool>> DeleteGroupFunction(string groupId,string functionId);
     }
 }

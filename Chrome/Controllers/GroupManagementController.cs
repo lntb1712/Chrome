@@ -56,9 +56,13 @@ namespace Chrome.Controllers
             try
             {
                 var response = await _groupManagementService.GetAllGroupManagement();
-                if (response == null)
+                if (!response.Success)
                 {
-                    return NotFound("Không tìm thấy dữ liệu");
+                    return NotFound(new
+                    {
+                        Success = false,
+                        Message = response.Message
+                    });
                 }
                 return Ok(response);
             }
@@ -74,9 +78,13 @@ namespace Chrome.Controllers
             try
             {
                 var response = await _groupFunctionService.GetAllGroupFunctions();
-                if (response == null)
+                if (!response.Success)
                 {
-                    return NotFound("Không tìm thấy dữ liệu");
+                    return NotFound(new
+                    {
+                        Success = false,
+                        Message = response.Message
+                    });
                 }
                 return Ok(response);
             }
@@ -96,9 +104,13 @@ namespace Chrome.Controllers
             try
             {
                 var response = await _groupFunctionService.GetGroupFunctionWithGroupID(groupId);
-                if (response == null)
+                if (!response.Success)
                 {
-                    return NotFound("Không tìm thấy dữ liệu");
+                    return NotFound(new
+                    {
+                        Success = false,
+                        Message = response.Message
+                    });
                 }
                 return Ok(response);
             }
@@ -118,9 +130,9 @@ namespace Chrome.Controllers
             try
             {
                 var lst = await _groupFunctionService.GetGroupFunctionWithGroupID(groupId);
-                if (lst.Count != 0)
+                if (lst.Data.Count != 0)
                 {
-                    foreach (var item in lst)
+                    foreach (var item in lst.Data)
                     {
                         await _groupFunctionService.DeleteGroupFunction(groupId, item.FunctionId);
                     }
@@ -174,9 +186,13 @@ namespace Chrome.Controllers
             try
             {
                 var response = await _groupManagementService.SearchGroup(textToSearch);
-                if (response == null)
+                if (!response.Success)
                 {
-                    return NotFound("Không tìm thấy dữ liệu");
+                    return NotFound(new
+                    {
+                        Success = false,
+                        Message = response.Message
+                    });
                 }
                 return Ok(response);
             }

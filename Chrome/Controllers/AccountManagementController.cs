@@ -49,14 +49,18 @@ namespace Chrome.Controllers
         }
 
         [HttpGet("GetAllAccount")]
-        public async Task<IActionResult> GetAllAccount()
+        public async Task<IActionResult> GetAllAccount([FromQuery] int page =1, [FromQuery] int pageSize =10)
         {
             try
             {
-                var response = await _accountManagementService.GetAllAccount();
-                if (response == null)
+                var response = await _accountManagementService.GetAllAccount(page,pageSize);
+                if (!response.Success)
                 {
-                    return NotFound("Không tìm thấy dữ liệu");
+                    return NotFound(new
+                    {
+                        Success = false,
+                        Message = response.Message
+                    });
                 }
 
                 return Ok(response);
@@ -66,16 +70,20 @@ namespace Chrome.Controllers
                 return StatusCode(500, $"Lỗi {ex.Message}");
             }
         }
-
+        
         [HttpGet("GetAllAccountWithRole")]
-        public async Task<IActionResult> GetAllAccountWithRole([FromQuery] string GroupID)
+        public async Task<IActionResult> GetAllAccountWithRole([FromQuery] string GroupID, [FromQuery]int page = 1, [FromQuery] int pageSize=10)
         {
             try
             {
-                var response = await _accountManagementService.GetAllAccountWithGroupId(GroupID);
-                if (response == null)
+                var response = await _accountManagementService.GetAllAccountWithGroupId(GroupID,page,pageSize);
+                if (!response.Success)
                 {
-                    return NotFound("Không tìm thấy dữ liệu");
+                    return NotFound(new
+                    {
+                        Success = false,
+                        Message = response.Message
+                    });
                 }
                 return Ok(response);
             }
@@ -137,14 +145,18 @@ namespace Chrome.Controllers
             }
         }
         [HttpGet("SearchAccountInList")]
-        public async Task<IActionResult> SearchAccountInList([FromQuery] string textToSearch)
+        public async Task<IActionResult> SearchAccountInList([FromQuery] string textToSearch, [FromQuery]int page=1, [FromQuery]int pageSize =10)
         {
             try
             {
-                var response = await _accountManagementService.SearchAccount(textToSearch);
+                var response = await _accountManagementService.SearchAccount(textToSearch, page, pageSize);
                 if (response == null)
                 {
-                    return NotFound("Không tìm thấy dữ liệu");
+                    return NotFound(new
+                    {
+                        Success = false,
+                        Message = response!.Message
+                    });
                 }
                 return Ok(response);
             }
@@ -154,6 +166,7 @@ namespace Chrome.Controllers
             }
 
         }
+
 
     }
 }

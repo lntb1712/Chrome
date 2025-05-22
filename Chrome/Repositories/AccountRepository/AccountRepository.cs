@@ -1,5 +1,6 @@
 ﻿using Chrome.Models;
 using Chrome.Repositories.RepositoryBase;
+using DocumentFormat.OpenXml.Wordprocessing;
 using Microsoft.EntityFrameworkCore;
 
 
@@ -12,19 +13,25 @@ namespace Chrome.Repositories.AccountRepository
         {
             _context = context;
         }
-        public async Task<List<AccountManagement>> GetAllAccount()
+        public async Task<List<AccountManagement>> GetAllAccount(int page, int pageSize)
         {
             var lstAccount = await _context.AccountManagements
                                 .Include(x=>x.Group)
+                                .OrderBy(x=>x.UserName)
+                                .Skip((page-1)*pageSize)
+                                .Take(pageSize)
                                 .ToListAsync();
             return lstAccount;
         }
 
-        public async Task<List<AccountManagement>> GetAllWithRole(string groupID)
+        public async Task<List<AccountManagement>> GetAllWithRole(string groupID,int page,int pageSize)
         {
             var lstAccountWithRole =await _context.AccountManagements
                                         .Include(x=>x.Group)
                                         .Where(x=>x.GroupId == groupID)
+                                        .OrderBy(x => x.UserName)
+                                        .Skip((page - 1) * pageSize)
+                                        .Take(pageSize)
                                         .ToListAsync();
             return lstAccountWithRole;
         }
@@ -43,13 +50,35 @@ namespace Chrome.Repositories.AccountRepository
             return account;
         }
 
-        public async Task<List<AccountManagement>> SearchAccount(string textToSearch)
+        public async Task<List<AccountManagement>> SearchAccount(string textToSearch,int page,int pageSize)
         {
             var account = await _context.AccountManagements
                                 .Include(x=>x.Group)
-                                .Where(x=>x.UserName.Contains(textToSearch)||x.GroupId!.Contains(textToSearch)||x.FullName!.Contains(textToSearch))
+                                .Where(x => x.UserName.Contains(textToSearch) || x.FullName!.Contains(textToSearch))
+                                .OrderBy(x => x.UserName)
+                                .Skip((page - 1) * pageSize)
+                                .Take(pageSize)
                                 .ToListAsync();
             return account;
+        }
+
+        public async Task<int> GetTotalAccountCount()
+        {
+            return await _context.AccountManagements.CountAsync();
+        }
+
+        public async Task<int> GetTotalSearchCount(string textToSearch)
+        {
+            return await _context.AccountManagements
+            .Where(x => x.UserName.Contains(textToSearch) || x.FullName!.Contains(textToSearch))
+            .CountAsync();
+        }
+
+        public async Task<int> GetTotalWithRoleCount(string groupID)
+        {
+            return await _context.AccountManagements
+                                 .Where(x => x.GroupId == groupID)
+                                 .CountAsync();
         }
     }
 }

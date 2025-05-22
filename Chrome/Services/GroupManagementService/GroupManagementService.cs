@@ -115,10 +115,14 @@ namespace ProductionInventoryManagmentSystem_API.Services.GroupManagementService
             }
         }
 
-        public async Task<List<GroupManagementResponseDTO>> GetAllGroupManagement()
+        public async Task<ServiceResponse<List<GroupManagementResponseDTO>>> GetAllGroupManagement()
         {
             //throw new NotImplementedException();
             var lstGroup = await _groupManagementRepository.GetAllGroup();
+            if(lstGroup == null || lstGroup.Count == 0)
+            {
+                return new ServiceResponse<List<GroupManagementResponseDTO>>(false, "Không tìm thấy nhóm người dùng nào", null!);
+            }
 
             var lstGroupManagement = lstGroup.Select(x => new GroupManagementResponseDTO
             {
@@ -128,19 +132,19 @@ namespace ProductionInventoryManagmentSystem_API.Services.GroupManagementService
                 UpdateBy=x.UpdateBy,
                 UpdateTime=x.UpdateTime!.Value.ToString("dd-MM-yyyy"),
             }).ToList();
-            return lstGroupManagement;
+            return new ServiceResponse<List<GroupManagementResponseDTO>>(true,"Lấy danh sách nhóm người dùng thành công",lstGroupManagement);
         }
 
-        public async Task<GroupManagementResponseDTO> GetGroupManagementWithGroupId(string groupId)
+        public async Task<ServiceResponse<GroupManagementResponseDTO>> GetGroupManagementWithGroupId(string groupId)
         {
             //throw new NotImplementedException();
             var groupManagementWithGroupId = await _groupManagementRepository.GetGroupManagementWithGroupID(groupId);
-            if (groupManagementWithGroupId == null)
+            if (groupManagementWithGroupId == null )
             {
-                return null!; // Or throw an exception depending on your requirements
+                return new ServiceResponse<GroupManagementResponseDTO>(false, "Không tìm thấy nhóm người dùng nào", null!);
             }
 
-            return new GroupManagementResponseDTO
+            var groupManagementResponse = new GroupManagementResponseDTO
             {
                 GroupId = groupManagementWithGroupId.GroupId,
                 GroupName = groupManagementWithGroupId.GroupName,
@@ -150,12 +154,17 @@ namespace ProductionInventoryManagmentSystem_API.Services.GroupManagementService
                             ? groupManagementWithGroupId.UpdateTime.Value.ToString("dd-MM-yyyy")
                             : null
             };
+            return new ServiceResponse<GroupManagementResponseDTO>(true,"Lấy thông tin nhóm người dùng thành công", groupManagementResponse);
         }
 
-        public async Task<List<GroupManagementResponseDTO>> SearchGroup(string textToSearch)
+        public async Task<ServiceResponse<List<GroupManagementResponseDTO>>> SearchGroup(string textToSearch)
         {
             //throw new NotImplementedException();
             var lstSearch = await _groupManagementRepository.SearchGroup(textToSearch);
+            if (lstSearch == null || lstSearch.Count == 0)
+            {
+                return new ServiceResponse<List<GroupManagementResponseDTO>>(false, "Không tìm thấy nhóm người dùng nào", null!);
+            }
             var lstGroupManagement = lstSearch.Select(x => new GroupManagementResponseDTO
             {
                 GroupId = x.GroupId,
@@ -164,7 +173,7 @@ namespace ProductionInventoryManagmentSystem_API.Services.GroupManagementService
                 UpdateBy = x.UpdateBy,
                 UpdateTime = x.UpdateTime!.Value.ToString("dd-MM-yyyy"),
             }).ToList();
-            return lstGroupManagement;
+            return new ServiceResponse<List<GroupManagementResponseDTO>>(true, "Lấy danh sách nhóm người dùng thành công", lstGroupManagement);
         }
 
         public async Task<ServiceResponse<bool>> UpdateGroupManagement(GroupManagementRequestDTO group)

@@ -5,12 +5,12 @@ namespace Chrome.Services.AccountManagementService
 {
     public interface IAccountManagementService
     {
-        Task<List<AccountManagementResponseDTO>> GetAllAccount();
-        Task<AccountManagementResponseDTO> GetUserInformation(string userName);
+        Task<ServiceResponse<PagedResponse<AccountManagementResponseDTO>>> GetAllAccount(int page,int pageSize);
+        Task<ServiceResponse<AccountManagementResponseDTO>> GetUserInformation(string userName);
         Task<ServiceResponse<bool>> AddAccountManagement(AccountManagementRequestDTO account);
         Task<ServiceResponse<bool>> DeleteAccountManagement(string id);
         Task<ServiceResponse<bool>> UpdateAccountManagement(AccountManagementRequestDTO account);
-        Task<List<AccountManagementResponseDTO>> GetAllAccountWithGroupId(string groupId);
-        Task<List<AccountManagementResponseDTO>> SearchAccount(string textToSearch);
+        Task<ServiceResponse<PagedResponse<AccountManagementResponseDTO>>> GetAllAccountWithGroupId(string groupId,int page,int pageSize);
+        Task<ServiceResponse<PagedResponse<AccountManagementResponseDTO>>> SearchAccount(string textToSearch, int page, int pageSize);
     }
 }
