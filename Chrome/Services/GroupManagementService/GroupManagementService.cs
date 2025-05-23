@@ -1,11 +1,14 @@
-﻿using Chrome.DTO;
+﻿using Azure;
+using Chrome.DTO;
 using Chrome.DTO.GroupManagementDTO;
 using Chrome.Models;
 using Chrome.Repositories.GroupFunctionRepository;
 using Chrome.Repositories.GroupManagementRepository;
 using Chrome.Services.GroupManagementService;
 using DocumentFormat.OpenXml.Office.CustomUI;
+using DocumentFormat.OpenXml.Office2010.Excel;
 using DocumentFormat.OpenXml.VariantTypes;
+using DocumentFormat.OpenXml.Wordprocessing;
 using Microsoft.EntityFrameworkCore;
 
 namespace ProductionInventoryManagmentSystem_API.Services.GroupManagementService
@@ -84,6 +87,15 @@ namespace ProductionInventoryManagmentSystem_API.Services.GroupManagementService
 
         public async Task<ServiceResponse<bool>> DeleteGroupManagement(string groupId)
         {
+            if (string.IsNullOrEmpty(groupId))
+            {
+                return new ServiceResponse<bool>(false, "Dữ liệu nhận vào không hợp lệ");
+            }
+            var group = await _groupManagementRepository.GetGroupManagementWithGroupID(groupId);
+            if (group == null)
+            {
+                return new ServiceResponse<bool>(false, "Không tìm thấy nhóm cần xóa");
+            }
             //throw new NotImplementedException();
             using (var transaction = await _context.Database.BeginTransactionAsync())
             {
@@ -115,13 +127,18 @@ namespace ProductionInventoryManagmentSystem_API.Services.GroupManagementService
             }
         }
 
-        public async Task<ServiceResponse<List<GroupManagementResponseDTO>>> GetAllGroupManagement()
+        public async Task<ServiceResponse<PagedResponse<GroupManagementResponseDTO>>> GetAllGroupManagement(int page,int pageSize)
         {
-            //throw new NotImplementedException();
-            var lstGroup = await _groupManagementRepository.GetAllGroup();
-            if(lstGroup == null || lstGroup.Count == 0)
+
+            if (page <1  || pageSize <1)
             {
-                return new ServiceResponse<List<GroupManagementResponseDTO>>(false, "Không tìm thấy nhóm người dùng nào", null!);
+                return new ServiceResponse<PagedResponse<GroupManagementResponseDTO>>(false,"Trang không hợp lệ",null!);
+            }
+            var lstGroup = await _groupManagementRepository.GetAllGroup(page,pageSize);
+            var totalItems=  await _groupManagementRepository.GetTotalGroupCount();
+            if (lstGroup == null || lstGroup.Count == 0)
+            {
+                return new ServiceResponse<PagedResponse<GroupManagementResponseDTO>>(false, "Không tìm thấy nhóm người dùng nào", null!);
             }
 
             var lstGroupManagement = lstGroup.Select(x => new GroupManagementResponseDTO
@@ -132,7 +149,9 @@ namespace ProductionInventoryManagmentSystem_API.Services.GroupManagementService
                 UpdateBy=x.UpdateBy,
                 UpdateTime=x.UpdateTime!.Value.ToString("dd-MM-yyyy"),
             }).ToList();
-            return new ServiceResponse<List<GroupManagementResponseDTO>>(true,"Lấy danh sách nhóm người dùng thành công",lstGroupManagement);
+
+            var pagedResponse = new PagedResponse<GroupManagementResponseDTO>(lstGroupManagement, page, pageSize, totalItems);
+            return new ServiceResponse<PagedResponse<GroupManagementResponseDTO>>(true,"Lấy danh sách nhóm người dùng thành công",pagedResponse);
         }
 
         public async Task<ServiceResponse<GroupManagementResponseDTO>> GetGroupManagementWithGroupId(string groupId)
@@ -157,15 +176,30 @@ namespace ProductionInventoryManagmentSystem_API.Services.GroupManagementService
             return new ServiceResponse<GroupManagementResponseDTO>(true,"Lấy thông tin nhóm người dùng thành công", groupManagementResponse);
         }
 
-        public async Task<ServiceResponse<List<GroupManagementResponseDTO>>> SearchGroup(string textToSearch)
+        public async Task<ServiceResponse<Dictionary<string, int>>> GetTotalUserInGroup()
         {
-            //throw new NotImplementedException();
-            var lstSearch = await _groupManagementRepository.SearchGroup(textToSearch);
-            if (lstSearch == null || lstSearch.Count == 0)
+            var totalUserInGroup = await _groupManagementRepository.GetTotalUserInGroup();
+            if (totalUserInGroup == null || totalUserInGroup.Count == 0)
             {
-                return new ServiceResponse<List<GroupManagementResponseDTO>>(false, "Không tìm thấy nhóm người dùng nào", null!);
+                return new ServiceResponse<Dictionary<string, int>>(false, "Không tìm thấy nhóm người dùng nào", null!);
             }
-            var lstGroupManagement = lstSearch.Select(x => new GroupManagementResponseDTO
+            return new ServiceResponse<Dictionary<string, int>>(true, "Lấy danh sách nhóm người dùng thành công", totalUserInGroup);
+        }
+
+        public async Task<ServiceResponse<PagedResponse<GroupManagementResponseDTO>>> SearchGroup(string textToSearch,int page, int pageSize)
+        {
+            if (page < 1 || pageSize < 1)
+            {
+                return new ServiceResponse<PagedResponse<GroupManagementResponseDTO>>(false, "Trang không hợp lệ", null!);
+            }
+            var lstGroup = await _groupManagementRepository.SearchGroup(textToSearch,page, pageSize);
+            var totalItems = await _groupManagementRepository.GetTotalSearchCount(textToSearch);
+            if (lstGroup == null || lstGroup.Count == 0)
+            {
+                return new ServiceResponse<PagedResponse<GroupManagementResponseDTO>>(false, "Không tìm thấy nhóm người dùng nào", null!);
+            }
+
+            var lstGroupManagement = lstGroup.Select(x => new GroupManagementResponseDTO
             {
                 GroupId = x.GroupId,
                 GroupName = x.GroupName,
@@ -173,7 +207,9 @@ namespace ProductionInventoryManagmentSystem_API.Services.GroupManagementService
                 UpdateBy = x.UpdateBy,
                 UpdateTime = x.UpdateTime!.Value.ToString("dd-MM-yyyy"),
             }).ToList();
-            return new ServiceResponse<List<GroupManagementResponseDTO>>(true, "Lấy danh sách nhóm người dùng thành công", lstGroupManagement);
+
+            var pagedResponse = new PagedResponse<GroupManagementResponseDTO>(lstGroupManagement, page, pageSize, totalItems);
+            return new ServiceResponse<PagedResponse<GroupManagementResponseDTO>>(true, "Lấy danh sách nhóm người dùng thành công", pagedResponse);
         }
 
         public async Task<ServiceResponse<bool>> UpdateGroupManagement(GroupManagementRequestDTO group)

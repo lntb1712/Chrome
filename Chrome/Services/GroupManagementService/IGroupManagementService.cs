@@ -1,15 +1,17 @@
 ﻿using Chrome.DTO;
 using Chrome.DTO.GroupManagementDTO;
+using System.Runtime.InteropServices.Marshalling;
 
 namespace Chrome.Services.GroupManagementService
 {
     public interface IGroupManagementService
     {
-        Task<ServiceResponse<List<GroupManagementResponseDTO>>> GetAllGroupManagement();
+        Task<ServiceResponse<PagedResponse<GroupManagementResponseDTO>>> GetAllGroupManagement(int page, int pageSize);
         Task<ServiceResponse<bool>> AddGroupManagement(GroupManagementRequestDTO group);
         Task<ServiceResponse<bool>> DeleteGroupManagement(string groupId);
         Task<ServiceResponse<bool>> UpdateGroupManagement(GroupManagementRequestDTO group);
         Task<ServiceResponse<GroupManagementResponseDTO>> GetGroupManagementWithGroupId(string groupId);
-        Task<ServiceResponse<List<GroupManagementResponseDTO>>> SearchGroup(string textToSearch);
+        Task<ServiceResponse<PagedResponse<GroupManagementResponseDTO>>> SearchGroup(string textToSearch,int page, int pageSize);
+        Task<ServiceResponse<Dictionary<string, int>>> GetTotalUserInGroup();
     }
 }

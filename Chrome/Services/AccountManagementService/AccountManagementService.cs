@@ -226,6 +226,15 @@ namespace Chrome.Services.AccountManagementService
 
         public async Task<ServiceResponse<bool>> DeleteAccountManagement(string id)
         {
+            if(string.IsNullOrEmpty(id))
+            {
+                return new ServiceResponse<bool>(false, "Dữ liệu nhận vào không hợp lệ");
+            }
+            var account = await _accountRepository.GetAccountWithUserName(id);
+            if(account==null)
+            {
+                return new ServiceResponse<bool>(false, "Không tìm thấy tài khoản cần xóa");
+            }    
             using (var transaction = await _context.Database.BeginTransactionAsync())
             {
                 try

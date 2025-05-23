@@ -51,11 +51,11 @@ namespace Chrome.Controllers
         }
 
         [HttpGet("GetAllGroupManagement")]
-        public async Task<IActionResult> GetAllGroupManagement()
+        public async Task<IActionResult> GetAllGroupManagement([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
         {
             try
             {
-                var response = await _groupManagementService.GetAllGroupManagement();
+                var response = await _groupManagementService.GetAllGroupManagement(page, pageSize);
                 if (!response.Success)
                 {
                     return NotFound(new
@@ -130,7 +130,7 @@ namespace Chrome.Controllers
             try
             {
                 var lst = await _groupFunctionService.GetGroupFunctionWithGroupID(groupId);
-                if (lst.Data.Count != 0)
+                if (lst.Data!=null)
                 {
                     foreach (var item in lst.Data)
                     {
@@ -181,11 +181,33 @@ namespace Chrome.Controllers
         }
 
         [HttpGet("SearchGroupInList")]
-        public async Task<IActionResult> SearchGroupInList([FromQuery] string textToSearch)
+        public async Task<IActionResult> SearchGroupInList([FromQuery] string textToSearch, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
         {
             try
             {
-                var response = await _groupManagementService.SearchGroup(textToSearch);
+                var response = await _groupManagementService.SearchGroup(textToSearch, page, pageSize);
+                if (!response.Success)
+                {
+                    return NotFound(new
+                    {
+                        Success = false,
+                        Message = response.Message
+                    });
+                }
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Lỗi {ex.Message}");
+            }
+        }
+
+        [HttpGet("GetTotalUserInGroup")]
+        public async Task<IActionResult> GetTotalUserInGroup()
+        {
+            try
+            {
+                var response = await _groupManagementService.GetTotalUserInGroup();
                 if (!response.Success)
                 {
                     return NotFound(new
