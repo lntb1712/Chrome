@@ -1,4 +1,5 @@
-﻿using Chrome.Models;
+﻿using Chrome.DTO.GroupManagementDTO;
+using Chrome.Models;
 using Chrome.Repositories.RepositoryBase;
 using DocumentFormat.OpenXml.Wordprocessing;
 using Microsoft.EntityFrameworkCore;
@@ -51,16 +52,17 @@ namespace Chrome.Repositories.GroupManagementRepository
             return group;       
         }
 
-        public async Task<Dictionary<string, int>> GetTotalUserInGroup()
+        public async Task<List<GroupManagementTotalDTO>> GetTotalUserInGroup()
         {
             var group =  await _context.GroupManagements
                                 .Include(x => x.GroupFunctions)
                                 .Include(x => x.AccountManagements)
-                                .Select(x => new
+                                .Select(x => new GroupManagementTotalDTO
                                 {
-                                    GroupName = x.GroupName,
+                                    GroupID = x.GroupId,
+                                    GroupName= x.GroupName,
                                     TotalUser = x.AccountManagements.Where(t => t.GroupId == x.GroupId).Count()
-                                }).ToDictionaryAsync(x=>x.GroupName!,x=>x.TotalUser!);
+                                }).ToListAsync();         
             return group;
         }
 

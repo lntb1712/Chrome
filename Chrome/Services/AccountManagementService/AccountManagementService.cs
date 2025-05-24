@@ -193,7 +193,19 @@ namespace Chrome.Services.AccountManagementService
             {
                 try
                 {
-                    account.Password = BCrypt.Net.BCrypt.HashPassword(accountResponse.Password, 12);
+                    var password = accountResponse.Password; // Original password (plaintext or hashed)
+
+                    // Check if the password is already hashed (e.g., starts with $2a$, $2b$, etc., typical BCrypt prefix)
+                    if (!string.IsNullOrEmpty(password) && !password.StartsWith("$2"))
+                    {
+                        // If plaintext, hash it
+                        account.Password = BCrypt.Net.BCrypt.HashPassword(password, 12);
+                    }
+                    else
+                    {
+                        // If already hashed (e.g., from database), use it as is
+                        account.Password = password;
+                    }
                     account.FullName = accountResponse.FullName;
                     account.GroupId = accountResponse.GroupID;
                     account.UpdateBy = accountResponse.UpdateBy;

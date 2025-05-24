@@ -1,4 +1,5 @@
-﻿using Chrome.Models;
+﻿using Chrome.DTO.GroupManagementDTO;
+using Chrome.Models;
 using Chrome.Repositories.RepositoryBase;
 
 namespace Chrome.Repositories.GroupManagementRepository
@@ -10,6 +11,6 @@ namespace Chrome.Repositories.GroupManagementRepository
         Task<GroupManagement> GetGroupManagementWithGroupID(string GroupID);
         Task<List<GroupManagement>> SearchGroup(string textToSearch, int page, int pageSize);
         Task<int>GetTotalSearchCount(string textToSearch);
-        Task<Dictionary<string, int>> GetTotalUserInGroup();
+        Task<List<GroupManagementTotalDTO>> GetTotalUserInGroup();
     }
 }

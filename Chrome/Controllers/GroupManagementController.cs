@@ -201,6 +201,28 @@ namespace Chrome.Controllers
                 return StatusCode(500, $"Lỗi {ex.Message}");
             }
         }
+        
+        [HttpGet("GetGroupManagemetWithGroupId")]
+        public async Task<IActionResult> GetGroupManagemetWithGroupId([FromQuery] string groupId)
+        {
+            try
+            {
+                var response = await _groupManagementService.GetGroupManagementWithGroupId(groupId);
+                if (!response.Success)
+                {
+                    return NotFound(new
+                    {
+                        Success = false,
+                        Message = response.Message
+                    });
+                }
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Lỗi {ex.Message}");
+            }
+        }
 
         [HttpGet("GetTotalUserInGroup")]
         public async Task<IActionResult> GetTotalUserInGroup()

@@ -176,14 +176,14 @@ namespace ProductionInventoryManagmentSystem_API.Services.GroupManagementService
             return new ServiceResponse<GroupManagementResponseDTO>(true,"Lấy thông tin nhóm người dùng thành công", groupManagementResponse);
         }
 
-        public async Task<ServiceResponse<Dictionary<string, int>>> GetTotalUserInGroup()
+        public async Task<ServiceResponse<List<GroupManagementTotalDTO>>> GetTotalUserInGroup()
         {
             var totalUserInGroup = await _groupManagementRepository.GetTotalUserInGroup();
             if (totalUserInGroup == null || totalUserInGroup.Count == 0)
             {
-                return new ServiceResponse<Dictionary<string, int>>(false, "Không tìm thấy nhóm người dùng nào", null!);
+                return new ServiceResponse<List<GroupManagementTotalDTO>>(false, "Không tìm thấy nhóm người dùng nào", null!);
             }
-            return new ServiceResponse<Dictionary<string, int>>(true, "Lấy danh sách nhóm người dùng thành công", totalUserInGroup);
+            return new ServiceResponse<List<GroupManagementTotalDTO>>(true, "Lấy danh sách nhóm người dùng thành công", totalUserInGroup);
         }
 
         public async Task<ServiceResponse<PagedResponse<GroupManagementResponseDTO>>> SearchGroup(string textToSearch,int page, int pageSize)
