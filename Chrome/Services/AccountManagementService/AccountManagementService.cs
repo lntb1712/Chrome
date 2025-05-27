@@ -276,5 +276,18 @@ namespace Chrome.Services.AccountManagementService
                 }
             }
         }
+
+        public async Task<ServiceResponse<int>> GetTotalAccount()
+        {
+            try
+            {
+                var response = await _accountRepository.GetTotalAccountCount();
+                return new ServiceResponse<int>(true, "Lấy tổng người dùng thành công", response);
+            }
+            catch(Exception ex)
+            {
+                return new ServiceResponse<int>(false, ex.Message);
+            }
+        }
     }
 }

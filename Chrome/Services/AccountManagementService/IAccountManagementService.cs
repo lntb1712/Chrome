@@ -6,6 +6,7 @@ namespace Chrome.Services.AccountManagementService
     public interface IAccountManagementService
     {
         Task<ServiceResponse<PagedResponse<AccountManagementResponseDTO>>> GetAllAccount(int page,int pageSize);
+        Task<ServiceResponse<int>> GetTotalAccount();
         Task<ServiceResponse<AccountManagementResponseDTO>> GetUserInformation(string userName);
         Task<ServiceResponse<bool>> AddAccountManagement(AccountManagementRequestDTO account);
         Task<ServiceResponse<bool>> DeleteAccountManagement(string id);

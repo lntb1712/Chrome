@@ -13,5 +13,6 @@ namespace Chrome.Services.GroupManagementService
         Task<ServiceResponse<GroupManagementResponseDTO>> GetGroupManagementWithGroupId(string groupId);
         Task<ServiceResponse<PagedResponse<GroupManagementResponseDTO>>> SearchGroup(string textToSearch,int page, int pageSize);
         Task<ServiceResponse<List<GroupManagementTotalDTO>>> GetTotalUserInGroup();
+        Task<ServiceResponse<int>> GetTotalGroupCount();
     }
 }

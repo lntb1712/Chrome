@@ -245,5 +245,25 @@ namespace Chrome.Controllers
                 return StatusCode(500, $"Lỗi {ex.Message}");
             }
         }
+        [HttpGet("GetTotalGroupCount")]
+        public async Task<IActionResult> GetTotalGroupCount()
+        {
+            try
+            {
+                var response = await _groupManagementService.GetTotalGroupCount();
+                if(!response.Success)
+                {
+                    return BadRequest(new
+                    {
+                        Success = false,
+                        Message = response.Message
+                    }); 
+                }
+                return Ok(response);
+            }catch(Exception ex)
+            {
+                return StatusCode(500, "Lỗi:" + ex.Message);
+            }
+        }
     }
 }

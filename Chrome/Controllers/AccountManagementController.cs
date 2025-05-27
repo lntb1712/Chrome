@@ -70,6 +70,28 @@ namespace Chrome.Controllers
                 return StatusCode(500, $"Lỗi {ex.Message}");
             }
         }
+
+        [HttpGet("GetTotalAccount")]
+        public async Task<IActionResult> GetTotalAccount()
+        {
+            try
+            {
+                var response = await _accountManagementService.GetTotalAccount();
+                if(!response.Success)
+                {
+                    return BadRequest(new
+                    {
+                        Success = false,
+                        Message = response.Message,
+                    });
+                }
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Lỗi {ex.Message}");
+            }
+        }
         
         [HttpGet("GetAllAccountWithRole")]
         public async Task<IActionResult> GetAllAccountWithRole([FromQuery] string GroupID, [FromQuery]int page = 1, [FromQuery] int pageSize=10)

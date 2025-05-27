@@ -46,6 +46,8 @@ namespace ProductionInventoryManagmentSystem_API.Services.GroupManagementService
                     GroupId=group.GroupId,
                     FunctionId=x.FunctionId,
                     IsEnable=x.IsEnable,
+                    UpdateBy = group.UpdateBy,
+                    UpdateTime = DateTime.Now,
                 }).ToList()
             };
 
@@ -174,6 +176,18 @@ namespace ProductionInventoryManagmentSystem_API.Services.GroupManagementService
                             : null
             };
             return new ServiceResponse<GroupManagementResponseDTO>(true,"Lấy thông tin nhóm người dùng thành công", groupManagementResponse);
+        }
+
+        public async Task<ServiceResponse<int>> GetTotalGroupCount()
+        {
+            try
+            {
+                var response = await _groupManagementRepository.GetTotalGroupCount();
+                return new ServiceResponse<int>(true, "Lấy tổng nhóm thành công",response);
+            }catch(Exception ex)
+            {
+                return new ServiceResponse<int>(false, "Lỗi:" + ex.Message);
+            }
         }
 
         public async Task<ServiceResponse<List<GroupManagementTotalDTO>>> GetTotalUserInGroup()

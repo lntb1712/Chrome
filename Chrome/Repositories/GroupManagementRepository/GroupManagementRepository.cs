@@ -40,7 +40,7 @@ namespace Chrome.Repositories.GroupManagementRepository
 
         public async Task<int> GetTotalGroupCount()
         {
-            return await _context.GroupManagements.Include(x=>x.GroupFunctions).CountAsync();
+            return await _context.GroupManagements.CountAsync();
         }
 
         public async Task<int> GetTotalSearchCount(string textToSearch)

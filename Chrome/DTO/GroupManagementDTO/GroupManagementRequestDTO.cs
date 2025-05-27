@@ -8,7 +8,6 @@ namespace Chrome.DTO.GroupManagementDTO
         public string? GroupName { get; set; }
         public string? GroupDescription { get; set; }
         public string? UpdateBy { get; set; }
-        public string? UpdateTime { get; set; }
         public List<GroupFunctionResponseDTO> GroupFunctions { get; set; } = new List<GroupFunctionResponseDTO>();
     }
 }
