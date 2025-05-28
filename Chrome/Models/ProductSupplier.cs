@@ -15,6 +15,8 @@ public partial class ProductSupplier
 
     public string? UpdateBy { get; set; }
 
+    public double? Quantity { get; set; }
+
     public virtual ProductMaster ProductCodeNavigation { get; set; } = null!;
 
     public virtual SupplierMaster SupplierCodeNavigation { get; set; } = null!;

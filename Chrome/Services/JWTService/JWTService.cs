@@ -39,6 +39,7 @@ namespace Chrome.Services.JWTService
 
             var tokenHandler = new JwtSecurityTokenHandler();
             var token = tokenHandler.CreateToken(tokenDescriptor);
+            await Task.CompletedTask;
             return tokenHandler.WriteToken(token);
         }
 
