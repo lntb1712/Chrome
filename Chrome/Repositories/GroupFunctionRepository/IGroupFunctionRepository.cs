@@ -8,5 +8,6 @@ namespace Chrome.Repositories.GroupFunctionRepository
         Task<List<Function>> GetFunctionsAsync();
         Task<List<GroupFunction>> GetAllGroupsFunctionWithGroupId(string groupId);
         Task<List<string>> GetListFunctionIDOfGroup(string groupId);
+        Task<List<string>> GetListApplicableLocationOfGroup(string groupId);
     }
 }

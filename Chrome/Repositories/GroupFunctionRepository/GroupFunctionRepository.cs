@@ -33,6 +33,7 @@ namespace ProductionInventoryManagmentSystem_API.Repositories.GroupFunctionRepos
             //throw new NotImplementedException();
             var functions = await _context.Functions
                                 .Include(x=>x.GroupFunctions)
+                               
                                 .ToListAsync();
             return functions;
         }
@@ -42,8 +43,19 @@ namespace ProductionInventoryManagmentSystem_API.Repositories.GroupFunctionRepos
             var lstFunction = await _context.GroupFunctions
                                             .Where(x => x.GroupId == groupId && x.IsEnable == true)
                                             .Select(x => x.FunctionId)
+                                            .Distinct()
                                             .ToListAsync();
             return lstFunction;
         }
+        public async Task<List<string>> GetListApplicableLocationOfGroup(string groupId)
+        {
+            var lstLocations = await _context.GroupFunctions
+                                             .Where(x => x.GroupId == groupId && x.IsEnable == true)
+                                             .Select(x => x.ApplicableLocation)
+                                             .Distinct() // nếu muốn loại trùng
+                                             .ToListAsync();
+            return lstLocations!;
+        }
+
     }
 }

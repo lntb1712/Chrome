@@ -13,10 +13,6 @@ public partial class SupplierMaster
 
     public string? SupplierAddress { get; set; }
 
-    public DateTime? UpdateTime { get; set; }
-
-    public string? UpdateBy { get; set; }
-
     public virtual ICollection<ProductSupplier> ProductSuppliers { get; set; } = new List<ProductSupplier>();
 
     public virtual ICollection<StockIn> StockIns { get; set; } = new List<StockIn>();

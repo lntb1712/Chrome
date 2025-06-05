@@ -16,31 +16,31 @@ namespace Chrome.Repositories.AccountRepository
         public async Task<List<AccountManagement>> GetAllAccount(int page, int pageSize)
         {
             var lstAccount = await _context.AccountManagements
-                                .Include(x=>x.Group)
-                                .OrderBy(x=>x.UserName)
-                                .Skip((page-1)*pageSize)
-                                .Take(pageSize)
-                                .ToListAsync();
+                                           .Include(x=>x.Group)
+                                           .OrderBy(x=>x.UserName)
+                                           .Skip((page-1)*pageSize)
+                                           .Take(pageSize)
+                                           .ToListAsync();
             return lstAccount;
         }
 
         public async Task<List<AccountManagement>> GetAllWithRole(string groupID,int page,int pageSize)
         {
             var lstAccountWithRole =await _context.AccountManagements
-                                        .Include(x=>x.Group)
-                                        .Where(x=>x.GroupId == groupID)
-                                        .OrderBy(x => x.UserName)
-                                        .Skip((page - 1) * pageSize)
-                                        .Take(pageSize)
-                                        .ToListAsync();
+                                                  .Include(x=>x.Group)
+                                                  .Where(x=>x.GroupId == groupID)
+                                                  .OrderBy(x => x.UserName)
+                                                  .Skip((page - 1) * pageSize)
+                                                  .Take(pageSize)
+                                                  .ToListAsync();
             return lstAccountWithRole;
         }
 
         public async Task<AccountManagement> GetAccountWithUserName(string userName)
         {
             var lstAccount = await _context.AccountManagements
-                              .Include(x => x.Group)
-                               .FirstOrDefaultAsync(x=>x.UserName == userName);
+                                           .Include(x => x.Group)
+                                           .FirstOrDefaultAsync(x=>x.UserName == userName);
             return lstAccount!;
         }
 
@@ -53,12 +53,12 @@ namespace Chrome.Repositories.AccountRepository
         public async Task<List<AccountManagement>> SearchAccount(string textToSearch,int page,int pageSize)
         {
             var account = await _context.AccountManagements
-                                .Include(x=>x.Group)
-                                .Where(x => x.UserName.Contains(textToSearch) || x.FullName!.Contains(textToSearch))
-                                .OrderBy(x => x.UserName)
-                                .Skip((page - 1) * pageSize)
-                                .Take(pageSize)
-                                .ToListAsync();
+                                        .Include(x=>x.Group)
+                                        .Where(x => x.UserName.Contains(textToSearch) || x.FullName!.Contains(textToSearch))
+                                        .OrderBy(x => x.UserName)
+                                        .Skip((page - 1) * pageSize)
+                                        .Take(pageSize)
+                                        .ToListAsync();
             return account;
         }
 
@@ -70,8 +70,8 @@ namespace Chrome.Repositories.AccountRepository
         public async Task<int> GetTotalSearchCount(string textToSearch)
         {
             return await _context.AccountManagements
-            .Where(x => x.UserName.Contains(textToSearch) || x.FullName!.Contains(textToSearch))
-            .CountAsync();
+                                 .Where(x => x.UserName.Contains(textToSearch) || x.FullName!.Contains(textToSearch))
+                                 .CountAsync();
         }
 
         public async Task<int> GetTotalWithRoleCount(string groupID)

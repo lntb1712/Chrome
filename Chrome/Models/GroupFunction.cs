@@ -11,9 +11,9 @@ public partial class GroupFunction
 
     public bool? IsEnable { get; set; }
 
-    public DateTime? UpdateTime { get; set; }
+    public string ApplicableLocation { get; set; } = null!;
 
-    public string? UpdateBy { get; set; }
+    public virtual WarehouseMaster ApplicableLocationNavigation { get; set; } = null!;
 
     public virtual Function Function { get; set; } = null!;
 

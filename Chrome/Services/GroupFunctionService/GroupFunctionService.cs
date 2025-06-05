@@ -1,4 +1,5 @@
 ﻿using Chrome.DTO;
+using Chrome.DTO.FunctionDTO;
 using Chrome.DTO.GroupFunctionDTO;
 using Chrome.Models;
 using Chrome.Repositories.GroupFunctionRepository;
@@ -17,26 +18,25 @@ namespace Chrome.Services.GroupFunctionService
             _context = context; 
         }
 
-        public async Task<ServiceResponse<List<GroupFunctionResponseDTO>>> GetAllGroupFunctions()
+        public async Task<ServiceResponse<List<FunctionResponseDTO>>> GetAllGroupFunctions()
         {
             //throw new NotImplementedException();
             var lstGroupFuntions = await _groupFunctionRepository.GetFunctionsAsync();
             if (lstGroupFuntions == null || lstGroupFuntions.Count == 0)
             {
-                return new ServiceResponse<List<GroupFunctionResponseDTO>>(false, "Không có dữ liệu nhóm chức năng", null!);
+                return new ServiceResponse<List<FunctionResponseDTO>>(false, "Không có dữ liệu nhóm chức năng", null!);
             }
 
-            var lstGroupFunctionsDTO = lstGroupFuntions.Select(row => new GroupFunctionResponseDTO
+            var lstGroupFunctionsDTO = lstGroupFuntions.Select(row => new FunctionResponseDTO
             {
-                GroupId =row.GroupFunctions.Select(x=>x.GroupId).FirstOrDefault()!,
                 FunctionId = row.FunctionId,
                 FunctionName = row.FunctionName!,
                 IsEnable = false,
-                UpdateBy = row.GroupFunctions.Select(x=>x.UpdateBy).FirstOrDefault(),
-                UpdateTime =row.GroupFunctions.Select(x => x.UpdateTime).FirstOrDefault()!.Value.ToString("dd/MM/yyyy")
+                ApplicableLocation = string.Empty,
+
 
             }).ToList();
-            return new ServiceResponse<List<GroupFunctionResponseDTO>>(true,"Lấy danh sách chức năng thành công",lstGroupFunctionsDTO);
+            return new ServiceResponse<List<FunctionResponseDTO>>(true,"Lấy danh sách chức năng thành công",lstGroupFunctionsDTO);
         }
         public async Task<ServiceResponse<bool>> DeleteGroupFunction(string groupId, string functionId)
         {
@@ -79,15 +79,13 @@ namespace Chrome.Services.GroupFunctionService
                 return new ServiceResponse<List<GroupFunctionResponseDTO>>(false, "Không có dữ liệu nhóm chức năng", null!);
             }
 
-            var lstGroup= lstGroupFunction.Select(x=>new GroupFunctionResponseDTO
+            var lstGroup = lstGroupFunction.Select(x => new GroupFunctionResponseDTO
             {
                 GroupId = groupId,
-                FunctionId= x.FunctionId,
-                //FunctionName = _context.Functions.Where(t=>t.FunctionId==x.FunctionId).Select(x=>x.FunctionName).FirstOrDefault(),
+                FunctionId = x.FunctionId,
                 FunctionName = x.Function.FunctionName!,
-                IsEnable= x.IsEnable,
-                UpdateTime=x.UpdateTime!.Value.ToString("dd-MM-yyyy"),
-                UpdateBy=x.UpdateBy,
+                IsEnable = x.IsEnable,
+                ApplicableLocation = x.ApplicableLocation!
             }).ToList();
             return new ServiceResponse<List<GroupFunctionResponseDTO>>(true,"Lấy danh sách thành công",lstGroup);
         }

@@ -5,6 +5,8 @@ using Chrome.Repositories.CategoryRepository;
 using Chrome.Repositories.GroupFunctionRepository;
 using Chrome.Repositories.GroupManagementRepository;
 using Chrome.Repositories.ProductMasterRepository;
+using Chrome.Repositories.ProductSupplierRepository;
+using Chrome.Repositories.SupplierMasterRepository;
 using Chrome.Services.AccountManagementService;
 using Chrome.Services.CategoryService;
 using Chrome.Services.GroupFunctionService;
@@ -12,6 +14,8 @@ using Chrome.Services.GroupManagementService;
 using Chrome.Services.JWTService;
 using Chrome.Services.LoginService;
 using Chrome.Services.ProductMasterService;
+using Chrome.Services.ProductSupplierSerivce;
+using Chrome.Services.SupplierMasterService;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
@@ -37,6 +41,8 @@ builder.Services.AddScoped<IGroupFunctionRepository, GroupFunctionRepository>();
 builder.Services.AddScoped<IGroupManagementRepository,GroupManagementRepository>();
 builder.Services.AddScoped<IProductMasterRepository, ProductMasterRepository>();
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
+builder.Services.AddScoped<IProductSupplierRepository, ProductSupplierRepository>();
+builder.Services.AddScoped<ISupplierMasterRepository, SupplierMasterRepository>();
 
 // Đăng kí Dependency Injection cho các Service
 builder.Services.AddScoped<ILoginService, LoginService>();
@@ -46,6 +52,8 @@ builder.Services.AddScoped<IGroupManagementService, GroupManagementService>();
 builder.Services.AddScoped<IGroupFunctionService, GroupFunctionService>();
 builder.Services.AddScoped<IProductMasterService, ProductMasterService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
+builder.Services.AddScoped<IProductSupplierService, ProductSupplierService>();
+builder.Services.AddScoped<ISupplierMasterService, SupplierMasterService>();
 
 // Đăng ký IHttpContextAccessor để thực hiện sử dụng HttpCookie
 builder.Services.AddHttpContextAccessor();

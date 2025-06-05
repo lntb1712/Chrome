@@ -11,13 +11,9 @@ public partial class Inventory
 
     public string ProductCode { get; set; } = null!;
 
-    public string LotNo { get; set; } = null!;
+    public string Lotno { get; set; } = null!;
 
     public double? Quantity { get; set; }
-
-    public DateTime? UpdateTime { get; set; }
-
-    public string? UpdateBy { get; set; }
 
     public virtual LocationMaster LocationCodeNavigation { get; set; } = null!;
 

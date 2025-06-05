@@ -28,13 +28,12 @@ namespace Chrome.Services.ProductMasterService
                 ProductCode = product.ProductCode,
                 ProductName = product.ProductName,
                 ProductDescription = product.ProductDescription,
-                ProductImg = product.ProductImg,
+                ProductImage = product.ProductImage,
                 CategoryId = product.CategoryId,
                 BaseQuantity = product.BaseQuantity,
                 Uom = product.Uom,
                 BaseUom = product.BaseUom,
-                UpdateTime = DateTime.Now,
-                UpdateBy = product.UpdateBy,
+                Valuation = product.Valuation,
             };
 
             using (var transaction = await _context.Database.BeginTransactionAsync())
@@ -129,15 +128,14 @@ namespace Chrome.Services.ProductMasterService
                 ProductCode = p.ProductCode,
                 ProductName = p.ProductName,
                 ProductDescription = p.ProductDescription,
-                ProductImg = p.ProductImg,
+                ProductImage = p.ProductImage,
                 CategoryId = p.CategoryId,
                 CategoryName = p.Category?.CategoryName ?? "Không có danh mục",
                 BaseQuantity = p.BaseQuantity,
                 Uom = p.Uom,
                 BaseUom = p.BaseUom,
-                TotalOnHand = (float)(p.Inventories.Where(t=>t.ProductCode==p.ProductCode).Sum(i => i.Quantity) ?? 0.00), // Assuming Quantity is a property in Inventory
-                UpdateTime = p.UpdateTime!.Value.ToString("dd/MM/yyyy"),
-                UpdateBy = p.UpdateBy
+                Valuation= (float?)p.Valuation,
+                TotalOnHand = (float)(p.Inventories.Where(t => t.ProductCode == p.ProductCode).Sum(i => i.Quantity) ?? 0.00), // Assuming Quantity is a property in Inventory
             }).ToList();
 
             var pagedResponse = new PagedResponse<ProductMasterResponseDTO>(productResponse, page, pageSize, totalCount);
@@ -161,15 +159,14 @@ namespace Chrome.Services.ProductMasterService
                 ProductCode = p.ProductCode,
                 ProductName = p.ProductName,
                 ProductDescription = p.ProductDescription,
-                ProductImg = p.ProductImg,
+                ProductImage = p.ProductImage,
                 CategoryId = p.CategoryId,
                 CategoryName = p.Category?.CategoryName ?? "Không có danh mục",
                 BaseQuantity = p.BaseQuantity,
                 Uom = p.Uom,
                 BaseUom = p.BaseUom,
+                Valuation = (float?)p.Valuation,
                 TotalOnHand = (float)(p.Inventories.Where(t => t.ProductCode == p.ProductCode).Sum(i => i.Quantity) ?? 0.00), // Assuming Quantity is a property in Inventory
-                UpdateTime = p.UpdateTime!.Value.ToString("dd/MM/yyyy"),
-                UpdateBy = p.UpdateBy
             }).ToList();
             var pagedResponse = new PagedResponse<ProductMasterResponseDTO>(productResponse, page, pageSize, totalCount);
             return new ServiceResponse<PagedResponse<ProductMasterResponseDTO>>(true, "Lấy danh sách sản phẩm theo danh mục thành công.", pagedResponse);
@@ -191,15 +188,14 @@ namespace Chrome.Services.ProductMasterService
                 ProductCode = product.ProductCode,
                 ProductName = product.ProductName,
                 ProductDescription = product.ProductDescription,
-                ProductImg = product.ProductImg,
+                ProductImage = product.ProductImage,
                 CategoryId = product.CategoryId,
                 CategoryName = product.Category?.CategoryName ?? "Không có danh mục",
                 BaseQuantity = product.BaseQuantity,
                 Uom = product.Uom,
                 BaseUom = product.BaseUom,
+                Valuation = (float?)product.Valuation,
                 TotalOnHand = (float)(product.Inventories.Where(t => t.ProductCode == product.ProductCode).Sum(i => i.Quantity) ?? 0.00),
-                UpdateTime = product.UpdateTime!.Value.ToString("dd/MM/yyyy"),
-                UpdateBy = product.UpdateBy
             };
             return new ServiceResponse<ProductMasterResponseDTO>(true, "Lấy thông tin sản phẩm thành công.", productResponse);
         }
@@ -234,15 +230,14 @@ namespace Chrome.Services.ProductMasterService
                 ProductCode = p.ProductCode,
                 ProductName = p.ProductName,
                 ProductDescription = p.ProductDescription,
-                ProductImg = p.ProductImg,
+                ProductImage = p.ProductImage,
                 CategoryId = p.CategoryId,
                 CategoryName = p.Category?.CategoryName ?? "Không có danh mục",
                 BaseQuantity = p.BaseQuantity,
                 Uom = p.Uom,
                 BaseUom = p.BaseUom,
+                Valuation = (float?)p.Valuation,
                 TotalOnHand = (float)(p.Inventories.Where(t => t.ProductCode == p.ProductCode).Sum(i => i.Quantity) ?? 0.00), // Assuming Quantity is a property in Inventory
-                UpdateTime = p.UpdateTime!.Value.ToString("dd/MM/yyyy"),
-                UpdateBy = p.UpdateBy
             }).ToList();
             var pagedResponse = new PagedResponse<ProductMasterResponseDTO>(productResponse, page, pageSize, totalCount);
             return new ServiceResponse<PagedResponse<ProductMasterResponseDTO>>(true, "Tìm kiếm sản phẩm thành công.", pagedResponse);
@@ -265,13 +260,12 @@ namespace Chrome.Services.ProductMasterService
                 {
                     existingProduct.ProductName = product.ProductName;
                     existingProduct.ProductDescription = product.ProductDescription;
-                    existingProduct.ProductImg = product.ProductImg;
+                    existingProduct.ProductImage = product.ProductImage;
                     existingProduct.CategoryId = product.CategoryId;
                     existingProduct.BaseQuantity = product.BaseQuantity;
                     existingProduct.Uom = product.Uom;
                     existingProduct.BaseUom = product.BaseUom;
-                    existingProduct.UpdateTime = DateTime.Now;
-                    existingProduct.UpdateBy = product.UpdateBy;
+                    existingProduct.Valuation =product.Valuation;
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
                     return new ServiceResponse<bool>(true, "Cập nhật sản phẩm thành công.");

@@ -39,15 +39,11 @@ namespace ProductionInventoryManagmentSystem_API.Services.GroupManagementService
                 GroupId = group.GroupId,
                 GroupName = group.GroupName,
                 GroupDescription = group.GroupDescription,
-                UpdateBy = group.UpdateBy,
-                UpdateTime = DateTime.Now,
                 GroupFunctions =group.GroupFunctions.Select(x=>new GroupFunction
                 {
                     GroupId=group.GroupId,
                     FunctionId=x.FunctionId,
                     IsEnable=x.IsEnable,
-                    UpdateBy = group.UpdateBy,
-                    UpdateTime = DateTime.Now,
                 }).ToList()
             };
 
@@ -148,8 +144,6 @@ namespace ProductionInventoryManagmentSystem_API.Services.GroupManagementService
                 GroupId=x.GroupId,
                 GroupName=x.GroupName,
                 GroupDescription=x.GroupDescription,
-                UpdateBy=x.UpdateBy,
-                UpdateTime=x.UpdateTime!.Value.ToString("dd-MM-yyyy"),
             }).ToList();
 
             var pagedResponse = new PagedResponse<GroupManagementResponseDTO>(lstGroupManagement, page, pageSize, totalItems);
@@ -170,10 +164,10 @@ namespace ProductionInventoryManagmentSystem_API.Services.GroupManagementService
                 GroupId = groupManagementWithGroupId.GroupId,
                 GroupName = groupManagementWithGroupId.GroupName,
                 GroupDescription = groupManagementWithGroupId.GroupDescription,
-                UpdateBy = groupManagementWithGroupId.UpdateBy,
-                UpdateTime = groupManagementWithGroupId.UpdateTime.HasValue
-                            ? groupManagementWithGroupId.UpdateTime.Value.ToString("dd-MM-yyyy")
-                            : null
+                //UpdateBy = groupManagementWithGroupId.UpdateBy,
+                //UpdateTime = groupManagementWithGroupId.UpdateTime.HasValue
+                //            ? groupManagementWithGroupId.UpdateTime.Value.ToString("dd-MM-yyyy")
+                //            : null
             };
             return new ServiceResponse<GroupManagementResponseDTO>(true,"Lấy thông tin nhóm người dùng thành công", groupManagementResponse);
         }
@@ -218,8 +212,8 @@ namespace ProductionInventoryManagmentSystem_API.Services.GroupManagementService
                 GroupId = x.GroupId,
                 GroupName = x.GroupName,
                 GroupDescription = x.GroupDescription,
-                UpdateBy = x.UpdateBy,
-                UpdateTime = x.UpdateTime!.Value.ToString("dd-MM-yyyy"),
+                //UpdateBy = x.UpdateBy,
+                //UpdateTime = x.UpdateTime!.Value.ToString("dd-MM-yyyy"),
             }).ToList();
 
             var pagedResponse = new PagedResponse<GroupManagementResponseDTO>(lstGroupManagement, page, pageSize, totalItems);
@@ -245,8 +239,8 @@ namespace ProductionInventoryManagmentSystem_API.Services.GroupManagementService
                 {
                     groupManagement.GroupName = group.GroupName;
                     groupManagement.GroupDescription = group.GroupDescription;
-                    groupManagement.UpdateBy = group.UpdateBy;
-                    groupManagement.UpdateTime = DateTime.Now;
+                    //groupManagement.UpdateBy = group.UpdateBy;
+                    //groupManagement.UpdateTime = DateTime.Now;
 
 
                     var existingFunctions = groupManagement.GroupFunctions.ToDictionary(x => x.FunctionId);
@@ -263,8 +257,8 @@ namespace ProductionInventoryManagmentSystem_API.Services.GroupManagementService
                                 GroupId = group.GroupId,
                                 FunctionId = function.FunctionId,
                                 IsEnable = function.IsEnable,
-                                UpdateBy = function.UpdateBy,
-                                UpdateTime = DateTime.Now
+                                //UpdateBy = function.UpdateBy,
+                                //UpdateTime = DateTime.Now
                             });
                         }
                     }    

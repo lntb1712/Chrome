@@ -13,10 +13,6 @@ public partial class AccountManagement
 
     public string? GroupId { get; set; }
 
-    public DateTime? UpdateTime { get; set; }
-
-    public string? UpdateBy { get; set; }
-
     public virtual GroupManagement? Group { get; set; }
 
     public virtual ICollection<Movement> Movements { get; set; } = new List<Movement>();
@@ -29,7 +25,7 @@ public partial class AccountManagement
 
     public virtual ICollection<StockOut> StockOuts { get; set; } = new List<StockOut>();
 
-    public virtual ICollection<StockTake> StockTakes { get; set; } = new List<StockTake>();
-
     public virtual ICollection<Transfer> Transfers { get; set; } = new List<Transfer>();
+
+    public virtual ICollection<WarehouseMaster> WarehouseMasters { get; set; } = new List<WarehouseMaster>();
 }

@@ -5,14 +5,13 @@
         public string ProductCode { get; set; } = null!;
         public string? ProductName { get; set; }
         public string? ProductDescription { get; set; }
-        public string? ProductImg { get; set; }
+        public string? ProductImage { get; set; }
         public string? CategoryId { get; set; }
         public string? CategoryName { get; set; }
         public double? BaseQuantity { get; set; }
         public string? Uom { get; set; }
         public string? BaseUom { get; set; }
+        public float? Valuation { get; set; }
         public float? TotalOnHand { get; set; }
-        public string? UpdateTime { get; set; }
-        public string? UpdateBy { get; set; }
     }
 }

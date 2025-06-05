@@ -34,13 +34,10 @@ namespace Chrome.Services.AccountManagementService
 
             var lstAccountResponseDTO = lstAccount.Select(x => new AccountManagementResponseDTO
             {
-                UserName = x.UserName,
                 Password = x.Password!,
                 FullName = x.FullName!,
                 GroupID = x.GroupId!,
                 GroupName = x.Group!.GroupName!,
-                UpdateBy = x.UpdateBy!,
-                UpdateTime = x.UpdateTime!.Value.ToString("dd-MM-yyyy"),
             }).ToList();
 
             var pagedResponse = new PagedResponse<AccountManagementResponseDTO>(lstAccountResponseDTO, page, pageSize, totalItems);
@@ -64,13 +61,10 @@ namespace Chrome.Services.AccountManagementService
 
             var lstAccountResponseDTO = lstAccountWithGroupId.Select(x => new AccountManagementResponseDTO
             {
-                UserName = x.UserName,
                 Password = x.Password!,
                 FullName = x.FullName!,
                 GroupID = x.GroupId!,
                 GroupName = x.Group!.GroupName!,
-                UpdateBy = x.UpdateBy!,
-                UpdateTime = x.UpdateTime!.Value.ToString("dd-MM-yyyy"),
             }).ToList();
 
             var pagedResponse = new PagedResponse<AccountManagementResponseDTO>(lstAccountResponseDTO, page, pageSize, totalItems);
@@ -99,8 +93,6 @@ namespace Chrome.Services.AccountManagementService
                 FullName = x.FullName!,
                 GroupID = x.GroupId!,
                 GroupName = x.Group!.GroupName!,
-                UpdateBy = x.UpdateBy!,
-                UpdateTime = x.UpdateTime!.Value.ToString("dd-MM-yyyy"),
             }).ToList();
 
             var pagedResponse = new PagedResponse<AccountManagementResponseDTO>(lstAccountResponseDTO, page, pageSize, totalItems);
@@ -138,8 +130,6 @@ namespace Chrome.Services.AccountManagementService
                 Password = BCrypt.Net.BCrypt.HashPassword(accountRequest.Password, 12),
                 FullName = accountRequest.FullName,
                 GroupId = accountRequest.GroupID,
-                UpdateBy = accountRequest.UpdateBy,
-                UpdateTime = DateTime.Now
             };
 
             using (var transaction = await _context.Database.BeginTransactionAsync())
@@ -208,8 +198,6 @@ namespace Chrome.Services.AccountManagementService
                     }
                     account.FullName = accountResponse.FullName;
                     account.GroupId = accountResponse.GroupID;
-                    account.UpdateBy = accountResponse.UpdateBy;
-                    account.UpdateTime = DateTime.Now;
 
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();

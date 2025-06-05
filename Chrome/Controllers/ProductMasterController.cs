@@ -1,6 +1,8 @@
 ﻿using Chrome.DTO.ProductMasterDTO;
 using Chrome.Services.CategoryService;
 using Chrome.Services.ProductMasterService;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -8,6 +10,8 @@ namespace Chrome.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize(Policy = "PermissionPolicy")]
+    [EnableCors("MyCors")]
     public class ProductMasterController : ControllerBase
     {
         private readonly IProductMasterService _productMasterService;

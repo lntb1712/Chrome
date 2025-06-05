@@ -11,7 +11,7 @@ public partial class ProductMaster
 
     public string? ProductDescription { get; set; }
 
-    public string? ProductImg { get; set; }
+    public string? ProductImage { get; set; }
 
     public string? CategoryId { get; set; }
 
@@ -21,15 +21,13 @@ public partial class ProductMaster
 
     public string? BaseUom { get; set; }
 
-    public DateTime? UpdateTime { get; set; }
-
-    public string? UpdateBy { get; set; }
+    public double? Valuation { get; set; }
 
     public virtual Category? Category { get; set; }
 
-    public virtual ICollection<Inventory> Inventories { get; set; } = new List<Inventory>();
+    public virtual ICollection<CustomerProduct> CustomerProducts { get; set; } = new List<CustomerProduct>();
 
-    public virtual ICollection<MovementDetail> MovementDetails { get; set; } = new List<MovementDetail>();
+    public virtual ICollection<Inventory> Inventories { get; set; } = new List<Inventory>();
 
     public virtual ICollection<PickListDetail> PickListDetails { get; set; } = new List<PickListDetail>();
 
@@ -43,9 +41,5 @@ public partial class ProductMaster
 
     public virtual ICollection<StockOutDetail> StockOutDetails { get; set; } = new List<StockOutDetail>();
 
-    public virtual ICollection<StockTakeDetail> StockTakeDetails { get; set; } = new List<StockTakeDetail>();
-
-    public virtual ICollection<StorageCategoryProduct> StorageCategoryProducts { get; set; } = new List<StorageCategoryProduct>();
-
-    public virtual ICollection<TransferDetail> TransferDetails { get; set; } = new List<TransferDetail>();
+    public virtual ICollection<StorageProduct> StorageProducts { get; set; } = new List<StorageProduct>();
 }

@@ -40,8 +40,9 @@ namespace Chrome.Services.LoginService
             }
 
             var permissions = await _groupFunctionRepository.GetListFunctionIDOfGroup(account.GroupId!);
+            var warehouses = await _groupFunctionRepository.GetListApplicableLocationOfGroup(account.GroupId!);
 
-            var token = await _jwtService.GenerateToken(account, permissions);
+            var token = await _jwtService.GenerateToken(account, permissions,warehouses);
             if (string.IsNullOrEmpty(token))
             {
                 return new ServiceResponse<LoginResponse>(false, "Lỗi trong quá trình tạo token");

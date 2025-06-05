@@ -16,7 +16,7 @@ namespace Chrome.Repositories.ProductMasterRepository
         {
             var lstProduct = await _context.ProductMasters
                                            .Include(x => x.Category)
-                                           .Include(x=>x.Inventories)
+                                           .Include(x => x.Inventories)
                                            .OrderBy(x => x.ProductCode)
                                            .Skip((page - 1) * pageSize)
                                            .Take(pageSize)
@@ -48,7 +48,9 @@ namespace Chrome.Repositories.ProductMasterRepository
 
         public Task<int> GetTotalProductCount()
         {
-            var totalCount = _context.ProductMasters.Include(x => x.Category).Include(x => x.Inventories).CountAsync();
+            var totalCount = _context.ProductMasters.Include(x => x.Category)
+                .Include(x => x.Inventories)
+                .CountAsync();
             return totalCount;
         }
 

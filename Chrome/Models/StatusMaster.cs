@@ -13,13 +13,9 @@ public partial class StatusMaster
 
     public virtual ICollection<PickList> PickLists { get; set; } = new List<PickList>();
 
-    public virtual ICollection<PutAway> PutAways { get; set; } = new List<PutAway>();
-
     public virtual ICollection<StockIn> StockIns { get; set; } = new List<StockIn>();
 
     public virtual ICollection<StockOut> StockOuts { get; set; } = new List<StockOut>();
-
-    public virtual ICollection<StockTake> StockTakes { get; set; } = new List<StockTake>();
 
     public virtual ICollection<Transfer> Transfers { get; set; } = new List<Transfer>();
 }

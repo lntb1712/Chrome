@@ -13,11 +13,9 @@ public partial class CustomerMaster
 
     public string? CustomerAddress { get; set; }
 
-    public string? Email { get; set; }
+    public string? CustomerEmail { get; set; }
 
-    public DateTime? UpdateTime { get; set; }
-
-    public string? UpdateBy { get; set; }
+    public virtual ICollection<CustomerProduct> CustomerProducts { get; set; } = new List<CustomerProduct>();
 
     public virtual ICollection<StockOut> StockOuts { get; set; } = new List<StockOut>();
 }

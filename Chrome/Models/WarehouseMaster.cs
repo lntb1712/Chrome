@@ -9,9 +9,13 @@ public partial class WarehouseMaster
 
     public string? WarehouseName { get; set; }
 
-    public DateTime? UpdateTime { get; set; }
+    public string? WarehouseDescription { get; set; }
 
-    public string? UpdateBy { get; set; }
+    public string? WarehouseAddress { get; set; }
+
+    public string? WarehouseManager { get; set; }
+
+    public virtual ICollection<GroupFunction> GroupFunctions { get; set; } = new List<GroupFunction>();
 
     public virtual ICollection<Inventory> Inventories { get; set; } = new List<Inventory>();
 
@@ -25,9 +29,9 @@ public partial class WarehouseMaster
 
     public virtual ICollection<StockOut> StockOuts { get; set; } = new List<StockOut>();
 
-    public virtual ICollection<StockTake> StockTakes { get; set; } = new List<StockTake>();
-
     public virtual ICollection<Transfer> TransferFromWarehouseCodeNavigations { get; set; } = new List<Transfer>();
 
     public virtual ICollection<Transfer> TransferToWarehouseCodeNavigations { get; set; } = new List<Transfer>();
+
+    public virtual AccountManagement? WarehouseManagerNavigation { get; set; }
 }

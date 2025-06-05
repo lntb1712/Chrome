@@ -25,8 +25,6 @@ public partial class Movement
 
     public virtual LocationMaster? FromLocationNavigation { get; set; }
 
-    public virtual ICollection<MovementDetail> MovementDetails { get; set; } = new List<MovementDetail>();
-
     public virtual OrderType? OrderTypeCodeNavigation { get; set; }
 
     public virtual AccountManagement? ResponsibleNavigation { get; set; }
