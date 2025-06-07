@@ -6,7 +6,7 @@ namespace Chrome.DTO.GroupFunctionDTO
         public string GroupId { get; set; } = null!;
         public string FunctionId { get; set; } = null!;
         public bool? IsEnable { get; set; }
-        public string ApplicableLocation { get; set; } = null!;
+        public List<ApplicableLocationResponseDTO> ApplicableLocations { get; set; } = new List<ApplicableLocationResponseDTO>();
         
     }
 }

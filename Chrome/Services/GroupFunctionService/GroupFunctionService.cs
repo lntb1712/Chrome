@@ -18,26 +18,7 @@ namespace Chrome.Services.GroupFunctionService
             _context = context; 
         }
 
-        public async Task<ServiceResponse<List<FunctionResponseDTO>>> GetAllGroupFunctions()
-        {
-            //throw new NotImplementedException();
-            var lstGroupFuntions = await _groupFunctionRepository.GetFunctionsAsync();
-            if (lstGroupFuntions == null || lstGroupFuntions.Count == 0)
-            {
-                return new ServiceResponse<List<FunctionResponseDTO>>(false, "Không có dữ liệu nhóm chức năng", null!);
-            }
 
-            var lstGroupFunctionsDTO = lstGroupFuntions.Select(row => new FunctionResponseDTO
-            {
-                FunctionId = row.FunctionId,
-                FunctionName = row.FunctionName!,
-                IsEnable = false,
-                ApplicableLocation = string.Empty,
-
-
-            }).ToList();
-            return new ServiceResponse<List<FunctionResponseDTO>>(true,"Lấy danh sách chức năng thành công",lstGroupFunctionsDTO);
-        }
         public async Task<ServiceResponse<bool>> DeleteGroupFunction(string groupId, string functionId)
         {
             //throw new NotImplementedException();
@@ -70,6 +51,7 @@ namespace Chrome.Services.GroupFunctionService
                 }
             }
         }
+
         public async Task<ServiceResponse<List<GroupFunctionResponseDTO>>> GetGroupFunctionWithGroupID(string groupId)
         {
             //throw new NotImplementedException();
@@ -85,9 +67,25 @@ namespace Chrome.Services.GroupFunctionService
                 FunctionId = x.FunctionId,
                 FunctionName = x.Function.FunctionName!,
                 IsEnable = x.IsEnable,
-                ApplicableLocation = x.ApplicableLocation!
             }).ToList();
             return new ServiceResponse<List<GroupFunctionResponseDTO>>(true,"Lấy danh sách thành công",lstGroup);
+        }
+
+        public async Task<ServiceResponse<List<ApplicableLocationResponseDTO>>> GetListApplicableSelected()
+        {
+            var lstApplicableLocation = await _groupFunctionRepository.GetListApplicableSelected();
+            if( lstApplicableLocation == null || lstApplicableLocation.Count==0)
+            {
+                return new ServiceResponse<List<ApplicableLocationResponseDTO>>(false, "Không có dữ liệu kho", null!);
+            }
+            var lstApplicableLocationResponse = lstApplicableLocation.Select(x => new ApplicableLocationResponseDTO
+            {
+                ApplicableLocation = x.ApplicableLocation,
+                IsSelected = x.IsSelected
+            }).ToList();
+            return new ServiceResponse<List<ApplicableLocationResponseDTO>>(true, "Lấy danh sách kho thành công", lstApplicableLocationResponse);
+
+
         }
     }
 }

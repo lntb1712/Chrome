@@ -1,4 +1,5 @@
-﻿using Chrome.Models;
+﻿using Chrome.DTO.GroupFunctionDTO;
+using Chrome.Models;
 using Chrome.Repositories.GroupFunctionRepository;
 using Chrome.Repositories.RepositoryBase;
 using DocumentFormat.OpenXml.InkML;
@@ -19,24 +20,17 @@ namespace ProductionInventoryManagmentSystem_API.Repositories.GroupFunctionRepos
 
         public async Task<List<GroupFunction>> GetAllGroupsFunctionWithGroupId(string groupId)
         {
-            
-            var groupFunctions = await _context.GroupFunctions
-                                 .Where(row => row.GroupId.Equals(groupId))
-                                 .Include(row => row.Function)
-                                 .ToListAsync();
-
-            return groupFunctions;
+            return await _context.GroupFunctions
+                .Where(x => x.GroupId == groupId)
+                .Include(x => x.Function)
+                .ToListAsync()
+                .ContinueWith(t => t.Result
+                    .GroupBy(x => x.FunctionId)
+                    .Select(g => g.First())
+                    .ToList());
         }
 
-        public async Task<List<Function>> GetFunctionsAsync()
-        {
-            //throw new NotImplementedException();
-            var functions = await _context.Functions
-                                .Include(x=>x.GroupFunctions)
-                               
-                                .ToListAsync();
-            return functions;
-        }
+
 
         public async Task<List<string>> GetListFunctionIDOfGroup(string groupId)
         {
@@ -57,5 +51,19 @@ namespace ProductionInventoryManagmentSystem_API.Repositories.GroupFunctionRepos
             return lstLocations!;
         }
 
+        public async  Task<List<ApplicableLocationResponseDTO>> GetListApplicableSelected()
+        {
+            var lstApplicableLocations = await _context.WarehouseMasters
+                .Select(wh => new ApplicableLocationResponseDTO
+                {
+                    ApplicableLocation = wh.WarehouseCode,
+                    IsSelected = _context.GroupFunctions.Any(gf => gf.ApplicableLocation == wh.WarehouseCode)
+                })
+                .Distinct()
+                .ToListAsync();
+
+            return lstApplicableLocations;
+
+        }
     }
 }

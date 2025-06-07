@@ -34,6 +34,7 @@ namespace Chrome.Services.AccountManagementService
 
             var lstAccountResponseDTO = lstAccount.Select(x => new AccountManagementResponseDTO
             {
+                UserName = x.UserName,
                 Password = x.Password!,
                 FullName = x.FullName!,
                 GroupID = x.GroupId!,
@@ -61,6 +62,7 @@ namespace Chrome.Services.AccountManagementService
 
             var lstAccountResponseDTO = lstAccountWithGroupId.Select(x => new AccountManagementResponseDTO
             {
+                UserName = x.UserName, 
                 Password = x.Password!,
                 FullName = x.FullName!,
                 GroupID = x.GroupId!,
