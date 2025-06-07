@@ -24,9 +24,9 @@ namespace Chrome.Repositories.ProductMasterRepository
             return lstProduct;
         }
 
-        public Task<List<ProductMaster>> GetAllProductWithCategoryID(string categoryId, int page, int pageSize)
+        public async  Task<List<ProductMaster>> GetAllProductWithCategoryID(string categoryId, int page, int pageSize)
         {
-            var lstProduct = _context.ProductMasters
+            var lstProduct = await _context.ProductMasters
                                      .Include(x => x.Category)
                                      .Include(x => x.Inventories)
                                      .Where(x => x.CategoryId == categoryId)
@@ -37,26 +37,26 @@ namespace Chrome.Repositories.ProductMasterRepository
             return lstProduct;
         }
 
-        public Task<ProductMaster> GetProductMasterWithProductCode(string productCode)
+        public async Task<ProductMaster> GetProductMasterWithProductCode(string productCode)
         {
-            var product = _context.ProductMasters
+            var product = await _context.ProductMasters
                                  .Include(x => x.Category)
                                  .Include(x => x.Inventories)
                                  .FirstOrDefaultAsync(row => row.ProductCode == productCode);
             return product!;
         }
 
-        public Task<int> GetTotalProductCount()
+        public async  Task<int> GetTotalProductCount()
         {
-            var totalCount = _context.ProductMasters.Include(x => x.Category)
+            var totalCount = await _context.ProductMasters.Include(x => x.Category)
                 .Include(x => x.Inventories)
                 .CountAsync();
             return totalCount;
         }
 
-        public Task<int> GetTotalProductWithCategoryIDCount(string categoryId)
+        public async  Task<int> GetTotalProductWithCategoryIDCount(string categoryId)
         {
-            var totalCount = _context.ProductMasters
+            var totalCount = await _context.ProductMasters
                                      .Include(x => x.Category)
                                      .Include(x => x.Inventories)
                                      .Where(x => x.CategoryId == categoryId)
@@ -64,9 +64,9 @@ namespace Chrome.Repositories.ProductMasterRepository
             return totalCount;
         }
 
-        public Task<int> GetTotalSearchCount(string textToSearch)
+        public async Task<int> GetTotalSearchCount(string textToSearch)
         {
-            var totalCount = _context.ProductMasters
+            var totalCount = await _context.ProductMasters
                                      .Include(x => x.Category)
                                      .Include(x => x.Inventories)
                                      .Where(x => x.ProductCode.Contains(textToSearch) || x.ProductName!.Contains(textToSearch) || x.ProductDescription!.Contains(textToSearch))
@@ -74,9 +74,9 @@ namespace Chrome.Repositories.ProductMasterRepository
             return totalCount;
         }
 
-        public Task<List<ProductMaster>> SearchProduct(string textToSearch, int page, int pageSize)
+        public async  Task<List<ProductMaster>> SearchProduct(string textToSearch, int page, int pageSize)
         {
-            var lstProduct = _context.ProductMasters
+            var lstProduct = await _context.ProductMasters
                                      .Include(x => x.Category)
                                      .Include(x => x.Inventories)
                                      .Where(x => x.ProductCode.Contains(textToSearch) || x.ProductName!.Contains(textToSearch) || x.ProductDescription!.Contains(textToSearch))

@@ -1,14 +1,15 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using Chrome.Permision;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using System.Security.Claims;
+using System.Text.RegularExpressions;
 
-namespace Chrome.Permision
+namespace Chrome.Permission
 {
     public class PermissionHandler : AuthorizationHandler<PermissionRequirement>
     {
         protected override Task HandleRequirementAsync(AuthorizationHandlerContext context, PermissionRequirement requirement)
         {
-            // Lấy danh sách quyền từ JWT
             var userPermissions = context.User.Claims
                 .Where(c => c.Type == "Permission")
                 .Select(c => c.Value)
@@ -27,14 +28,13 @@ namespace Chrome.Permision
             if (string.IsNullOrEmpty(requestedPath))
                 return Task.CompletedTask;
 
-            // Lấy warehouseId từ query string (hoặc từ header nếu bạn muốn)
             var warehouseId = httpContext.Request.Query["warehouseId"].ToString();
+
             if (string.IsNullOrEmpty(warehouseId))
             {
-                // Nếu API này không yêu cầu warehouse thì cứ kiểm tra quyền bình thường
                 if (userPermissions.Any(permission =>
-                    PermissionToApiPrefixMap.TryGetValue(permission, out var apiPrefix)
-                    && requestedPath.StartsWith(apiPrefix)))
+                    PermissionToApiPatternMap.TryGetValue(permission, out var apiPattern)
+                    && Regex.IsMatch(requestedPath, apiPattern, RegexOptions.IgnoreCase)))
                 {
                     context.Succeed(requirement);
                 }
@@ -42,10 +42,9 @@ namespace Chrome.Permision
                 return Task.CompletedTask;
             }
 
-            // Nếu API cần warehouseId, kiểm tra cả permission và warehouse
             if (userPermissions.Any(permission =>
-                PermissionToApiPrefixMap.TryGetValue(permission, out var apiPrefix)
-                && requestedPath.StartsWith(apiPrefix))
+                PermissionToApiPatternMap.TryGetValue(permission, out var apiPattern)
+                && Regex.IsMatch(requestedPath, apiPattern, RegexOptions.IgnoreCase))
                 && userWarehouses.Contains(warehouseId))
             {
                 context.Succeed(requirement);
@@ -54,23 +53,24 @@ namespace Chrome.Permision
             return Task.CompletedTask;
         }
 
-        private static readonly Dictionary<string, string> PermissionToApiPrefixMap = new Dictionary<string, string>()
+        private static readonly Dictionary<string, string> PermissionToApiPatternMap = new Dictionary<string, string>()
         {
-            {"ucAccountManagement","/api/AccountManagement"},
-            {"ucGroupManagement","/api/GroupManagement" },
-            {"ucWarehouseMaster","/api/WarehouseMaster" },
-            {"ucStockIn","/api/StockIn"},
-            {"ucStockOut","/api/StockOut"},
-            {"ucProductMaster","/api/ProductMaster"},
-            {"ucSupplierMaster","/api/SupplierMaster" },
-            {"ucCustomerMaster","/api/CustomerMaster" },
-            {"ucInventory","/api/Inventory" },
-            {"ucProductStructure","/api/ProductStructure" },
-            {"ucPickList","/api/PickList" },
-            {"ucTransfer","/api/Transfer" },
-            {"ucProductStructureVersion","/api/ProductStructureVersion" },
-            {"ucProductionOrder","/api/ProductionOrder" },
-            {"ucProductSupplier", "/api/ProductMaster/{productCode}/ProductSupplier"}
+            {"ucAccountManagement", @"^/api/AccountManagement"},
+            {"ucGroupManagement", @"^/api/GroupManagement"},
+            {"ucWarehouseMaster", @"^/api/WarehouseMaster"},
+            {"ucStockIn", @"^/api/StockIn"},
+            {"ucStockOut", @"^/api/StockOut"},
+            {"ucProductMaster", @"^/api/ProductMaster"},
+            {"ucSupplierMaster", @"^/api/SupplierMaster"},
+            {"ucCustomerMaster", @"^/api/CustomerMaster"},
+            {"ucInventory", @"^/api/Inventory"},
+            {"ucProductStructure", @"^/api/ProductStructure"},
+            {"ucPickList", @"^/api/PickList"},
+            {"ucTransfer", @"^/api/Transfer"},
+            {"ucProductStructureVersion", @"^/api/ProductStructureVersion"},
+            {"ucProductionOrder", @"^/api/ProductionOrder"},
+            {"ucProductSupplier", @"^/api/ProductMaster/[^/]+/ProductSupplier"},
+            {"ucProductCustomer", @"^/api/ProductMaster/[^/]+/ProductCustomer"}
         };
     }
 }

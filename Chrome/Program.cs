@@ -1,11 +1,13 @@
 ﻿using Chrome.Models;
 using Chrome.Permision;
+using Chrome.Permission;
 using Chrome.Repositories.AccountRepository;
 using Chrome.Repositories.CategoryRepository;
 using Chrome.Repositories.CustomerMasterRepository;
 using Chrome.Repositories.FunctionRepository;
 using Chrome.Repositories.GroupFunctionRepository;
 using Chrome.Repositories.GroupManagementRepository;
+using Chrome.Repositories.ProductCustomerRepository;
 using Chrome.Repositories.ProductMasterRepository;
 using Chrome.Repositories.ProductSupplierRepository;
 using Chrome.Repositories.SupplierMasterRepository;
@@ -17,6 +19,7 @@ using Chrome.Services.GroupFunctionService;
 using Chrome.Services.GroupManagementService;
 using Chrome.Services.JWTService;
 using Chrome.Services.LoginService;
+using Chrome.Services.ProductCustomerService;
 using Chrome.Services.ProductMasterService;
 using Chrome.Services.ProductSupplierSerivce;
 using Chrome.Services.SupplierMasterService;
@@ -49,6 +52,7 @@ builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<IProductSupplierRepository, ProductSupplierRepository>();
 builder.Services.AddScoped<ISupplierMasterRepository, SupplierMasterRepository>();
 builder.Services.AddScoped<ICustomerMasterRepository, CustomerMasterRepository>();
+builder.Services.AddScoped<IProductCustomerRepository, ProductCustomerRepository>();
 
 
 // Đăng kí Dependency Injection cho các Service
@@ -63,6 +67,7 @@ builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IProductSupplierService, ProductSupplierService>();
 builder.Services.AddScoped<ISupplierMasterService, SupplierMasterService>();
 builder.Services.AddScoped<ICustomerMasterService, CustomerMasterService>();
+builder.Services.AddScoped<IProductCustomerService, ProductCustomerService>();
 // Đăng ký IHttpContextAccessor để thực hiện sử dụng HttpCookie
 builder.Services.AddHttpContextAccessor();
 
@@ -133,7 +138,7 @@ builder.Services.AddAuthorization(options =>
  * Giúp tối ưu hiệu suất và giảm chi phí tạo mới nhiều lần.
  */
 
-builder.Services.AddSingleton<IAuthorizationHandler, PermissionHandler>();
+builder.Services.AddSingleton<IAuthorizationHandler,PermissionHandler>();
 
 builder.Services.AddCors(p => p.AddPolicy("MyCors", build =>
 {

@@ -164,10 +164,6 @@ namespace ProductionInventoryManagmentSystem_API.Services.GroupManagementService
                 GroupId = groupManagementWithGroupId.GroupId,
                 GroupName = groupManagementWithGroupId.GroupName,
                 GroupDescription = groupManagementWithGroupId.GroupDescription,
-                //UpdateBy = groupManagementWithGroupId.UpdateBy,
-                //UpdateTime = groupManagementWithGroupId.UpdateTime.HasValue
-                //            ? groupManagementWithGroupId.UpdateTime.Value.ToString("dd-MM-yyyy")
-                //            : null
             };
             return new ServiceResponse<GroupManagementResponseDTO>(true,"Lấy thông tin nhóm người dùng thành công", groupManagementResponse);
         }
