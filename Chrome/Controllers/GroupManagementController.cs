@@ -122,27 +122,6 @@ namespace Chrome.Controllers
                 return StatusCode(500, $"Lỗi {ex.Message}");
             }
         }
-        [HttpGet("GetListApplicableSelected")]
-        public async Task<IActionResult> GetListApplicableSelected()
-        {
-            try
-            {
-                var response = await _groupFunctionService.GetListApplicableSelected();
-                if (!response.Success)
-                {
-                    return NotFound(new
-                    {
-                        Success = false,
-                        Message = response.Message
-                    });
-                }
-                return Ok(response);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Lỗi {ex.Message}");
-            }
-        }
 
         [HttpDelete("DeleteGroupManagement")]
         public async Task<IActionResult> DeleteGroupManagement([FromQuery] string groupId)

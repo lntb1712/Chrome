@@ -51,19 +51,21 @@ namespace ProductionInventoryManagmentSystem_API.Repositories.GroupFunctionRepos
             return lstLocations!;
         }
 
-        public async  Task<List<ApplicableLocationResponseDTO>> GetListApplicableSelected()
+        public async Task<List<ApplicableLocationResponseDTO>> GetListApplicableSelected(string groupId, string functionId)
         {
             var lstApplicableLocations = await _context.WarehouseMasters
                 .Select(wh => new ApplicableLocationResponseDTO
                 {
                     ApplicableLocation = wh.WarehouseCode,
-                    IsSelected = _context.GroupFunctions.Any(gf => gf.ApplicableLocation == wh.WarehouseCode)
+                    IsSelected = _context.GroupFunctions.Any(gf =>
+                        gf.GroupId == groupId &&
+                        gf.FunctionId == functionId &&
+                        gf.ApplicableLocation == wh.WarehouseCode)
                 })
-                .Distinct()
                 .ToListAsync();
 
             return lstApplicableLocations;
-
         }
+
     }
 }

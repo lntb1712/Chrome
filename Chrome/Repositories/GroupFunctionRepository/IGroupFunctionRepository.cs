@@ -6,7 +6,7 @@ namespace Chrome.Repositories.GroupFunctionRepository
 {
     public interface IGroupFunctionRepository:IRepositoryBase<GroupFunction>
     {
-        Task<List<ApplicableLocationResponseDTO>> GetListApplicableSelected();
+        Task<List<ApplicableLocationResponseDTO>> GetListApplicableSelected(string groudId,string functionId);
         Task<List<GroupFunction>> GetAllGroupsFunctionWithGroupId(string groupId);
         Task<List<string>> GetListFunctionIDOfGroup(string groupId);
         Task<List<string>> GetListApplicableLocationOfGroup(string groupId);

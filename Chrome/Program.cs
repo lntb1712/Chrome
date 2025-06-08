@@ -11,6 +11,7 @@ using Chrome.Repositories.ProductCustomerRepository;
 using Chrome.Repositories.ProductMasterRepository;
 using Chrome.Repositories.ProductSupplierRepository;
 using Chrome.Repositories.SupplierMasterRepository;
+using Chrome.Repositories.WarehouseMasterRepository;
 using Chrome.Services.AccountManagementService;
 using Chrome.Services.CategoryService;
 using Chrome.Services.CustomerMasterService;
@@ -53,6 +54,7 @@ builder.Services.AddScoped<IProductSupplierRepository, ProductSupplierRepository
 builder.Services.AddScoped<ISupplierMasterRepository, SupplierMasterRepository>();
 builder.Services.AddScoped<ICustomerMasterRepository, CustomerMasterRepository>();
 builder.Services.AddScoped<IProductCustomerRepository, ProductCustomerRepository>();
+builder.Services.AddScoped<IWarehouseMasterRepository, WarehouseMasterRepository>();
 
 
 // Đăng kí Dependency Injection cho các Service

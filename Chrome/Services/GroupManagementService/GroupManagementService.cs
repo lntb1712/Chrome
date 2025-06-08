@@ -1,4 +1,4 @@
-﻿using Azure;
+﻿
 using Chrome.DTO;
 using Chrome.DTO.GroupManagementDTO;
 using Chrome.Models;
@@ -28,10 +28,9 @@ namespace ProductionInventoryManagmentSystem_API.Services.GroupManagementService
 
         public async Task<ServiceResponse<bool>> AddGroupManagement(GroupManagementRequestDTO group)
         {
-            //throw new NotImplementedException();\
             if (group == null)
             {
-                return new ServiceResponse<bool>(false,"Dữ liệu nhận vào không hợp lệ");
+                return new ServiceResponse<bool>(false, "Dữ liệu nhận vào không hợp lệ");
             }
 
             var groupManagement = new GroupManagement
@@ -39,20 +38,37 @@ namespace ProductionInventoryManagmentSystem_API.Services.GroupManagementService
                 GroupId = group.GroupId,
                 GroupName = group.GroupName,
                 GroupDescription = group.GroupDescription,
-                GroupFunctions =group.GroupFunctions.Select(x=>new GroupFunction
-                {
-                    GroupId=group.GroupId,
-                    FunctionId=x.FunctionId,
-                    IsEnable=x.IsEnable,
-                }).ToList()
+                GroupFunctions = new List<GroupFunction>()
             };
+
+            // Duyệt từng function
+            // Duyệt từng function
+            foreach (var function in group.GroupFunctions)
+            {
+                // Duyệt từng location cho function đó
+                foreach (var loc in function.ApplicableLocations)
+                {
+                    if (loc.IsSelected)
+                    {
+                        var groupFunction = new GroupFunction
+                        {
+                            GroupId = group.GroupId,
+                            FunctionId = function.FunctionId,
+                            IsEnable = function.IsEnable,
+                            ApplicableLocation = loc.ApplicableLocation
+                        };
+
+                        groupManagement.GroupFunctions.Add(groupFunction);
+                    }
+                }
+            }
+
 
             using (var transaction = await _context.Database.BeginTransactionAsync())
             {
                 try
                 {
-      
-                    await _groupManagementRepository.AddAsync(groupManagement,saveChanges:false);
+                    await _groupManagementRepository.AddAsync(groupManagement, saveChanges: false);
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
                     return new ServiceResponse<bool>(true, "Thêm mới nhóm người dùng thành công");
@@ -63,22 +79,21 @@ namespace ProductionInventoryManagmentSystem_API.Services.GroupManagementService
                     if (dbEx.InnerException != null)
                     {
                         string error = dbEx.InnerException.Message.ToLower();
-                        if(error.Contains("unique")||error.Contains("duplicate")||error.Contains("primary key"))
+                        if (error.Contains("unique") || error.Contains("duplicate") || error.Contains("primary key"))
                         {
                             return new ServiceResponse<bool>(false, "Dữ liệu đã tồn tại");
                         }
-                        if(error.Contains("foreign key"))
+                        if (error.Contains("foreign key"))
                         {
                             return new ServiceResponse<bool>(false, "Dữ liệu tham chiếu không đúng");
                         }
-
                     }
-                    return new ServiceResponse<bool>(false, "Lỗi database:" + dbEx.InnerException?.Message);
+                    return new ServiceResponse<bool>(false, "Lỗi database: " + dbEx.InnerException?.Message);
                 }
                 catch (Exception ex)
                 {
                     await transaction.RollbackAsync();
-                    return new ServiceResponse<bool>(false, $"Lỗi không xác định: {ex.Message} ");
+                    return new ServiceResponse<bool>(false, $"Lỗi không xác định: {ex.Message}");
                 }
             }
         }
@@ -239,25 +254,45 @@ namespace ProductionInventoryManagmentSystem_API.Services.GroupManagementService
                     //groupManagement.UpdateTime = DateTime.Now;
 
 
-                    var existingFunctions = groupManagement.GroupFunctions.ToDictionary(x => x.FunctionId);
+                    var existingFunctions = groupManagement.GroupFunctions.ToDictionary(x => $"{x.FunctionId}_{x.ApplicableLocation}");
+                     
                     foreach (var function in group.GroupFunctions)
                     {
-                        if(existingFunctions.TryGetValue(function.FunctionId,out var existingFuntion))
+                        if (function.ApplicableLocations == null || function.ApplicableLocations.Count == 0)
+                            continue;
+
+                        foreach (var loc in function.ApplicableLocations)
                         {
-                            existingFuntion.IsEnable=function.IsEnable;
-                        }
-                        else
-                        {
-                            groupManagement.GroupFunctions.Add(new GroupFunction
+                            var key = $"{function.FunctionId}_{loc.ApplicableLocation}";
+                            if (loc.IsSelected)
                             {
-                                GroupId = group.GroupId,
-                                FunctionId = function.FunctionId,
-                                IsEnable = function.IsEnable,
-                                //UpdateBy = function.UpdateBy,
-                                //UpdateTime = DateTime.Now
-                            });
+                                if (existingFunctions.TryGetValue(key, out var existingFunction))
+                                {
+                                    existingFunction.IsEnable = function.IsEnable;
+                                }
+                                else
+                                {
+                                    groupManagement.GroupFunctions.Add(new GroupFunction
+                                    {
+                                        GroupId = group.GroupId,
+                                        FunctionId = function.FunctionId,
+                                        ApplicableLocation = loc.ApplicableLocation,
+                                        IsEnable = function.IsEnable
+                                    });
+                                }
+                            }
+                            else
+                            {
+                                // Nếu location không được chọn (IsSelected = false) mà đang có trong DB thì xoá
+                                if (existingFunctions.TryGetValue(key, out var existingFunction))
+                                {
+                                    _context.GroupFunctions.Remove(existingFunction);
+                                }
+                            }
                         }
-                    }    
+
+                    }
+
 
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();

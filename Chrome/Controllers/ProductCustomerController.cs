@@ -58,7 +58,7 @@ namespace Chrome.Controllers
             }
         }
 
-        [HttpPut("UpdateProductCustomer")]
+        [HttpPut("UpdateProductCustomer")] 
         public async Task<IActionResult> UpdateProductCustomer([FromBody] ProductCustomerRequestDTO productCustomer)
         {
             if (productCustomer == null)

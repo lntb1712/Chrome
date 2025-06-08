@@ -7,6 +7,5 @@ namespace Chrome.Services.GroupFunctionService
     {
         Task<ServiceResponse<List<GroupFunctionResponseDTO>>> GetGroupFunctionWithGroupID(string groupId);
         Task<ServiceResponse<bool>> DeleteGroupFunction(string groupId,string functionId);
-        Task<ServiceResponse<List<ApplicableLocationResponseDTO>>> GetListApplicableSelected();
     }
 }

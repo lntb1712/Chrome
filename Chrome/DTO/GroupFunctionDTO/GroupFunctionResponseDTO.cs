@@ -6,5 +6,6 @@
         public string FunctionId { get; set; } = null!;
         public string FunctionName { get; set; } = null!;
         public bool? IsEnable { get; set; }
+        public List<ApplicableLocationResponseDTO> ApplicableLocations { get; set; } = new List<ApplicableLocationResponseDTO>();
     }
 }
