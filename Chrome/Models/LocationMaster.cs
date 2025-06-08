@@ -21,11 +21,13 @@ public partial class LocationMaster
 
     public virtual ICollection<Movement> MovementToLocationNavigations { get; set; } = new List<Movement>();
 
-    public virtual ICollection<PickList> PickLists { get; set; } = new List<PickList>();
+    public virtual ICollection<PickListDetail> PickListDetails { get; set; } = new List<PickListDetail>();
 
     public virtual ICollection<PutAwayRule> PutAwayRules { get; set; } = new List<PutAwayRule>();
 
     public virtual ICollection<PutAway> PutAways { get; set; } = new List<PutAway>();
+
+    public virtual ICollection<ReservationDetail> ReservationDetails { get; set; } = new List<ReservationDetail>();
 
     public virtual StorageProduct? StorageProduct { get; set; }
 

@@ -7,7 +7,7 @@ public partial class PutAwayDetail
 {
     public string PutAwayCode { get; set; } = null!;
 
-    public string? ProductCode { get; set; }
+    public string ProductCode { get; set; } = null!;
 
     public string? LotNo { get; set; }
 
@@ -15,7 +15,7 @@ public partial class PutAwayDetail
 
     public double? Quantity { get; set; }
 
-    public virtual ProductMaster? ProductCodeNavigation { get; set; }
+    public virtual ProductMaster ProductCodeNavigation { get; set; } = null!;
 
     public virtual PutAway PutAwayCodeNavigation { get; set; } = null!;
 }

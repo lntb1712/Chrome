@@ -5,9 +5,15 @@ namespace Chrome.Models;
 
 public partial class Bommaster
 {
-    public string? Bomcode { get; set; }
+    public string Bomcode { get; set; } = null!;
 
-    public string? Bomname { get; set; }
+    public bool? IsActive { get; set; }
+
+    public string Bomversion { get; set; } = null!;
 
     public string? ProductCode { get; set; }
+
+    public virtual ICollection<BomComponent> BomComponents { get; set; } = new List<BomComponent>();
+
+    public virtual ProductMaster? ProductCodeNavigation { get; set; }
 }

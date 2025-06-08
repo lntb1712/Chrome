@@ -23,7 +23,11 @@ public partial class WarehouseMaster
 
     public virtual ICollection<Movement> Movements { get; set; } = new List<Movement>();
 
+    public virtual ICollection<PickList> PickLists { get; set; } = new List<PickList>();
+
     public virtual ICollection<PutAwayRule> PutAwayRules { get; set; } = new List<PutAwayRule>();
+
+    public virtual ICollection<ReservationDetail> ReservationDetails { get; set; } = new List<ReservationDetail>();
 
     public virtual ICollection<StockIn> StockIns { get; set; } = new List<StockIn>();
 

@@ -30,4 +30,6 @@ public partial class Transfer
     public virtual StatusMaster? Status { get; set; }
 
     public virtual WarehouseMaster? ToWarehouseCodeNavigation { get; set; }
+
+    public virtual ICollection<TransferDetail> TransferDetails { get; set; } = new List<TransferDetail>();
 }

@@ -5,11 +5,15 @@ namespace Chrome.Models;
 
 public partial class TransferDetail
 {
-    public string? TransferCode { get; set; }
+    public string TransferCode { get; set; } = null!;
 
-    public string? ProductCode { get; set; }
+    public string ProductCode { get; set; } = null!;
 
     public double? Demand { get; set; }
 
     public double? Quantity { get; set; }
+
+    public virtual ProductMaster ProductCodeNavigation { get; set; } = null!;
+
+    public virtual Transfer TransferCodeNavigation { get; set; } = null!;
 }

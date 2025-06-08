@@ -15,6 +15,10 @@ public partial class PickListDetail
 
     public double? Quantity { get; set; }
 
+    public string? LocationCode { get; set; }
+
+    public virtual LocationMaster? LocationCodeNavigation { get; set; }
+
     public virtual PickList PickNoNavigation { get; set; } = null!;
 
     public virtual ProductMaster ProductCodeNavigation { get; set; } = null!;

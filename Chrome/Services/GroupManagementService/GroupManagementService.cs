@@ -42,7 +42,6 @@ namespace ProductionInventoryManagmentSystem_API.Services.GroupManagementService
             };
 
             // Duyệt từng function
-            // Duyệt từng function
             foreach (var function in group.GroupFunctions)
             {
                 // Duyệt từng location cho function đó

@@ -23,11 +23,17 @@ public partial class ProductMaster
 
     public double? Valuation { get; set; }
 
+    public virtual ICollection<BomComponent> BomComponents { get; set; } = new List<BomComponent>();
+
+    public virtual ICollection<Bommaster> Bommasters { get; set; } = new List<Bommaster>();
+
     public virtual Category? Category { get; set; }
 
     public virtual ICollection<CustomerProduct> CustomerProducts { get; set; } = new List<CustomerProduct>();
 
     public virtual ICollection<Inventory> Inventories { get; set; } = new List<Inventory>();
+
+    public virtual ICollection<MovementDetail> MovementDetails { get; set; } = new List<MovementDetail>();
 
     public virtual ICollection<PickListDetail> PickListDetails { get; set; } = new List<PickListDetail>();
 
@@ -37,9 +43,13 @@ public partial class ProductMaster
 
     public virtual ICollection<PutAwayRule> PutAwayRules { get; set; } = new List<PutAwayRule>();
 
+    public virtual ICollection<ReservationDetail> ReservationDetails { get; set; } = new List<ReservationDetail>();
+
     public virtual ICollection<StockInDetail> StockInDetails { get; set; } = new List<StockInDetail>();
 
     public virtual ICollection<StockOutDetail> StockOutDetails { get; set; } = new List<StockOutDetail>();
 
     public virtual ICollection<StorageProduct> StorageProducts { get; set; } = new List<StorageProduct>();
+
+    public virtual ICollection<TransferDetail> TransferDetails { get; set; } = new List<TransferDetail>();
 }

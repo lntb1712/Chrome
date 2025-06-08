@@ -13,6 +13,8 @@ public partial class StatusMaster
 
     public virtual ICollection<PickList> PickLists { get; set; } = new List<PickList>();
 
+    public virtual ICollection<Reservation> Reservations { get; set; } = new List<Reservation>();
+
     public virtual ICollection<StockIn> StockIns { get; set; } = new List<StockIn>();
 
     public virtual ICollection<StockOut> StockOuts { get; set; } = new List<StockOut>();
