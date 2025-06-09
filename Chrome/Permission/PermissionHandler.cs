@@ -70,7 +70,9 @@ namespace Chrome.Permission
             {"ucProductStructureVersion", @"^/api/ProductStructureVersion"},
             {"ucProductionOrder", @"^/api/ProductionOrder"},
             {"ucProductSupplier", @"^/api/ProductMaster/[^/]+/ProductSupplier"},
-            {"ucProductCustomer", @"^/api/ProductMaster/[^/]+/ProductCustomer"}
+            {"ucProductCustomer", @"^/api/ProductMaster/[^/]+/ProductCustomer"},
+            {"ucStorageProduct", @"^/api/StorageProduct"},
+            {"ucPutAwayRules",@"^/api/PutAwayRules" }
         };
     }
 }

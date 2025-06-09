@@ -13,8 +13,6 @@ public partial class WarehouseMaster
 
     public string? WarehouseAddress { get; set; }
 
-    public string? WarehouseManager { get; set; }
-
     public virtual ICollection<GroupFunction> GroupFunctions { get; set; } = new List<GroupFunction>();
 
     public virtual ICollection<Inventory> Inventories { get; set; } = new List<Inventory>();
@@ -36,6 +34,4 @@ public partial class WarehouseMaster
     public virtual ICollection<Transfer> TransferFromWarehouseCodeNavigations { get; set; } = new List<Transfer>();
 
     public virtual ICollection<Transfer> TransferToWarehouseCodeNavigations { get; set; } = new List<Transfer>();
-
-    public virtual AccountManagement? WarehouseManagerNavigation { get; set; }
 }

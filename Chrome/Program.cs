@@ -7,9 +7,12 @@ using Chrome.Repositories.CustomerMasterRepository;
 using Chrome.Repositories.FunctionRepository;
 using Chrome.Repositories.GroupFunctionRepository;
 using Chrome.Repositories.GroupManagementRepository;
+using Chrome.Repositories.LocationMasterRepository;
 using Chrome.Repositories.ProductCustomerRepository;
 using Chrome.Repositories.ProductMasterRepository;
 using Chrome.Repositories.ProductSupplierRepository;
+using Chrome.Repositories.PutAwayRulesRepository;
+using Chrome.Repositories.StorageProductRepository;
 using Chrome.Repositories.SupplierMasterRepository;
 using Chrome.Repositories.WarehouseMasterRepository;
 using Chrome.Services.AccountManagementService;
@@ -19,11 +22,15 @@ using Chrome.Services.FunctionService;
 using Chrome.Services.GroupFunctionService;
 using Chrome.Services.GroupManagementService;
 using Chrome.Services.JWTService;
+using Chrome.Services.LocationMasterService;
 using Chrome.Services.LoginService;
 using Chrome.Services.ProductCustomerService;
 using Chrome.Services.ProductMasterService;
 using Chrome.Services.ProductSupplierSerivce;
+using Chrome.Services.PutAwayRulesService;
+using Chrome.Services.StorageProductService;
 using Chrome.Services.SupplierMasterService;
+using Chrome.Services.WarehouseMasterService;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
@@ -55,6 +62,9 @@ builder.Services.AddScoped<ISupplierMasterRepository, SupplierMasterRepository>(
 builder.Services.AddScoped<ICustomerMasterRepository, CustomerMasterRepository>();
 builder.Services.AddScoped<IProductCustomerRepository, ProductCustomerRepository>();
 builder.Services.AddScoped<IWarehouseMasterRepository, WarehouseMasterRepository>();
+builder.Services.AddScoped<ILocationMasterRepository, LocationMasterRepository>();
+builder.Services.AddScoped<IStorageProductRepository, StorageProductRepository>();
+builder.Services.AddScoped<IPutAwayRulesRepository, PutAwayRulesRepository>();
 
 
 // Đăng kí Dependency Injection cho các Service
@@ -70,6 +80,10 @@ builder.Services.AddScoped<IProductSupplierService, ProductSupplierService>();
 builder.Services.AddScoped<ISupplierMasterService, SupplierMasterService>();
 builder.Services.AddScoped<ICustomerMasterService, CustomerMasterService>();
 builder.Services.AddScoped<IProductCustomerService, ProductCustomerService>();
+builder.Services.AddScoped<IWarehouseMasterService, WarehouseMasterService>();
+builder.Services.AddScoped<ILocationMasterService, LocationMasterService>();
+builder.Services.AddScoped<IStorageProductService, StorageProductService>();
+builder.Services.AddScoped<IPutAwayRulesService, PutAwayRulesService>();
 // Đăng ký IHttpContextAccessor để thực hiện sử dụng HttpCookie
 builder.Services.AddHttpContextAccessor();
 

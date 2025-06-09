@@ -24,6 +24,4 @@ public partial class AccountManagement
     public virtual ICollection<StockOut> StockOuts { get; set; } = new List<StockOut>();
 
     public virtual ICollection<Transfer> Transfers { get; set; } = new List<Transfer>();
-
-    public virtual ICollection<WarehouseMaster> WarehouseMasters { get; set; } = new List<WarehouseMaster>();
 }
