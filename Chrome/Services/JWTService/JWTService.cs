@@ -3,6 +3,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using System.Text.Json;
 
 namespace Chrome.Services.JWTService
 {
@@ -30,10 +31,19 @@ namespace Chrome.Services.JWTService
                 claims.Add(new Claim("Permission", permission));
             }
 
-            // Thêm Warehouse claims
-            foreach (var warehouse in warehouses)
+            if (warehouses.Count == 1)
             {
-                claims.Add(new Claim("Warehouse", warehouse));
+                var warehouseJson = JsonSerializer.Serialize(warehouses);
+                claims.Add(new Claim("Warehouse", warehouseJson));
+            }
+            else
+            {
+                // Thêm Warehouse claims
+                foreach (var warehouse in warehouses)
+                {
+                    
+                    claims.Add(new Claim("Warehouse", warehouse));
+                }
             }
 
             var secretKey = Encoding.UTF8.GetBytes(_configuration["AppSettings:SecretKey"]!);
