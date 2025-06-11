@@ -13,6 +13,7 @@ namespace Chrome.Services.ProductMasterService
         Task<ServiceResponse<PagedResponse<ProductMasterResponseDTO>>> GetAllProductWithCategoryID(string categoryId, int page, int pageSize);
         Task<ServiceResponse<PagedResponse<ProductMasterResponseDTO>>> SearchProduct(string textToSearch, int page, int pageSize);
         Task<ServiceResponse<int>>GetTotalProductCount();
+        Task<ServiceResponse<List<ProductMasterResponseDTO>>> GetProductWithCategoryIds(string[] categoryIds);
 
     }
 }

@@ -64,7 +64,7 @@ namespace Chrome.Permission
             {"ucSupplierMaster", @"^/api/SupplierMaster"},
             {"ucCustomerMaster", @"^/api/CustomerMaster"},
             {"ucInventory", @"^/api/Inventory"},
-            {"ucProductStructure", @"^/api/ProductStructure"},
+            {"ucBOMMaster", @"^/api/BOMMaster"},
             {"ucPickList", @"^/api/PickList"},
             {"ucTransfer", @"^/api/Transfer"},
             {"ucProductStructureVersion", @"^/api/ProductStructureVersion"},

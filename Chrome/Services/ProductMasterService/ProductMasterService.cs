@@ -200,6 +200,29 @@ namespace Chrome.Services.ProductMasterService
             return new ServiceResponse<ProductMasterResponseDTO>(true, "Lấy thông tin sản phẩm thành công.", productResponse);
         }
 
+        public async Task<ServiceResponse<List<ProductMasterResponseDTO>>> GetProductWithCategoryIds(string[] categoryIds)
+        {
+            if (categoryIds.Length == 0)
+            {
+                return new ServiceResponse<List<ProductMasterResponseDTO>>(false, "Dữ liệu nhận vào không hợp lệ");
+            }
+            var lstProduct = await _productMasterRepository.GetProductMasterWithCategoryID(categoryIds);
+            var lstProductCategoryResponse = lstProduct.Select(product => new ProductMasterResponseDTO
+            {
+                ProductCode = product.ProductCode,
+                ProductName = product.ProductName,
+                ProductDescription = product.ProductDescription,
+                ProductImage = product.ProductImage,
+                CategoryId = product.CategoryId,
+                CategoryName = product.Category?.CategoryName ?? "Không có danh mục",
+                BaseQuantity = product.BaseQuantity,
+                Uom = product.Uom,
+                BaseUom = product.BaseUom,
+                Valuation = (float?)product.Valuation,
+                TotalOnHand = (float)(product.Inventories.Where(t => t.ProductCode == product.ProductCode).Sum(i => i.Quantity) ?? 0.00),
+            }).ToList();
+            return new ServiceResponse<List<ProductMasterResponseDTO>>(true, "Lấy thông tin sản phẩm thành công.", lstProductCategoryResponse);
+        }
         public async Task<ServiceResponse<int>> GetTotalProductCount()
         {
             try

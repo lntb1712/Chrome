@@ -37,6 +37,16 @@ namespace Chrome.Repositories.ProductMasterRepository
             return lstProduct;
         }
 
+        public async Task<List<ProductMaster>> GetProductMasterWithCategoryID(string[] categoryIds)
+        {
+            var lstProduct = await _context.ProductMasters
+                                           .Include(x => x.Category)
+                                           .Include(x => x.Inventories)
+                                           .Where(x => categoryIds.Contains(x.CategoryId))
+                                           .ToListAsync();
+            return lstProduct;
+        }
+
         public async Task<ProductMaster> GetProductMasterWithProductCode(string productCode)
         {
             var product = await _context.ProductMasters

@@ -2,6 +2,8 @@
 using Chrome.Permision;
 using Chrome.Permission;
 using Chrome.Repositories.AccountRepository;
+using Chrome.Repositories.BOMComponentRepository;
+using Chrome.Repositories.BOMMasterRepository;
 using Chrome.Repositories.CategoryRepository;
 using Chrome.Repositories.CustomerMasterRepository;
 using Chrome.Repositories.FunctionRepository;
@@ -16,6 +18,8 @@ using Chrome.Repositories.StorageProductRepository;
 using Chrome.Repositories.SupplierMasterRepository;
 using Chrome.Repositories.WarehouseMasterRepository;
 using Chrome.Services.AccountManagementService;
+using Chrome.Services.BOMComponentService;
+using Chrome.Services.BOMMasterService;
 using Chrome.Services.CategoryService;
 using Chrome.Services.CustomerMasterService;
 using Chrome.Services.FunctionService;
@@ -65,6 +69,8 @@ builder.Services.AddScoped<IWarehouseMasterRepository, WarehouseMasterRepository
 builder.Services.AddScoped<ILocationMasterRepository, LocationMasterRepository>();
 builder.Services.AddScoped<IStorageProductRepository, StorageProductRepository>();
 builder.Services.AddScoped<IPutAwayRulesRepository, PutAwayRulesRepository>();
+builder.Services.AddScoped<IBOMMasterRepository, BOMMasterRepository>();
+builder.Services.AddScoped<IBOMComponentRepository,BOMComponentRepository>();
 
 
 // Đăng kí Dependency Injection cho các Service
@@ -84,6 +90,8 @@ builder.Services.AddScoped<IWarehouseMasterService, WarehouseMasterService>();
 builder.Services.AddScoped<ILocationMasterService, LocationMasterService>();
 builder.Services.AddScoped<IStorageProductService, StorageProductService>();
 builder.Services.AddScoped<IPutAwayRulesService, PutAwayRulesService>();
+builder.Services.AddScoped<IBOMMasterService, BOMMasterService>();
+builder.Services.AddScoped<IBOMComponentService,BOMComponentService>();
 // Đăng ký IHttpContextAccessor để thực hiện sử dụng HttpCookie
 builder.Services.AddHttpContextAccessor();
 

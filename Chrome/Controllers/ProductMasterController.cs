@@ -88,6 +88,28 @@ namespace Chrome.Controllers
             }
         }
 
+        [HttpGet("GetProductWithCategoryIDs")]
+        public async Task<IActionResult> GetProductWithCategoryIDs([FromQuery] string[] categoryIds)
+        {
+            try
+            {
+                var response = await _productMasterService.GetProductWithCategoryIds(categoryIds);
+                if(!response.Success)
+                {
+                    return NotFound(new
+                    {
+                        Success = false,
+                        Message = response.Message
+                    });
+                }
+                return Ok(response);
+            }
+            catch(Exception ex)
+            {
+                return StatusCode(500, $"Lỗi:{ex.Message}");
+            }
+        }
+
         [HttpGet("SearchProduct")]
         public async Task<IActionResult> SearchProduct([FromQuery] string textToSearch, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
         {
