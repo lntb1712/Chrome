@@ -75,7 +75,7 @@ namespace Chrome.Services.StockInDetailService
                 StockInCode = stockInDetail.StockInCode,
                 ProductCode = stockInDetail.ProductCode,
                 Demand = stockInDetail.Demand,
-                LotNo = "RCV-"+stockIn.OrderDeadline!.Value.ToString("yyyyMMdd")+stockIn.SupplierCode,
+                LotNo = "RCV-" + stockIn.OrderDeadline!.Value.ToString("yyyyMMdd") + stockIn.SupplierCode + stockInDetail.ProductCode,
                 Quantity = 0,
             };
             using (var transaction = await _context.Database.BeginTransactionAsync())
@@ -111,46 +111,35 @@ namespace Chrome.Services.StockInDetailService
                 }
             }
         }
+
         public async Task<ServiceResponse<bool>> CheckAndUpdateBackOrderStatus(string stockInCode)
         {
             if (string.IsNullOrEmpty(stockInCode))
                 return new ServiceResponse<bool>(false, "Mã nhập kho không được để trống");
 
+            // Giải mã stockInCode
+            string decodedStockInCode = Uri.UnescapeDataString(stockInCode);
+
             // Lấy stockIn gốc
-            var stockInHeader = await _context.StockIns.FirstOrDefaultAsync(x => x.StockInCode == stockInCode);
+            var stockInHeader = await _context.StockIns.FirstOrDefaultAsync(x => x.StockInCode == decodedStockInCode);
             if (stockInHeader == null)
                 return new ServiceResponse<bool>(false, "Phiếu nhập kho không tồn tại");
 
-            // Lấy tất cả stockInDetails của stockInCode chính và các backorder liên quan
+            // Lấy tất cả stockInDetails của stockInCode chính 
             var allStockInDetails = await _context.StockInDetails
-                .Where(x => x.StockInCode == stockInCode || x.StockInCode.StartsWith("BackOrder/" + stockInCode))
+                .Where(x => x.StockInCode == decodedStockInCode)
                 .ToListAsync();
-
             if (allStockInDetails.Count == 0)
-                return new ServiceResponse<bool>(false, "Không có sản phẩm trong phiếu nhập và các backorder");
-
-            // Gom nhóm theo ProductCode và tính tổng Quantity đã nhập
-            var totalByProduct = allStockInDetails
-                .GroupBy(x => x.ProductCode)
-                .Select(g => new
-                {
-                    ProductCode = g.Key,
-                    TotalQuantity = g.Sum(x => x.Quantity),
-                    TotalDemand = g.Where(x => x.StockInCode == stockInCode).Sum(x => x.Demand) // Demand chỉ lấy từ stockIn gốc
-                })
-                .ToList();
-
-            // Kiểm tra nếu tất cả đã đủ
-            bool allCompleted = totalByProduct.All(x => x.TotalQuantity >= x.TotalDemand);
+                return new ServiceResponse<bool>(false, "Không có sản phẩm trong phiếu nhập");
+            bool allCompleted = allStockInDetails.All(x => x.Quantity >= x.Demand);
 
             if (allCompleted)
             {
-                stockInHeader.StatusId = 3; // Hoàn tất
+                stockInHeader.StatusId = 3;
                 _context.StockIns.Update(stockInHeader);
                 await _context.SaveChangesAsync();
-                return new ServiceResponse<bool>(true, "Cập nhật trạng thái Hoàn tất cho phiếu nhập kho thành công");
+                return new ServiceResponse<bool>(true, "Phiếu nhập kho đã được hoàn tất");
             }
-
             return new ServiceResponse<bool>(true, "Chưa đủ số lượng để hoàn tất phiếu nhập kho");
         }
 
@@ -161,7 +150,10 @@ namespace Chrome.Services.StockInDetailService
                 return new ServiceResponse<bool>(false, "Mã nhập kho không được để trống");
             }
 
-            var lstStockInDetails = await _stockInDetailRepository.GetAllStockInDetails(stockInCode).ToListAsync();
+            // Giải mã stockInCode
+            string decodedStockInCode = Uri.UnescapeDataString(stockInCode);
+
+            var lstStockInDetails = await _stockInDetailRepository.GetAllStockInDetails(decodedStockInCode).ToListAsync();
             if (lstStockInDetails.Count == 0)
             {
                 return new ServiceResponse<bool>(false, "Không có sản phẩm để cập nhật tồn kho");
@@ -195,15 +187,22 @@ namespace Chrome.Services.StockInDetailService
                         .Where(x => x.WarehouseCode == warehouseCode && locationCodes.Contains(x.LocationCode))
                         .ToDictionaryAsync(x => x.LocationCode, x => x);
 
-                    // Preload Inventories
+                    // Preload ProductMasters
+                    var productCodes = lstStockInDetails.Select(x => x.ProductCode).Distinct().ToList();
+                    var productMasters = await _context.ProductMasters
+                        .Where(x => productCodes.Contains(x.ProductCode))
+                        .ToDictionaryAsync(x => x.ProductCode, x => x);
+
+                    // Preload Inventories with client-side filtering
                     var inventoryKeys = lstStockInDetails.Select(x =>
                         new { LocationCode = putAwayRules.ContainsKey(x.ProductCode) ? putAwayRules[x.ProductCode].LocationCode! : $"{warehouseCode}/VIRTUAL_LOC/{x.ProductCode}", x.ProductCode, x.LotNo }
                     ).Distinct().ToList();
 
-                    var inventories = await _context.Inventories
-                        .Where(x => x.WarehouseCode == warehouseCode &&
-                                    inventoryKeys.Any(k => k.LocationCode == x.LocationCode && k.ProductCode == x.ProductCode && k.LotNo == x.Lotno))
-                        .ToListAsync();
+                    var inventories = _context.Inventories
+                        .Where(x => x.WarehouseCode == warehouseCode)
+                        .AsEnumerable() // Switch to client-side evaluation
+                        .Where(x => inventoryKeys.Any(k => k.LocationCode == x.LocationCode && k.ProductCode == x.ProductCode && k.LotNo == x.Lotno))
+                        .ToList();
 
                     foreach (var item in lstStockInDetails)
                     {
@@ -220,19 +219,25 @@ namespace Chrome.Services.StockInDetailService
                             var storageProductId = $"SP_{item.ProductCode}";
                             if (!storageProducts.TryGetValue(storageProductId, out var storageProduct))
                             {
+                                // Lấy BaseQuantity từ ProductMaster để tính MaxQuantity theo mét
+                                var baseQuantity = productMasters.ContainsKey(item.ProductCode) ? (productMasters[item.ProductCode].BaseQuantity ?? 1) : 1;
+                                var maxQuantityInBaseUOM = item.Quantity * baseQuantity;
+
                                 storageProduct = new StorageProduct
                                 {
                                     StorageProductId = storageProductId,
                                     StorageProductName = $"Định mức ảo cho {item.ProductCode}",
                                     ProductCode = item.ProductCode,
-                                    MaxQuantity = item.Quantity
+                                    MaxQuantity = maxQuantityInBaseUOM // Lưu theo mét
                                 };
                                 _context.StorageProducts.Add(storageProduct);
                                 storageProducts.Add(storageProductId, storageProduct);
                             }
                             else
                             {
-                                storageProduct.MaxQuantity += item.Quantity;
+                                // Cập nhật MaxQuantity theo mét
+                                var baseQuantity = productMasters.ContainsKey(item.ProductCode) ? (productMasters[item.ProductCode].BaseQuantity ?? 1) : 1;
+                                storageProduct.MaxQuantity += item.Quantity * baseQuantity;
                                 _context.StorageProducts.Update(storageProduct);
                             }
 
@@ -259,23 +264,30 @@ namespace Chrome.Services.StockInDetailService
                             x.Lotno == item.LotNo
                         );
 
+                        var inventoryRequestDTO = new InventoryRequestDTO
+                        {
+                            WarehouseCode = warehouseCode,
+                            LocationCode = locationCode,
+                            ProductCode = item.ProductCode,
+                            LotNo = item.LotNo!,
+                            Quantity = item.Quantity // Quantity theo thanh
+                        };
+
+                        ServiceResponse<bool> inventoryResult;
                         if (existingInventory == null)
                         {
-                            var newInventory = new Inventory
-                            {
-                                WarehouseCode = warehouseCode,
-                                LocationCode = locationCode,
-                                ProductCode = item.ProductCode,
-                                Lotno = item.LotNo!,
-                                Quantity = item.Quantity
-                            };
-                            _context.Inventories.Add(newInventory);
-                            inventories.Add(newInventory);
+                            // Thêm mới inventory
+                            inventoryResult = await _inventoryService.AddInventory(inventoryRequestDTO, saveChanges: false);
                         }
                         else
                         {
-                            existingInventory.Quantity += item.Quantity;
-                            _context.Inventories.Update(existingInventory);
+                            // Cập nhật inventory
+                            inventoryResult = await _inventoryService.UpdateInventoryAsync(inventoryRequestDTO, saveChanges: false);
+                        }
+
+                        if (!inventoryResult.Success)
+                        {
+                            throw new Exception($"Lỗi khi xử lý tồn kho cho sản phẩm {item.ProductCode}: {inventoryResult.Message}");
                         }
                     }
 
@@ -296,12 +308,16 @@ namespace Chrome.Services.StockInDetailService
             }
         }
 
+
         public async Task<ServiceResponse<bool>> CreateBackOrder(string stockInCode, string backOrderDescription)
         {
             if (string.IsNullOrEmpty(stockInCode))
                 return new ServiceResponse<bool>(false, "Mã nhập kho không được để trống");
 
-            var lstStockInDetails = await _stockInDetailRepository.GetAllStockInDetails(stockInCode).ToListAsync();
+            // Giải mã stockInCode
+            string decodedStockInCode = Uri.UnescapeDataString(stockInCode);
+
+            var lstStockInDetails = await _stockInDetailRepository.GetAllStockInDetails(decodedStockInCode).ToListAsync();
             if (lstStockInDetails.Count == 0)
                 return new ServiceResponse<bool>(false, "Không có sản phẩm trong phiếu nhập");
 
@@ -317,19 +333,20 @@ namespace Chrome.Services.StockInDetailService
                     var stockInHeader = itemsToBackOrder.First().StockInCodeNavigation;
 
                     // Tạo StockIn Backorder mới
-                    var backOrderCode = "BackOrder/" + stockInCode;
-                    var backOrder = new StockInRequestDTO
+                    var backOrderCode = "BackOrder/" + decodedStockInCode;
+                    var newStockIn = new StockIn
                     {
                         StockInCode = backOrderCode,
                         OrderTypeCode = stockInHeader.OrderTypeCode,
                         WarehouseCode = stockInHeader.WarehouseCode,
                         SupplierCode = stockInHeader.SupplierCode,
                         Responsible = stockInHeader.Responsible,
-                        OrderDeadline = stockInHeader.OrderDeadline!.Value.ToString("dd/MM/yyyy"),
+                        OrderDeadline = stockInHeader.OrderDeadline,
                         StatusId = 1,
                         StockInDescription = backOrderDescription
                     };
-                    await _stockInService.AddStockIn(backOrder);
+
+                    await _stockInRepository.AddAsync(newStockIn, saveChanges: false);
 
                     // Thêm các chi tiết sản phẩm thiếu vào backorder
                     foreach (var item in itemsToBackOrder)
@@ -345,7 +362,10 @@ namespace Chrome.Services.StockInDetailService
                             Quantity = 0
                         };
 
+                        item.Demand = item.Quantity;
+
                         await _stockInDetailRepository.AddAsync(backOrderDetail, saveChanges: false);
+                        await _stockInDetailRepository.UpdateAsync(item, saveChanges: false);
                     }
 
                     await _context.SaveChangesAsync();
@@ -374,14 +394,17 @@ namespace Chrome.Services.StockInDetailService
             }
         }
 
-        
         public async Task<ServiceResponse<bool>> DeleteStockInDetail(string stockInCode, string productCode)
         {
-            if(string.IsNullOrEmpty(stockInCode)||string.IsNullOrEmpty(productCode))
+            if (string.IsNullOrEmpty(stockInCode) || string.IsNullOrEmpty(productCode))
             {
-                return new ServiceResponse<bool>(false, "Mã nhập kho và mã sản phẩm ");
+                return new ServiceResponse<bool>(false, "Mã nhập kho và mã sản phẩm không được để trống");
             }
-            var existingStockInDetail = await _stockInDetailRepository.GetStockInDetailWithCode(stockInCode, productCode);
+
+            // Giải mã stockInCode
+            string decodedStockInCode = Uri.UnescapeDataString(stockInCode);
+
+            var existingStockInDetail = await _stockInDetailRepository.GetStockInDetailWithCode(decodedStockInCode, productCode);
             if (existingStockInDetail == null)
             {
                 return new ServiceResponse<bool>(false, "Sản phẩm để nhập kho không tồn tại");
@@ -390,7 +413,7 @@ namespace Chrome.Services.StockInDetailService
             {
                 try
                 {
-                    Expression<Func<StockInDetail, bool>> predicate = x =>x.StockInCode==stockInCode && x.ProductCode==productCode;
+                    Expression<Func<StockInDetail, bool>> predicate = x => x.StockInCode == decodedStockInCode && x.ProductCode == productCode;
                     await _stockInDetailRepository.DeleteFirstByConditionAsync(predicate);
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
@@ -419,13 +442,17 @@ namespace Chrome.Services.StockInDetailService
 
         public async Task<ServiceResponse<PagedResponse<StockInDetailResponseDTO>>> GetAllStockInDetails(string stockInCode, int page, int pageSize)
         {
-            if(string.IsNullOrEmpty(stockInCode))
+            if (string.IsNullOrEmpty(stockInCode))
             {
                 return new ServiceResponse<PagedResponse<StockInDetailResponseDTO>>(false, "Mã phiếu nhập kho không được để trống");
-            }    
-            var query =  _stockInDetailRepository.GetAllStockInDetails(stockInCode);
+            }
+
+            // Giải mã stockInCode
+            string decodedStockInCode = Uri.UnescapeDataString(stockInCode);
+
+            var query = _stockInDetailRepository.GetAllStockInDetails(decodedStockInCode);
             var lstStockInDetails = await query
-                                    .Select(x=>new StockInDetailResponseDTO
+                                    .Select(x => new StockInDetailResponseDTO
                                     {
                                         StockInCode = x.StockInCode,
                                         ProductCode = x.ProductCode,
@@ -435,31 +462,30 @@ namespace Chrome.Services.StockInDetailService
                                         Quantity = x.Quantity,
                                     })
                                     .OrderBy(x => x.ProductCode)
-                                    .Skip((page-1) *pageSize)
+                                    .Skip((page - 1) * pageSize)
                                     .Take(pageSize)
                                     .ToListAsync();
             var totalItems = await query.CountAsync();
-            var pagedResponse = new PagedResponse<StockInDetailResponseDTO>(lstStockInDetails,page,pageSize, totalItems);
-            return new ServiceResponse<PagedResponse<StockInDetailResponseDTO>>(true, "Lấy danh sách nhập kho thành công",pagedResponse);
-
+            var pagedResponse = new PagedResponse<StockInDetailResponseDTO>(lstStockInDetails, page, pageSize, totalItems);
+            return new ServiceResponse<PagedResponse<StockInDetailResponseDTO>>(true, "Lấy danh sách nhập kho thành công", pagedResponse);
         }
 
         public async Task<ServiceResponse<List<ProductMasterResponseDTO>>> GetListProductToSI()
         {
-            var lstProduct = await _productMasterRepository.GetAllProduct(1,int.MaxValue);
+            var lstProduct = await _productMasterRepository.GetAllProduct(1, int.MaxValue);
             var lstProductForSI = lstProduct.Where(p => p.CategoryId != "SFG")
                                             .Select(p => new ProductMasterResponseDTO
                                             {
-                                               ProductCode = p.ProductCode,
-                                               ProductName = p.ProductName,
-                                               ProductDescription = p.ProductDescription,
-                                               ProductImage = p.ProductImage,
-                                               CategoryId = p.CategoryId,
-                                               CategoryName = p.Category?.CategoryName ?? "Không có danh mục",
-                                               BaseQuantity = p.BaseQuantity,
-                                               Uom = p.Uom,
-                                               BaseUom = p.BaseUom,
-                                               Valuation = (float?)p.Valuation,
+                                                ProductCode = p.ProductCode,
+                                                ProductName = p.ProductName,
+                                                ProductDescription = p.ProductDescription,
+                                                ProductImage = p.ProductImage,
+                                                CategoryId = p.CategoryId,
+                                                CategoryName = p.Category?.CategoryName ?? "Không có danh mục",
+                                                BaseQuantity = p.BaseQuantity,
+                                                Uom = p.Uom,
+                                                BaseUom = p.BaseUom,
+                                                Valuation = (float?)p.Valuation,
                                             }).ToList();
 
             return new ServiceResponse<List<ProductMasterResponseDTO>>(true, "Lấy danh sách sản phẩm thành công", lstProductForSI);
@@ -467,10 +493,14 @@ namespace Chrome.Services.StockInDetailService
 
         public async Task<ServiceResponse<bool>> UpdateStockInDetail(StockInDetailRequestDTO stockInDetail)
         {
-            if (stockInDetail == null) return new ServiceResponse<bool>(false, "Dữ liệu nhận vào không hợp lệ");
+            if (stockInDetail == null) 
+                return new ServiceResponse<bool>(false, "Dữ liệu nhận vào không hợp lệ");
 
-            var existingStockInDetail = await _stockInDetailRepository.GetStockInDetailWithCode(stockInDetail.StockInCode, stockInDetail.ProductCode);
-            if(existingStockInDetail == null)
+            // Giải mã stockInCode
+            string decodedStockInCode = Uri.UnescapeDataString(stockInDetail.StockInCode);
+
+            var existingStockInDetail = await _stockInDetailRepository.GetStockInDetailWithCode(decodedStockInCode, stockInDetail.ProductCode);
+            if (existingStockInDetail == null)
             {
                 return new ServiceResponse<bool>(false, "Không tìm thấy sản phẩm để nhập kho");
             }
@@ -479,10 +509,36 @@ namespace Chrome.Services.StockInDetailService
             {
                 try
                 {
+                    // Cập nhật số lượng
                     existingStockInDetail.Quantity += stockInDetail.Quantity;
+                    await _stockInDetailRepository.UpdateAsync(existingStockInDetail, saveChanges: false);
+
+                    // Kiểm tra trạng thái hoàn tất của phiếu nhập kho
+                    var allStockInDetails = await _context.StockInDetails
+                        .Where(x => x.StockInCode == decodedStockInCode)
+                        .ToListAsync();
+                    bool allCompleted = allStockInDetails.All(x => x.Quantity >= x.Demand);
+
+                    var stockInHeader = await _context.StockIns
+                        .FirstOrDefaultAsync(x => x.StockInCode == decodedStockInCode);
+                    if (stockInHeader != null)
+                    {
+                        if (allCompleted)
+                        {
+                            stockInHeader.StatusId = 3; // Hoàn tất
+                        }
+                        else
+                        {
+                            stockInHeader.StatusId = 2; // Đang xử lý
+                        }
+                        _context.StockIns.Update(stockInHeader);
+                    }
+
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
-                    return new ServiceResponse<bool>(true, "Cập nhật số lượng sản phẩm đã nhập kho thành công");
+                    return new ServiceResponse<bool>(true, allCompleted ? 
+                        "Cập nhật số lượng sản phẩm và hoàn tất phiếu nhập kho thành công" : 
+                        "Cập nhật số lượng sản phẩm và đặt trạng thái đang xử lý thành công");
                 }
                 catch (DbUpdateException dbEx)
                 {

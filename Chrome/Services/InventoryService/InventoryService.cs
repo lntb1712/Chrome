@@ -2,83 +2,120 @@
 using Chrome.DTO.InventoryDTO;
 using Chrome.Models;
 using Chrome.Repositories.InventoryRepository;
+using Chrome.Repositories.ProductMasterRepository;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 
 namespace Chrome.Services.InventoryService
 {
-    public class InventoryService: IInventoryService
+    public class InventoryService : IInventoryService
     {
         private readonly IInventoryRepository _inventoryRepository;
+        private readonly IProductMasterRepository _productMasterRepository;
         private readonly ChromeContext _context;
 
-        public InventoryService(IInventoryRepository inventoryRepository, ChromeContext context)
+        public InventoryService(
+            IInventoryRepository inventoryRepository,
+            IProductMasterRepository productMasterRepository,
+            ChromeContext context)
         {
             _inventoryRepository = inventoryRepository;
+            _productMasterRepository = productMasterRepository;
             _context = context;
         }
 
-        public async Task<ServiceResponse<bool>> AddInventory(InventoryRequestDTO inventoryRequestDTO)
+        public async Task<ServiceResponse<bool>> AddInventory(InventoryRequestDTO inventoryRequestDTO, bool saveChanges = true)
         {
-            if(inventoryRequestDTO == null)
+            if (inventoryRequestDTO == null)
             {
                 return new ServiceResponse<bool>(false, "Dữ liệu nhận vào không hợp lệ");
-            }    
+            }
+
+            // Lấy thông tin sản phẩm để quy đổi đơn vị
+            var product = await _productMasterRepository.GetProductMasterWithProductCode(inventoryRequestDTO.ProductCode);
+            if (product == null)
+            {
+                return new ServiceResponse<bool>(false, "Sản phẩm không tồn tại");
+            }
+
+            // Quy đổi số lượng từ UOM (thanh) sang BaseUOM (mét)
+            var baseQuantity = product.BaseQuantity ?? 1; // Mặc định là 1 nếu BaseQuantity null
+            var quantityInBaseUOM = inventoryRequestDTO.Quantity * baseQuantity;
+
             var inventory = new Inventory
             {
                 WarehouseCode = inventoryRequestDTO.WarehouseCode,
                 LocationCode = inventoryRequestDTO.LocationCode,
                 ProductCode = inventoryRequestDTO.ProductCode,
-                Lotno=inventoryRequestDTO.LotNo,
-                Quantity = inventoryRequestDTO.Quantity,
+                Lotno = inventoryRequestDTO.LotNo,
+                Quantity = quantityInBaseUOM, // Lưu theo mét
             };
 
-            using (var transaction = await _context.Database.BeginTransactionAsync())
+            try
             {
-                try
+                await _inventoryRepository.AddAsync(inventory, saveChanges: false);
+                if (saveChanges)
                 {
-                    await _inventoryRepository.AddAsync(inventory, saveChanges: false);
-                    await _context.SaveChangesAsync();
-                    await transaction.CommitAsync();
-                    return new ServiceResponse<bool>(true, "Thêm tồn kho thành công");
-                }
-                catch (DbUpdateException dbEx)
-                {
-                    await transaction.RollbackAsync();
-                    if (dbEx.InnerException != null)
+                    using (var transaction = await _context.Database.BeginTransactionAsync())
                     {
-                        string error = dbEx.InnerException.Message.ToLower();
-                        if (error.Contains("unique") || error.Contains("duplicate") || error.Contains("primary key"))
-                        {
-                            return new ServiceResponse<bool>(false, "Dữ liệu đã tồn tại");
-                        }
-                        if (error.Contains("foreign key"))
-                        {
-                            return new ServiceResponse<bool>(false, "Dữ liệu tham chiếu không đúng");
-                        }
+                        await _context.SaveChangesAsync();
+                        await transaction.CommitAsync();
                     }
-                    return new ServiceResponse<bool>(false, $"Lỗi database: {dbEx.Message}");
                 }
-                catch (Exception ex)
+                return new ServiceResponse<bool>(true, "Thêm tồn kho thành công");
+            }
+            catch (DbUpdateException dbEx)
+            {
+                if (saveChanges)
                 {
-                    await transaction.RollbackAsync();
-                    return new ServiceResponse<bool>(false, $"Lỗi khi thêm tồn kho: {ex.Message}");
+                    // Rollback only if we started the transaction
+                    var transaction = _context.Database.CurrentTransaction;
+                    if (transaction != null)
+                    {
+                        await transaction.RollbackAsync();
+                    }
                 }
+                if (dbEx.InnerException != null)
+                {
+                    string error = dbEx.InnerException.Message.ToLower();
+                    if (error.Contains("unique") || error.Contains("duplicate") || error.Contains("primary key"))
+                    {
+                        return new ServiceResponse<bool>(false, "Dữ liệu đã tồn tại");
+                    }
+                    if (error.Contains("foreign key"))
+                    {
+                        return new ServiceResponse<bool>(false, "Dữ liệu tham chiếu không đúng");
+                    }
+                }
+                return new ServiceResponse<bool>(false, $"Lỗi database: {dbEx.Message}");
+            }
+            catch (Exception ex)
+            {
+                if (saveChanges)
+                {
+                    var transaction = _context.Database.CurrentTransaction;
+                    if (transaction != null)
+                    {
+                        await transaction.RollbackAsync();
+                    }
+                }
+                return new ServiceResponse<bool>(false, $"Lỗi khi thêm tồn kho: {ex.Message}");
             }
         }
-
         public async Task<ServiceResponse<bool>> DeleteInventoryAsync(string warehouseCode, string locationCode, string productCode, string lotNo)
         {
-            if(string.IsNullOrEmpty(warehouseCode) || string.IsNullOrEmpty(locationCode)|| string.IsNullOrEmpty(productCode) || string.IsNullOrEmpty(lotNo))
+            if (string.IsNullOrEmpty(warehouseCode) || string.IsNullOrEmpty(locationCode) || string.IsNullOrEmpty(productCode) || string.IsNullOrEmpty(lotNo))
             {
                 return new ServiceResponse<bool>(false, "Dữ liệu nhận vào không được để trống");
-            }    
-            var inventory = await _inventoryRepository.GetInventoryWithCode(warehouseCode, locationCode, productCode,lotNo);
-            if(inventory == null)
+            }
+
+            var inventory = await _inventoryRepository.GetInventoryWithCode(warehouseCode, locationCode, productCode, lotNo);
+            if (inventory == null)
             {
                 return new ServiceResponse<bool>(false, "Tồn kho không tồn tại");
-            }    
-            using ( var transaction = await _context.Database.BeginTransactionAsync())
+            }
+
+            using (var transaction = await _context.Database.BeginTransactionAsync())
             {
                 try
                 {
@@ -141,19 +178,19 @@ namespace Chrome.Services.InventoryService
                 .ToListAsync();
 
             // Gói kết quả vào PagedResponse
-            var pagedResponse = new PagedResponse<InventorySummaryDTO>(result,page,pageSize,totalItems);
+            var pagedResponse = new PagedResponse<InventorySummaryDTO>(result, page, pageSize, totalItems);
 
             return new ServiceResponse<PagedResponse<InventorySummaryDTO>>(true, "Lấy danh sách thành công", pagedResponse);
-
         }
 
         public async Task<ServiceResponse<PagedResponse<InventorySummaryDTO>>> GetListProductInventoryByCategoryIds(string[] warehouseCodes, string[] categoryIds, int page, int pageSize)
         {
-            if (warehouseCodes.Length == 0||categoryIds.Length==0 || page < 1 || pageSize < 1)
+            if (warehouseCodes.Length == 0 || categoryIds.Length == 0 || page < 1 || pageSize < 1)
             {
                 return new ServiceResponse<PagedResponse<InventorySummaryDTO>>(false, "Dữ liệu nhận vào không hợp lệ");
             }
-            var query = _inventoryRepository.GetInventoriesByCategoryIds(warehouseCodes,categoryIds);
+
+            var query = _inventoryRepository.GetInventoriesByCategoryIds(warehouseCodes, categoryIds);
 
             // Đếm tổng số nhóm ProductCode trước khi phân trang
             var totalItems = await query.GroupBy(x => x.ProductCode).CountAsync();
@@ -183,7 +220,7 @@ namespace Chrome.Services.InventoryService
             return new ServiceResponse<PagedResponse<InventorySummaryDTO>>(true, "Lấy danh sách thành công", pagedResponse);
         }
 
-        public async Task<ServiceResponse<PagedResponse<ProductWithLocationsDTO>>> GetProductWithLocationsAsync(string[] warehouseCodes,string productCode, int page, int pageSize)
+        public async Task<ServiceResponse<PagedResponse<ProductWithLocationsDTO>>> GetProductWithLocationsAsync(string[] warehouseCodes, string productCode, int page, int pageSize)
         {
             if (warehouseCodes.Length == 0 || page < 1 || pageSize < 1)
             {
@@ -193,7 +230,7 @@ namespace Chrome.Services.InventoryService
             var query = _inventoryRepository.GetInventories(warehouseCodes);
 
             var groupQuery = query
-                .Where(x=>x.ProductCode==productCode)
+                .Where(x => x.ProductCode == productCode)
                 .GroupBy(x => new
                 {
                     x.ProductCode,
@@ -226,7 +263,7 @@ namespace Chrome.Services.InventoryService
                             Quantity = lg.Sum(x => x.Quantity),
                             BaseQuantity = lg.Sum(x => x.Quantity / (x.ProductCodeNavigation.BaseQuantity)),
                             UOM = lg.Key.Uom!,
-                            BaseUOM = lg.Key.BaseUom!,
+                            BaseUOM = lg.Key.BaseUom!
                         })
                         .ToList()
                 });
@@ -239,20 +276,19 @@ namespace Chrome.Services.InventoryService
                 .Take(pageSize)
                 .ToListAsync();
 
-            var pagedResponse = new PagedResponse<ProductWithLocationsDTO>(items,page,pageSize,totalItems);
-            
+            var pagedResponse = new PagedResponse<ProductWithLocationsDTO>(items, page, pageSize, totalItems);
 
             return new ServiceResponse<PagedResponse<ProductWithLocationsDTO>>(true, "Lấy danh sách thành công", pagedResponse);
         }
 
         public async Task<ServiceResponse<PagedResponse<InventorySummaryDTO>>> SearchProductInventoryAsync(string[] warehouseCodes, string textToSearch, int page, int pageSize)
         {
-            if (warehouseCodes.Length == 0 || string.IsNullOrEmpty(textToSearch)|| page < 1 || pageSize < 1)
+            if (warehouseCodes.Length == 0 || string.IsNullOrEmpty(textToSearch) || page < 1 || pageSize < 1)
             {
                 return new ServiceResponse<PagedResponse<InventorySummaryDTO>>(false, "Dữ liệu nhận vào không hợp lệ");
             }
 
-            var query = _inventoryRepository.SearchProductInventories(warehouseCodes,textToSearch);
+            var query = _inventoryRepository.SearchProductInventories(warehouseCodes, textToSearch);
 
             // Đếm tổng số nhóm ProductCode trước khi phân trang
             var totalItems = await query.GroupBy(x => x.ProductCode).CountAsync();
@@ -282,48 +318,83 @@ namespace Chrome.Services.InventoryService
             return new ServiceResponse<PagedResponse<InventorySummaryDTO>>(true, "Lấy danh sách thành công", pagedResponse);
         }
 
-        public async Task<ServiceResponse<bool>> UpdateInventoryAsync(InventoryRequestDTO inventoryRequestDTO)
+        public async Task<ServiceResponse<bool>> UpdateInventoryAsync(InventoryRequestDTO inventoryRequestDTO, bool saveChanges = true)
         {
-            if(inventoryRequestDTO == null)
+            if (inventoryRequestDTO == null)
             {
                 return new ServiceResponse<bool>(false, "Dữ liệu nhận vào không hợp lệ");
             }
-            var existingInventory = await _inventoryRepository.GetInventoryWithCode(inventoryRequestDTO.WarehouseCode, inventoryRequestDTO.LocationCode, inventoryRequestDTO.ProductCode, inventoryRequestDTO.LotNo);
-            if(existingInventory == null)
+
+            var existingInventory = await _inventoryRepository.GetInventoryWithCode(
+                inventoryRequestDTO.WarehouseCode,
+                inventoryRequestDTO.LocationCode,
+                inventoryRequestDTO.ProductCode,
+                inventoryRequestDTO.LotNo);
+            if (existingInventory == null)
             {
                 return new ServiceResponse<bool>(false, "Không tìm thấy tồn kho");
             }
-            using (var transaction = await _context.Database.BeginTransactionAsync())
+
+            // Lấy thông tin sản phẩm để quy đổi đơn vị
+            var product = await _productMasterRepository.GetProductMasterWithProductCode(inventoryRequestDTO.ProductCode);
+            if (product == null)
             {
-                try
+                return new ServiceResponse<bool>(false, "Sản phẩm không tồn tại");
+            }
+
+            // Quy đổi số lượng từ UOM (thanh) sang BaseUOM (mét)
+            var baseQuantity = product.BaseQuantity ?? 1; // Mặc định là 1 nếu BaseQuantity null
+            var quantityInBaseUOM = inventoryRequestDTO.Quantity * baseQuantity;
+
+            try
+            {
+                existingInventory.Quantity += quantityInBaseUOM; // Cập nhật theo mét
+                await _inventoryRepository.UpdateAsync(existingInventory, saveChanges: false);
+                if (saveChanges)
                 {
-                    existingInventory.Quantity += inventoryRequestDTO.Quantity;
-                    await _context.SaveChangesAsync();
-                    await transaction.CommitAsync();
-                    return new ServiceResponse<bool>(true, "Cập nhật thành công");
-                }
-                catch (DbUpdateException dbEx)
-                {
-                    await transaction.RollbackAsync();
-                    if (dbEx.InnerException != null)
+                    using (var transaction = await _context.Database.BeginTransactionAsync())
                     {
-                        string error = dbEx.InnerException.Message.ToLower();
-                        if (error.Contains("unique") || error.Contains("duplicate") || error.Contains("primary key"))
-                        {
-                            return new ServiceResponse<bool>(false, "Dữ liệu đã tồn tại");
-                        }
-                        if (error.Contains("foreign key"))
-                        {
-                            return new ServiceResponse<bool>(false, "Dữ liệu tham chiếu không đúng");
-                        }
+                        await _context.SaveChangesAsync();
+                        await transaction.CommitAsync();
                     }
-                    return new ServiceResponse<bool>(false, $"Lỗi database: {dbEx.Message}");
                 }
-                catch (Exception ex)
+                return new ServiceResponse<bool>(true, "Cập nhật thành công");
+            }
+            catch (DbUpdateException dbEx)
+            {
+                if (saveChanges)
                 {
-                    await transaction.RollbackAsync();
-                    return new ServiceResponse<bool>(false, $"Lỗi khi cập nhật tồn kho: {ex.Message}");
+                    var transaction = _context.Database.CurrentTransaction;
+                    if (transaction != null)
+                    {
+                        await transaction.RollbackAsync();
+                    }
                 }
+                if (dbEx.InnerException != null)
+                {
+                    string error = dbEx.InnerException.Message.ToLower();
+                    if (error.Contains("unique") || error.Contains("duplicate") || error.Contains("primary key"))
+                    {
+                        return new ServiceResponse<bool>(false, "Dữ liệu đã tồn tại");
+                    }
+                    if (error.Contains("foreign key"))
+                    {
+                        return new ServiceResponse<bool>(false, "Dữ liệu tham chiếu không đúng");
+                    }
+                }
+                return new ServiceResponse<bool>(false, $"Lỗi database: {dbEx.Message}");
+            }
+            catch (Exception ex)
+            {
+                if (saveChanges)
+                {
+                    var transaction = _context.Database.CurrentTransaction;
+                    if (transaction != null)
+                    {
+                        await transaction.RollbackAsync();
+                    }
+                }
+                return new ServiceResponse<bool>(false, $"Lỗi khi cập nhật tồn kho: {ex.Message}");
             }
         }
     }

@@ -4,12 +4,14 @@ using Chrome.DTO.OrderTypeDTO;
 using Chrome.DTO.StatusMasterDTO;
 using Chrome.DTO.StockInDTO;
 using Chrome.DTO.SupplierMasterDTO;
+using Chrome.DTO.WarehouseMasterDTO;
 using Chrome.Models;
 using Chrome.Repositories.AccountRepository;
 using Chrome.Repositories.OrderTypeRepository;
 using Chrome.Repositories.StatusMasterRepository;
 using Chrome.Repositories.StockInRepository;
 using Chrome.Repositories.SupplierMasterRepository;
+using Chrome.Repositories.WarehouseMasterRepository;
 using DocumentFormat.OpenXml.Wordprocessing;
 using Microsoft.EntityFrameworkCore;
 using System.Globalization;
@@ -23,6 +25,7 @@ namespace Chrome.Services.StockInService
         private readonly IAccountRepository _accountRepository;
         private readonly ISupplierMasterRepository _supplierMasterRepository;
         private readonly IStatusMasterRepository _statusMasterRepository;
+        private readonly IWarehouseMasterRepository _warehouseMasterRepository;
         private readonly ChromeContext _context;
 
         public StockInService(IStockInRepository stockInRepository,
@@ -30,6 +33,7 @@ namespace Chrome.Services.StockInService
             IAccountRepository accountRepository,
             ISupplierMasterRepository supplierMasterRepository,
             IStatusMasterRepository statusMasterRepository,
+            IWarehouseMasterRepository warehouseMasterRepository,
             ChromeContext context)
         {
             _stockInRepository = stockInRepository;
@@ -37,6 +41,7 @@ namespace Chrome.Services.StockInService
             _accountRepository = accountRepository;
             _supplierMasterRepository = supplierMasterRepository;
             _statusMasterRepository = statusMasterRepository;
+            _warehouseMasterRepository = warehouseMasterRepository;
             _context = context;
         }
 
@@ -159,7 +164,7 @@ namespace Chrome.Services.StockInService
                              SupplierName = x.SupplierCodeNavigation!.SupplierName,
                              Responsible = x.Responsible,
                              FullNameResponsible = x.ResponsibleNavigation!.FullName,
-                             StatusId = x.StockInDetails.Any(d => d.Quantity > 0) ? 2 : x.StatusId,
+                             StatusId = x.StatusId,
                              StatusName =x.Status!.StatusName,
                              OrderDeadline = x.OrderDeadline!.Value.ToString("dd/MM/yyyy"),
                              StockInDescription = x.StockInDescription,
@@ -192,7 +197,7 @@ namespace Chrome.Services.StockInService
                              SupplierName = x.SupplierCodeNavigation!.SupplierName,
                              Responsible = x.Responsible,
                              FullNameResponsible = x.ResponsibleNavigation!.FullName,
-                             StatusId = x.StockInDetails.Any(d => d.Quantity > 0) ? 2 : x.StatusId,
+                             StatusId = x.StatusId,
                              StatusName = x.Status!.StatusName,
                              OrderDeadline = x.OrderDeadline!.Value.ToString("dd/MM/yyyy"),
                              StockInDescription = x.StockInDescription,
@@ -224,7 +229,7 @@ namespace Chrome.Services.StockInService
         public async Task<ServiceResponse<List<AccountManagementResponseDTO>>> GetListResponsibleAsync()
         {
             var lstResponsible = await _accountRepository.GetAllAccount(1, int.MaxValue);
-            var lstResponsibleForSI = lstResponsible.Where(x => !x.GroupId!.StartsWith("ADMIN") || !x.GroupId.StartsWith("QLKHO"))
+            var lstResponsibleForSI = lstResponsible.Where(x => !x.GroupId!.StartsWith("ADMIN") && !x.GroupId.StartsWith("QLKHO"))
                                                     .Select(x => new AccountManagementResponseDTO
                                                     {
                                                         UserName = x.UserName,
@@ -260,6 +265,25 @@ namespace Chrome.Services.StockInService
             return new ServiceResponse<List<SupplierMasterResponseDTO>>(true, "Lấy danh sách nhà cung cấp", lstSupplierResponse);
         }
 
+        public async Task<ServiceResponse<List<WarehouseMasterResponseDTO>>> GetListWarehousePermission(string[] warehouseCodes)
+        {
+            if(warehouseCodes.Length==0)
+            {
+                return new ServiceResponse<List<WarehouseMasterResponseDTO>>(false, "Dữ liệu nhận vào không hợp lệ");
+            }
+            var response = await _warehouseMasterRepository.GetWarehouseMasters(1, int.MaxValue);
+            var lstWarehouseMapping = response.Where(x => warehouseCodes.Contains(x.WarehouseCode))
+                                              .Select(x => new WarehouseMasterResponseDTO
+                                              {
+                                                  WarehouseCode = x.WarehouseCode,
+                                                  WarehouseName = x.WarehouseName,
+                                                  WarehouseAddress = x.WarehouseAddress,
+                                                  WarehouseDescription = x.WarehouseDescription,
+                                              })
+                                              .ToList();
+            return new ServiceResponse<List<WarehouseMasterResponseDTO>>(true, "Lấy danh sách kho dựa theo quyền thành công", lstWarehouseMapping);
+        }
+
         public async Task<ServiceResponse<PagedResponse<StockInResponseDTO>>> SearchStockInAsync(string[] warehouseCodes, string textToSearch, int page, int pageSize)
         {
             if (warehouseCodes.Length == 0 || page < 1 || pageSize < 1)
@@ -279,7 +303,7 @@ namespace Chrome.Services.StockInService
                              SupplierName = x.SupplierCodeNavigation!.SupplierName,
                              Responsible = x.Responsible,
                              FullNameResponsible = x.ResponsibleNavigation!.FullName,
-                             StatusId = x.StockInDetails.Any(d => d.Quantity > 0) ? 2 : x.StatusId,
+                             StatusId = x.StatusId,
                              StatusName = x.Status!.StatusName,
                              OrderDeadline = x.OrderDeadline!.Value.ToString("dd/MM/yyyy"),
                              StockInDescription = x.StockInDescription,

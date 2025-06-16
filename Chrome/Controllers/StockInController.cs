@@ -174,6 +174,28 @@ namespace Chrome.Controllers
             }
         }
 
+        [HttpGet("GetListWarehousePermission")]
+        public async Task<IActionResult> GetListWarehousePermission([FromQuery] string [] warehouseCodes)
+        {
+            try
+            {
+                var response = await _stockInService.GetListWarehousePermission(warehouseCodes);
+                if(!response.Success)
+                {
+                    return NotFound(new
+                    {
+                        Success = false,
+                        Message = response.Message,
+                    });
+                }
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, $"Lỗi : {ex.Message}");
+            }
+        }
+
         [HttpPost("AddStockIn")]
         public async Task<IActionResult> AddStockIn([FromBody] StockInRequestDTO stockIn)
         {

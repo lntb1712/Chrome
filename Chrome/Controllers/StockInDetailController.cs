@@ -9,7 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Chrome.Controllers
 {
-    [Route("api/StockIn/{stockInCode}/StockInDetail/[controller]")]
+    [Route("api/StockIn/{stockInCode}/[controller]")]
     [ApiController]
     [Authorize(Policy ="PermissionPolicy")]
     [EnableCors("MyCors")]
@@ -22,11 +22,13 @@ namespace Chrome.Controllers
         }
 
         [HttpGet("GetAllStockInDetails")]
-        public async Task<IActionResult> GetAllStockInDetails([FromQuery] string stockInCode, [FromQuery] int page=1, [FromQuery] int pageSize=10)
+        public async Task<IActionResult> GetAllStockInDetails([FromRoute] string stockInCode, [FromQuery] int page=1, [FromQuery] int pageSize=10)
         {
             try
             {
-                var response = await _stockInDetailService.GetAllStockInDetails(stockInCode, page, pageSize);
+                // Giải mã stockInCode
+                string decodedStockInCode = Uri.UnescapeDataString(stockInCode);
+                var response = await _stockInDetailService.GetAllStockInDetails(decodedStockInCode, page, pageSize);
                 if (!response.Success)
                 {
                     return NotFound(new
@@ -88,11 +90,12 @@ namespace Chrome.Controllers
         }
 
         [HttpPost("CreateBackOrder")]
-        public async Task<IActionResult> CreateBackOrder([FromQuery]string stockInCode, [FromQuery]string backOrderDescription)
+        public async Task<IActionResult> CreateBackOrder([FromRoute]string stockInCode, [FromQuery]string backOrderDescription)
         {
             try
             {
-                var response = await _stockInDetailService.CreateBackOrder(stockInCode,backOrderDescription);
+                string decodedStockInCode = Uri.UnescapeDataString(stockInCode);
+                var response = await _stockInDetailService.CreateBackOrder(decodedStockInCode, backOrderDescription);
                 if (!response.Success)
                 {
                     return Conflict(new
@@ -110,11 +113,13 @@ namespace Chrome.Controllers
         }
 
         [HttpDelete("DeleteStockInDetail")]        
-        public async Task<IActionResult> DeleteStockInDetail([FromQuery]string stockInCode, [FromQuery]string productCode)
+        public async Task<IActionResult> DeleteStockInDetail([FromRoute]string stockInCode, [FromQuery]string productCode)
         {
             try
             {
-                var response = await _stockInDetailService.DeleteStockInDetail(stockInCode, productCode);
+                // Giải mã stockInCode
+                string decodedStockInCode = Uri.UnescapeDataString(stockInCode);
+                var response = await _stockInDetailService.DeleteStockInDetail(decodedStockInCode, productCode);
                 if (!response.Success)
                 {
                     return Conflict(new
@@ -153,12 +158,13 @@ namespace Chrome.Controllers
             }
         }
 
-        [HttpPut("ConfirmStockIn")]
-        public async Task<IActionResult> ConfirmStockIn([FromQuery] string stockInCode)
+        [HttpPost("ConfirmStockIn")]
+        public async Task<IActionResult> ConfirmStockIn([FromRoute] string stockInCode)
         {
             try
             {
-                var response = await _stockInDetailService.ConfirmStockIn(stockInCode);
+                string decodedStockInCode = Uri.UnescapeDataString(stockInCode);
+                var response = await _stockInDetailService.ConfirmStockIn(decodedStockInCode);
                 if (!response.Success)
                 {
                     return Conflict(new
@@ -175,12 +181,13 @@ namespace Chrome.Controllers
             }
         }
 
-        [HttpPut("CheckAndUpdateBackOrderStatus")]
-        public async Task<IActionResult> CheckAndUpdateBackOrderStatus([FromQuery]string stockInCode)
+        [HttpPost("CheckAndUpdateBackOrderStatus")]
+        public async Task<IActionResult> CheckAndUpdateBackOrderStatus([FromRoute]string stockInCode)
         {
             try
             {
-                var response = await _stockInDetailService.CheckAndUpdateBackOrderStatus(stockInCode);
+                string decodedStockInCode = Uri.UnescapeDataString(stockInCode);
+                var response = await _stockInDetailService.CheckAndUpdateBackOrderStatus(decodedStockInCode);
                 if (!response.Success)
                 {
                     return Conflict(new

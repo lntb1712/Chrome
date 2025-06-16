@@ -21,5 +21,6 @@ namespace Chrome.Services.StockInService
         Task<ServiceResponse<List<SupplierMasterResponseDTO>>>GetListSupplierMasterAsync();
         Task<ServiceResponse<List<AccountManagementResponseDTO>>> GetListResponsibleAsync();
         Task<ServiceResponse<List<StatusMasterResponseDTO>>> GetListStatusMaster();
+        Task<ServiceResponse<List<WarehouseMasterResponseDTO>>> GetListWarehousePermission(string[] warehouseCodes);
     }
 }
