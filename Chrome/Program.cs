@@ -19,6 +19,8 @@ using Chrome.Repositories.PutAwayRulesRepository;
 using Chrome.Repositories.StatusMasterRepository;
 using Chrome.Repositories.StockInDetailRepository;
 using Chrome.Repositories.StockInRepository;
+using Chrome.Repositories.StockOutDetailRepository;
+using Chrome.Repositories.StockOutRepository;
 using Chrome.Repositories.StorageProductRepository;
 using Chrome.Repositories.SupplierMasterRepository;
 using Chrome.Repositories.WarehouseMasterRepository;
@@ -40,6 +42,8 @@ using Chrome.Services.ProductSupplierSerivce;
 using Chrome.Services.PutAwayRulesService;
 using Chrome.Services.StockInDetailService;
 using Chrome.Services.StockInService;
+using Chrome.Services.StockOutDetailService;
+using Chrome.Services.StockOutService;
 using Chrome.Services.StorageProductService;
 using Chrome.Services.SupplierMasterService;
 using Chrome.Services.WarehouseMasterService;
@@ -84,6 +88,8 @@ builder.Services.AddScoped<IStatusMasterRepository, StatusMasterRepository>();
 builder.Services.AddScoped<IStockInRepository, StockInRepository>();
 builder.Services.AddScoped<IStockInDetailRepository, StockInDetailRepository>();
 builder.Services.AddScoped<IOrderTypeRepository, OrderTypeRepository>();
+builder.Services.AddScoped<IStockOutDetailRepository, StockOutDetailRepository>();
+builder.Services.AddScoped<IStockOutRepository, StockOutRepository>();
 
 
 // Đăng kí Dependency Injection cho các Service
@@ -108,6 +114,8 @@ builder.Services.AddScoped<IBOMComponentService,BOMComponentService>();
 builder.Services.AddScoped<IInventoryService, InventoryService>();
 builder.Services.AddScoped<IStockInService, StockInService>();
 builder.Services.AddScoped<IStockInDetailService, StockInDetailService>();
+builder.Services.AddScoped<IStockOutService, StockOutService>();
+builder.Services.AddScoped<IStockOutDetailService, StockOutDetailService>();
 // Đăng ký IHttpContextAccessor để thực hiện sử dụng HttpCookie
 builder.Services.AddHttpContextAccessor();
 
