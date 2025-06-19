@@ -19,8 +19,6 @@ public partial class ReservationDetail
 
     public double? QuantityReserved { get; set; }
 
-    public double? Quantityprocessed { get; set; }
-
     public virtual LocationMaster? LocationCodeNavigation { get; set; }
 
     public virtual ProductMaster? ProductCodeNavigation { get; set; }

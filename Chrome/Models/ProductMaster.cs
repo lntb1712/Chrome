@@ -33,6 +33,10 @@ public partial class ProductMaster
 
     public virtual ICollection<Inventory> Inventories { get; set; } = new List<Inventory>();
 
+    public virtual ICollection<ManufactoringOrderDetail> ManufactoringOrderDetails { get; set; } = new List<ManufactoringOrderDetail>();
+
+    public virtual ICollection<ManufacturingOrder> ManufacturingOrders { get; set; } = new List<ManufacturingOrder>();
+
     public virtual ICollection<MovementDetail> MovementDetails { get; set; } = new List<MovementDetail>();
 
     public virtual ICollection<PickListDetail> PickListDetails { get; set; } = new List<PickListDetail>();
@@ -48,6 +52,8 @@ public partial class ProductMaster
     public virtual ICollection<StockInDetail> StockInDetails { get; set; } = new List<StockInDetail>();
 
     public virtual ICollection<StockOutDetail> StockOutDetails { get; set; } = new List<StockOutDetail>();
+
+    public virtual ICollection<StocktakeDetail> StocktakeDetails { get; set; } = new List<StocktakeDetail>();
 
     public virtual ICollection<StorageProduct> StorageProducts { get; set; } = new List<StorageProduct>();
 

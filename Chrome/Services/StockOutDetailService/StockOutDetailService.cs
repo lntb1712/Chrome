@@ -295,7 +295,7 @@ namespace Chrome.Services.StockOutDetailService
         public async Task<ServiceResponse<List<ProductMasterResponseDTO>>> GetListProductToSO()
         {
             var lstProduct = await _productMasterRepository.GetAllProduct(1, int.MaxValue);
-            var lstProductForSO = lstProduct.Where(p => p.CategoryId != "SFG")
+            var lstProductForSO = lstProduct.Where(p => p.CategoryId == "FG")
                                             .Select(p => new ProductMasterResponseDTO
                                             {
                                                 ProductCode = p.ProductCode,

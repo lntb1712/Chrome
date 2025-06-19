@@ -15,5 +15,7 @@ public partial class Bommaster
 
     public virtual ICollection<BomComponent> BomComponents { get; set; } = new List<BomComponent>();
 
+    public virtual ICollection<ManufacturingOrder> ManufacturingOrders { get; set; } = new List<ManufacturingOrder>();
+
     public virtual ProductMaster? ProductCodeNavigation { get; set; }
 }

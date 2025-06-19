@@ -31,7 +31,11 @@ public partial class WarehouseMaster
 
     public virtual ICollection<StockOut> StockOuts { get; set; } = new List<StockOut>();
 
+    public virtual ICollection<Stocktake> Stocktakes { get; set; } = new List<Stocktake>();
+
     public virtual ICollection<Transfer> TransferFromWarehouseCodeNavigations { get; set; } = new List<Transfer>();
 
     public virtual ICollection<Transfer> TransferToWarehouseCodeNavigations { get; set; } = new List<Transfer>();
+
+    public virtual ICollection<WorkCenterMaster> WorkCenterMasters { get; set; } = new List<WorkCenterMaster>();
 }

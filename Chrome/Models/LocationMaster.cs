@@ -29,6 +29,8 @@ public partial class LocationMaster
 
     public virtual ICollection<ReservationDetail> ReservationDetails { get; set; } = new List<ReservationDetail>();
 
+    public virtual ICollection<StocktakeDetail> StocktakeDetails { get; set; } = new List<StocktakeDetail>();
+
     public virtual StorageProduct? StorageProduct { get; set; }
 
     public virtual WarehouseMaster? WarehouseCodeNavigation { get; set; }

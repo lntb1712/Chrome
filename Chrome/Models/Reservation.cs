@@ -9,8 +9,6 @@ public partial class Reservation
 
     public string? OrderTypeCode { get; set; }
 
-    public int? Priority { get; set; }
-
     public string? OrderId { get; set; }
 
     public DateTime? ReservationDate { get; set; }

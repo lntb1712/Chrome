@@ -15,6 +15,8 @@ public partial class AccountManagement
 
     public virtual GroupManagement? Group { get; set; }
 
+    public virtual ICollection<ManufacturingOrder> ManufacturingOrders { get; set; } = new List<ManufacturingOrder>();
+
     public virtual ICollection<Movement> Movements { get; set; } = new List<Movement>();
 
     public virtual ICollection<PutAway> PutAways { get; set; } = new List<PutAway>();
@@ -22,6 +24,8 @@ public partial class AccountManagement
     public virtual ICollection<StockIn> StockIns { get; set; } = new List<StockIn>();
 
     public virtual ICollection<StockOut> StockOuts { get; set; } = new List<StockOut>();
+
+    public virtual ICollection<Stocktake> Stocktakes { get; set; } = new List<Stocktake>();
 
     public virtual ICollection<Transfer> Transfers { get; set; } = new List<Transfer>();
 }

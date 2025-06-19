@@ -19,5 +19,7 @@ public partial class StatusMaster
 
     public virtual ICollection<StockOut> StockOuts { get; set; } = new List<StockOut>();
 
+    public virtual ICollection<Stocktake> Stocktakes { get; set; } = new List<Stocktake>();
+
     public virtual ICollection<Transfer> Transfers { get; set; } = new List<Transfer>();
 }
