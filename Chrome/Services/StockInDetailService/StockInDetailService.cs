@@ -75,7 +75,7 @@ namespace Chrome.Services.StockInDetailService
                 StockInCode = stockInDetail.StockInCode,
                 ProductCode = stockInDetail.ProductCode,
                 Demand = stockInDetail.Demand,
-                LotNo = "RCV-" + stockIn.OrderDeadline!.Value.ToString("yyyyMMdd") + stockIn.SupplierCode + stockInDetail.ProductCode,
+                LotNo = "RCV-" + stockIn.OrderDeadline!.Value.ToString("yyyyMMdd") +"-"+ stockIn.SupplierCode + "-"+stockInDetail.ProductCode,
                 Quantity = 0,
             };
             using (var transaction = await _context.Database.BeginTransactionAsync())
@@ -290,6 +290,13 @@ namespace Chrome.Services.StockInDetailService
                             throw new Exception($"Lỗi khi xử lý tồn kho cho sản phẩm {item.ProductCode}: {inventoryResult.Message}");
                         }
                     }
+                    var stockInHeader = await _context.StockIns
+                        .FirstOrDefaultAsync(x => x.StockInCode == decodedStockInCode);
+                    if (stockInHeader == null)
+                        return new ServiceResponse<bool>(false, "Phiếu nhập kho không tồn tại");
+
+                    stockInHeader.StatusId = 3; // Đang xử lý hoặc trạng thái xác nhận
+                    _context.StockIns.Update(stockInHeader);
 
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
