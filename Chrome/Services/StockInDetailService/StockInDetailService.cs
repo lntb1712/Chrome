@@ -510,7 +510,7 @@ namespace Chrome.Services.StockInDetailService
                 try
                 {
                     // Cập nhật số lượng
-                    existingStockInDetail.Quantity += stockInDetail.Quantity;
+                    existingStockInDetail.Quantity = stockInDetail.Quantity;
                     await _stockInDetailRepository.UpdateAsync(existingStockInDetail, saveChanges: false);
 
                     // Kiểm tra trạng thái hoàn tất của phiếu nhập kho

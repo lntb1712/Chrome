@@ -126,7 +126,7 @@ namespace Chrome.Services.StockOutDetailService
                     if (stockOutHeader == null)
                         return new ServiceResponse<bool>(false, "Phiếu xuất kho không tồn tại");
 
-                    stockOutHeader.StatusId = 2; // Đang xử lý hoặc trạng thái xác nhận
+                    stockOutHeader.StatusId = 3; // Đang xử lý hoặc trạng thái xác nhận
                     _context.StockOuts.Update(stockOutHeader);
 
                     await _context.SaveChangesAsync();
