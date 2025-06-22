@@ -12,10 +12,17 @@ using Chrome.Repositories.GroupManagementRepository;
 using Chrome.Repositories.InventoryRepository;
 using Chrome.Repositories.LocationMasterRepository;
 using Chrome.Repositories.OrderTypeRepository;
+using Chrome.Repositories.PickListDetailRepository;
+using Chrome.Repositories.PickListRepository;
 using Chrome.Repositories.ProductCustomerRepository;
 using Chrome.Repositories.ProductMasterRepository;
 using Chrome.Repositories.ProductSupplierRepository;
+using Chrome.Repositories.PutAwayDetailRepository;
+using Chrome.Repositories.PutawayRepository;
+using Chrome.Repositories.PutAwayRepository;
 using Chrome.Repositories.PutAwayRulesRepository;
+using Chrome.Repositories.ReservationDetailRepository;
+using Chrome.Repositories.ReservationRepository;
 using Chrome.Repositories.StatusMasterRepository;
 using Chrome.Repositories.StockInDetailRepository;
 using Chrome.Repositories.StockInRepository;
@@ -36,10 +43,16 @@ using Chrome.Services.InventoryService;
 using Chrome.Services.JWTService;
 using Chrome.Services.LocationMasterService;
 using Chrome.Services.LoginService;
+using Chrome.Services.PickListDetailService;
+using Chrome.Services.PickListService;
 using Chrome.Services.ProductCustomerService;
 using Chrome.Services.ProductMasterService;
 using Chrome.Services.ProductSupplierSerivce;
+using Chrome.Services.PutAwayDetailService;
 using Chrome.Services.PutAwayRulesService;
+using Chrome.Services.PutAwayService;
+using Chrome.Services.ReservationDetailService;
+using Chrome.Services.ReservationService;
 using Chrome.Services.StockInDetailService;
 using Chrome.Services.StockInService;
 using Chrome.Services.StockOutDetailService;
@@ -90,6 +103,12 @@ builder.Services.AddScoped<IStockInDetailRepository, StockInDetailRepository>();
 builder.Services.AddScoped<IOrderTypeRepository, OrderTypeRepository>();
 builder.Services.AddScoped<IStockOutDetailRepository, StockOutDetailRepository>();
 builder.Services.AddScoped<IStockOutRepository, StockOutRepository>();
+builder.Services.AddScoped<IReservationRepository, ReservationRepository>();
+builder.Services.AddScoped<IReservationDetailRepository, ReservationDetailRepository>();
+builder.Services.AddScoped<IPickListRepository,PickListRepository>();
+builder.Services.AddScoped<IPickListDetailRepository, PickListDetailRepository>();
+builder.Services.AddScoped<IPutAwayRepository,PutAwayRepository>();
+builder.Services.AddScoped<IPutAwayDetailRepository, PutAwayDetailRepository>();
 
 
 // Đăng kí Dependency Injection cho các Service
@@ -116,6 +135,13 @@ builder.Services.AddScoped<IStockInService, StockInService>();
 builder.Services.AddScoped<IStockInDetailService, StockInDetailService>();
 builder.Services.AddScoped<IStockOutService, StockOutService>();
 builder.Services.AddScoped<IStockOutDetailService, StockOutDetailService>();
+builder.Services.AddScoped<IReservationService, ReservationService>();
+builder.Services.AddScoped<IReservationDetailService, ReservationDetailService>();
+builder.Services.AddScoped<IPickListService, PickListService>();
+builder.Services.AddScoped<IPickListDetailService, PickListDetailService>();
+builder.Services.AddScoped<IPutAwayService,PutAwayService>();   
+builder.Services.AddScoped<IPutAwayDetailService, PutAwayDetailService>();
+
 // Đăng ký IHttpContextAccessor để thực hiện sử dụng HttpCookie
 builder.Services.AddHttpContextAccessor();
 

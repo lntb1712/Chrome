@@ -13,6 +13,8 @@ public partial class Inventory
 
     public string Lotno { get; set; } = null!;
 
+    public DateTime? ReceiveDate { get; set; }
+
     public double? Quantity { get; set; }
 
     public virtual LocationMaster LocationCodeNavigation { get; set; } = null!;

@@ -1,0 +1,205 @@
+﻿using Chrome.DTO;
+using Chrome.DTO.PickListDetailDTO;
+using Chrome.Models;
+using Chrome.Repositories.PickListDetailRepository;
+using Microsoft.EntityFrameworkCore;
+using System;
+using System.Linq;
+using System.Linq.Expressions;
+using System.Threading.Tasks;
+
+namespace Chrome.Services.PickListDetailService
+{
+    public class PickListDetailService : IPickListDetailService
+    {
+        private readonly IPickListDetailRepository _pickListDetailRepository;
+        private readonly ChromeContext _context;
+
+        public PickListDetailService(IPickListDetailRepository pickListDetailRepository, ChromeContext context)
+        {
+            _pickListDetailRepository = pickListDetailRepository ?? throw new ArgumentNullException(nameof(pickListDetailRepository));
+            _context = context ?? throw new ArgumentNullException(nameof(context));
+        }
+
+        public async Task<ServiceResponse<PagedResponse<PickListDetailResponseDTO>>> GetAllPickListDetailsAsync(string[] warehouseCodes, int page = 1, int pageSize = 10)
+        {
+            try
+            {
+                if (page < 1) page = 1;
+                if (pageSize < 1) pageSize = 10;
+
+                var query = _pickListDetailRepository.GetAllPickListDetailsAsync(warehouseCodes);
+                var totalItems = await query.CountAsync();
+                var pickListDetails = await query
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
+                    .Select(pd => new PickListDetailResponseDTO
+                    {
+                        PickNo = pd.PickNo,
+                        ProductCode = pd.ProductCode,
+                        ProductName = pd.ProductCodeNavigation!.ProductName,
+                        LotNo = pd.LotNo,
+                        Demand = pd.Demand,
+                        Quantity = pd.Quantity,
+                        LocationCode = pd.LocationCode,
+                        LocationName = pd.LocationCodeNavigation!.LocationName
+                    })
+                    .ToListAsync();
+
+                var pagedResponse = new PagedResponse<PickListDetailResponseDTO>(pickListDetails, page, pageSize, totalItems);
+                return new ServiceResponse<PagedResponse<PickListDetailResponseDTO>>(true, "Lấy danh sách chi tiết pick list thành công", pagedResponse);
+            }
+            catch (Exception ex)
+            {
+                return new ServiceResponse<PagedResponse<PickListDetailResponseDTO>>(false, $"Lỗi khi lấy danh sách chi tiết pick list: {ex.Message}");
+            }
+        }
+
+        public async Task<ServiceResponse<PagedResponse<PickListDetailResponseDTO>>> GetPickListDetailsByPickNoAsync(string pickNo, int page = 1, int pageSize = 10)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(pickNo))
+                {
+                    return new ServiceResponse<PagedResponse<PickListDetailResponseDTO>>(false, "Mã pick list không được để trống");
+                }
+
+                if (page < 1) page = 1;
+                if (pageSize < 1) pageSize = 10;
+
+                var query = _pickListDetailRepository.GetPickListDetailsByPickNoAsync(pickNo);
+                var totalItems = await query.CountAsync();
+                var pickListDetails = await query
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
+                    .Select(pd => new PickListDetailResponseDTO
+                    {
+                        PickNo = pd.PickNo,
+                        ProductCode = pd.ProductCode,
+                        ProductName = pd.ProductCodeNavigation!.ProductName,
+                        LotNo = pd.LotNo,
+                        Demand = pd.Demand,
+                        Quantity = pd.Quantity,
+                        LocationCode = pd.LocationCode,
+                        LocationName = pd.LocationCodeNavigation!.LocationName
+                    })
+                    .ToListAsync();
+
+                var pagedResponse = new PagedResponse<PickListDetailResponseDTO>(pickListDetails, page, pageSize, totalItems);
+                return new ServiceResponse<PagedResponse<PickListDetailResponseDTO>>(true, "Lấy chi tiết pick list theo mã thành công", pagedResponse);
+            }
+            catch (Exception ex)
+            {
+                return new ServiceResponse<PagedResponse<PickListDetailResponseDTO>>(false, $"Lỗi khi lấy chi tiết pick list theo mã: {ex.Message}");
+            }
+        }
+
+        public async Task<ServiceResponse<PagedResponse<PickListDetailResponseDTO>>> SearchPickListDetailsAsync(string[] warehouseCodes,string pickNo, string textToSearch, int page = 1, int pageSize = 10)
+        {
+            try
+            {
+                if (page < 1) page = 1;
+                if (pageSize < 1) pageSize = 10;
+
+                var query = _pickListDetailRepository.SearchPickListDetailsAsync(warehouseCodes,pickNo, textToSearch);
+                var totalItems = await query.CountAsync();
+                var pickListDetails = await query
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
+                    .Select(pd => new PickListDetailResponseDTO
+                    {
+                        PickNo = pd.PickNo,
+                        ProductCode = pd.ProductCode,
+                        ProductName = pd.ProductCodeNavigation!.ProductName,
+                        LotNo = pd.LotNo,
+                        Demand = pd.Demand,
+                        Quantity = pd.Quantity,
+                        LocationCode = pd.LocationCode,
+                        LocationName = pd.LocationCodeNavigation!.LocationName
+                    })
+                    .ToListAsync();
+
+                var pagedResponse = new PagedResponse<PickListDetailResponseDTO>(pickListDetails, page, pageSize, totalItems);
+                return new ServiceResponse<PagedResponse<PickListDetailResponseDTO>>(true, "Tìm kiếm chi tiết pick list thành công", pagedResponse);
+            }
+            catch (Exception ex)
+            {
+                return new ServiceResponse<PagedResponse<PickListDetailResponseDTO>>(false, $"Lỗi khi tìm kiếm chi tiết pick list: {ex.Message}");
+            }
+        }
+
+        public async Task<ServiceResponse<bool>> UpdatePickListDetail(PickListDetailRequestDTO pickListDetail)
+        {
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                if (pickListDetail == null || string.IsNullOrEmpty(pickListDetail.PickNo) || string.IsNullOrEmpty(pickListDetail.ProductCode))
+                {
+                    return new ServiceResponse<bool>(false, "Dữ liệu đầu vào không hợp lệ. PickNo và ProductCode là bắt buộc.");
+                }
+
+                var existingDetail = await _context.PickListDetails
+                    .FirstOrDefaultAsync(pd => pd.PickNo == pickListDetail.PickNo && pd.ProductCode == pickListDetail.ProductCode);
+
+                if (existingDetail == null)
+                {
+                    return new ServiceResponse<bool>(false, "Chi tiết pick list không tồn tại.");
+                }
+
+                // Cập nhật các trường cho phép
+                existingDetail.Demand = pickListDetail.Demand ?? existingDetail.Demand;
+                existingDetail.Quantity = pickListDetail.Quantity ?? existingDetail.Quantity;
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+                return new ServiceResponse<bool>(true, "Cập nhật chi tiết pick list thành công");
+            }
+            catch (DbUpdateException dbEx)
+            {
+                await transaction.RollbackAsync();
+                return new ServiceResponse<bool>(false, $"Lỗi database khi cập nhật chi tiết pick list: {dbEx.Message}");
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                return new ServiceResponse<bool>(false, $"Lỗi khi cập nhật chi tiết pick list: {ex.Message}");
+            }
+        }
+
+        public async Task<ServiceResponse<bool>> DeletePickListDetail(string pickNo, string productCode)
+        {
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                if (string.IsNullOrEmpty(pickNo) || string.IsNullOrEmpty(productCode))
+                {
+                    return new ServiceResponse<bool>(false, "PickNo và ProductCode không được để trống.");
+                }
+
+                var pickListDetail = await _context.PickListDetails
+                    .FirstOrDefaultAsync(pd => pd.PickNo == pickNo && pd.ProductCode == productCode);
+
+                if (pickListDetail == null)
+                {
+                    return new ServiceResponse<bool>(false, "Chi tiết pick list không tồn tại.");
+                }
+
+                Expression<Func<PickListDetail, bool>> predicate =x =>x.ProductCode == productCode && x.PickNo == pickNo;
+                await _pickListDetailRepository.DeleteFirstByConditionAsync(predicate);
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+                return new ServiceResponse<bool>(true, "Xóa chi tiết pick list thành công");
+            }
+            catch (DbUpdateException dbEx)
+            {
+                await transaction.RollbackAsync();
+                return new ServiceResponse<bool>(false, $"Lỗi database khi xóa chi tiết pick list: {dbEx.Message}");
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                return new ServiceResponse<bool>(false, $"Lỗi khi xóa chi tiết pick list: {ex.Message}");
+            }
+        }
+    }
+}

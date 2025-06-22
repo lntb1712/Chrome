@@ -9,6 +9,7 @@ namespace Chrome.Repositories.InventoryRepository
         IQueryable<Inventory> GetInventories(string[] warehouseCodes);
         IQueryable<Inventory> GetInventoriesByCategoryIds(string[] warehouseCodes, string[] categoryIds);
         IQueryable<Inventory> SearchProductInventories(string[] warehouseCodes, string textToSearch);
+        IQueryable<Inventory> GetInventoryByProductCodeAsync(string productCode, string warehouseCode);
 
     }
 }

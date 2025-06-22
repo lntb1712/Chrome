@@ -26,4 +26,6 @@ public partial class PutAway
     public virtual ICollection<PutAwayDetail> PutAwayDetails { get; set; } = new List<PutAwayDetail>();
 
     public virtual AccountManagement? ResponsibleNavigation { get; set; }
+
+    public virtual StatusMaster? Status { get; set; }
 }

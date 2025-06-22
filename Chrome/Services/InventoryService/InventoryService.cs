@@ -49,6 +49,7 @@ namespace Chrome.Services.InventoryService
                 ProductCode = inventoryRequestDTO.ProductCode,
                 Lotno = inventoryRequestDTO.LotNo,
                 Quantity = quantityInBaseUOM, // Lưu theo mét
+                ReceiveDate = DateTime.Now
             };
 
             try
@@ -347,7 +348,8 @@ namespace Chrome.Services.InventoryService
             var quantityInBaseUOM = inventoryRequestDTO.Quantity * baseQuantity;
 
             try
-            {
+            {   
+                existingInventory.ReceiveDate = DateTime.Now;
                 existingInventory.Quantity += quantityInBaseUOM; // Cập nhật theo mét
                 await _inventoryRepository.UpdateAsync(existingInventory, saveChanges: false);
                 if (saveChanges)

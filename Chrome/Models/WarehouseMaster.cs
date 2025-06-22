@@ -25,7 +25,7 @@ public partial class WarehouseMaster
 
     public virtual ICollection<PutAwayRule> PutAwayRules { get; set; } = new List<PutAwayRule>();
 
-    public virtual ICollection<ReservationDetail> ReservationDetails { get; set; } = new List<ReservationDetail>();
+    public virtual ICollection<Reservation> Reservations { get; set; } = new List<Reservation>();
 
     public virtual ICollection<StockIn> StockIns { get; set; } = new List<StockIn>();
 

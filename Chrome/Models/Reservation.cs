@@ -13,6 +13,8 @@ public partial class Reservation
 
     public DateTime? ReservationDate { get; set; }
 
+    public string? WarehouseCode { get; set; }
+
     public int? StatusId { get; set; }
 
     public virtual OrderType? OrderTypeCodeNavigation { get; set; }
@@ -22,4 +24,6 @@ public partial class Reservation
     public virtual ICollection<ReservationDetail> ReservationDetails { get; set; } = new List<ReservationDetail>();
 
     public virtual StatusMaster? Status { get; set; }
+
+    public virtual WarehouseMaster? WarehouseCodeNavigation { get; set; }
 }
