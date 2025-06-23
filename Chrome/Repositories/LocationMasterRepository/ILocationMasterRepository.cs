@@ -8,5 +8,6 @@ namespace Chrome.Repositories.LocationMasterRepository
         Task<List<LocationMaster>> GetAllLocationMaster(string warehouseCode,int page, int pageSize);
         Task<int> GetTotalLocationMasterCount(string warehouseCode);
         Task<LocationMaster> GetLocationMasterWithCode(string warehouseCode,string locationCode);
+       
     }
 }

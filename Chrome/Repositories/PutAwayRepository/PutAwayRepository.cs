@@ -89,12 +89,28 @@ namespace Chrome.Repositories.PutAwayRepository
                                .Include(p => p.Status)
                                        .FirstOrDefaultAsync(p => p.PutAwayCode == PutAwayCode);
 
-            if (putaway == null)
+          
+
+            return putaway!;
+        }
+
+        public async Task<PutAway> GetPutAwayContainsMovement(string movementCode)
+        {
+            if (string.IsNullOrEmpty(movementCode))
             {
-                throw new InvalidOperationException($"Không tìm thấy putaway với mã {PutAwayCode}.");
+                throw new ArgumentNullException(nameof(movementCode), "Mã putaway không được để trống.");
             }
 
-            return putaway;
+            var putaway = await _context.PutAways
+                                       .Include(p => p.OrderTypeCodeNavigation)
+                               .Include(p => p.LocationCodeNavigation)
+                               .Include(p => p.ResponsibleNavigation)
+                               .Include(p => p.Status)
+                                       .FirstOrDefaultAsync(p => p.PutAwayCode.Contains (movementCode));
+
+
+
+            return putaway!;
         }
     }
 }

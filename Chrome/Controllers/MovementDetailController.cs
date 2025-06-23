@@ -1,5 +1,5 @@
-﻿using Chrome.DTO.PutAwayDTO;
-using Chrome.Services.PutAwayService;
+﻿using Chrome.DTO.MovementDetailDTO;
+using Chrome.Services.MovementDetailService;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
@@ -10,21 +10,21 @@ namespace Chrome.Controllers
     [ApiController]
     [Authorize(Policy = "PermissionPolicy")]
     [EnableCors("MyCors")]
-    public class PutAwayController : ControllerBase
+    public class MovementDetailController : ControllerBase
     {
-        private readonly IPutAwayService _putAwayService;
+        private readonly IMovementDetailService _movementDetailService;
 
-        public PutAwayController(IPutAwayService putAwayService)
+        public MovementDetailController(IMovementDetailService movementDetailService)
         {
-            _putAwayService = putAwayService ?? throw new ArgumentNullException(nameof(putAwayService));
+            _movementDetailService = movementDetailService ?? throw new ArgumentNullException(nameof(movementDetailService));
         }
 
-        [HttpGet("GetAllPutAways")]
-        public async Task<IActionResult> GetAllPutAways([FromQuery] string[] warehouseCodes, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+        [HttpGet("GetAllMovementDetails")]
+        public async Task<IActionResult> GetAllMovementDetails([FromQuery] string[] warehouseCodes, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
         {
             try
             {
-                var response = await _putAwayService.GetAllPutAwaysAsync(warehouseCodes, page, pageSize);
+                var response = await _movementDetailService.GetAllMovementDetailsAsync(warehouseCodes, page, pageSize);
                 if (!response.Success)
                 {
                     return NotFound(new
@@ -41,12 +41,12 @@ namespace Chrome.Controllers
             }
         }
 
-        [HttpGet("GetAllPutAwaysWithStatus")]
-        public async Task<IActionResult> GetAllPutAwaysWithStatus([FromQuery] string[] warehouseCodes, [FromQuery] int statusId, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+        [HttpGet("GetMovementDetailsByMovementCode")]
+        public async Task<IActionResult> GetMovementDetailsByMovementCode([FromQuery] string movementCode, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
         {
             try
             {
-                var response = await _putAwayService.GetAllPutAwaysWithStatusAsync(warehouseCodes, statusId, page, pageSize);
+                var response = await _movementDetailService.GetMovementDetailsByMovementCodeAsync(movementCode, page, pageSize);
                 if (!response.Success)
                 {
                     return NotFound(new
@@ -63,12 +63,12 @@ namespace Chrome.Controllers
             }
         }
 
-        [HttpGet("SearchPutAways")]
-        public async Task<IActionResult> SearchPutAways([FromQuery] string[] warehouseCodes, [FromQuery] string textToSearch, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+        [HttpGet("SearchMovementDetails")]
+        public async Task<IActionResult> SearchMovementDetails([FromQuery] string[] warehouseCodes, [FromQuery] string movementCode, [FromQuery] string textToSearch, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
         {
             try
             {
-                var response = await _putAwayService.SearchPutAwaysAsync(warehouseCodes, textToSearch, page, pageSize);
+                var response = await _movementDetailService.SearchMovementDetailsAsync(warehouseCodes, movementCode, textToSearch, page, pageSize);
                 if (!response.Success)
                 {
                     return NotFound(new
@@ -85,34 +85,12 @@ namespace Chrome.Controllers
             }
         }
 
-        [HttpGet("GetPutAwayByCode")]
-        public async Task<IActionResult> GetPutAwayByCode([FromQuery] string putAwayCode)
+        [HttpPost("AddMovementDetail")]
+        public async Task<IActionResult> AddMovementDetail([FromBody] MovementDetailRequestDTO movementDetail)
         {
             try
             {
-                var response = await _putAwayService.GetPutAwayByCodeAsync(putAwayCode);
-                if (!response.Success)
-                {
-                    return NotFound(new
-                    {
-                        Success = false,
-                        Message = response.Message
-                    });
-                }
-                return Ok(response);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, $"Lỗi: {ex.Message}");
-            }
-        }
-
-        [HttpPost("AddPutAway")]
-        public async Task<IActionResult> AddPutAway([FromBody] PutAwayRequestDTO putAway)
-        {
-            try
-            {
-                var response = await _putAwayService.AddPutAway(putAway);
+                var response = await _movementDetailService.AddMovementDetail(movementDetail);
                 if (!response.Success)
                 {
                     return Conflict(new
@@ -129,12 +107,12 @@ namespace Chrome.Controllers
             }
         }
 
-        [HttpDelete("DeletePutAway")]
-        public async Task<IActionResult> DeletePutAway([FromQuery] string putAwayCode)
+        [HttpPut("UpdateMovementDetail")]
+        public async Task<IActionResult> UpdateMovementDetail([FromBody] MovementDetailRequestDTO movementDetail)
         {
             try
             {
-                var response = await _putAwayService.DeletePutAway(putAwayCode);
+                var response = await _movementDetailService.UpdateMovementDetail(movementDetail);
                 if (!response.Success)
                 {
                     return Conflict(new
@@ -151,15 +129,37 @@ namespace Chrome.Controllers
             }
         }
 
-        [HttpPut("UpdatePutAway")]
-        public async Task<IActionResult> UpdatePutAway([FromBody] PutAwayRequestDTO putAway)
+        [HttpDelete("DeleteMovementDetail")]
+        public async Task<IActionResult> DeleteMovementDetail([FromQuery] string movementCode, [FromQuery] string productCode)
         {
             try
             {
-                var response = await _putAwayService.UpdatePutAway(putAway);
+                var response = await _movementDetailService.DeleteMovementDetail(movementCode, productCode);
                 if (!response.Success)
                 {
                     return Conflict(new
+                    {
+                        Success = false,
+                        Message = response.Message
+                    });
+                }
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, $"Lỗi: {ex.Message}");
+            }
+        }
+
+        [HttpGet("GetProductByLocationCode")]
+        public async Task<IActionResult> GetProductByLocationCode([FromQuery] string locationCode)
+        {
+            try
+            {
+                var response = await _movementDetailService.GetProductByLocationCode(locationCode);
+                if (!response.Success)
+                {
+                    return NotFound(new
                     {
                         Success = false,
                         Message = response.Message

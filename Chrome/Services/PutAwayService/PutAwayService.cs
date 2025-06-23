@@ -4,6 +4,7 @@ using Chrome.Models;
 using Chrome.Repositories.PutawayRepository;
 using Chrome.Repositories.PutAwayRepository;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
@@ -170,9 +171,10 @@ namespace Chrome.Services.PutAwayService
             }
         }
 
-        public async Task<ServiceResponse<bool>> AddPutAway(PutAwayRequestDTO putAway)
+        public async Task<ServiceResponse<bool>> AddPutAway(PutAwayRequestDTO putAway, IDbContextTransaction transaction = null!)
         {
-            using var transaction = await _context.Database.BeginTransactionAsync();
+            bool isExternalTransaction = transaction != null;
+            transaction ??= await _context.Database.BeginTransactionAsync();
             try
             {
                 if (putAway == null || string.IsNullOrEmpty(putAway.PutAwayCode))
@@ -236,17 +238,17 @@ namespace Chrome.Services.PutAwayService
 
                 await _putAwayRepository.AddAsync(newPutAway, saveChanges: false);
                 await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
+                if (!isExternalTransaction) await transaction.CommitAsync();
                 return new ServiceResponse<bool>(true, "Thêm put away thành công");
             }
             catch (DbUpdateException dbEx)
             {
-                await transaction.RollbackAsync();
+                if (!isExternalTransaction) await transaction.RollbackAsync();
                 return new ServiceResponse<bool>(false, $"Lỗi database khi thêm put away: {dbEx.Message}");
             }
             catch (Exception ex)
             {
-                await transaction.RollbackAsync();
+                if (!isExternalTransaction) await transaction.RollbackAsync();
                 return new ServiceResponse<bool>(false, $"Lỗi khi thêm put away: {ex.Message}");
             }
         }

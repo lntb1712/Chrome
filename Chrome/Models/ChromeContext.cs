@@ -383,12 +383,11 @@ public partial class ChromeContext : DbContext
 
             entity.Property(e => e.MovementCode).HasMaxLength(100);
             entity.Property(e => e.FromLocation).HasMaxLength(100);
+            entity.Property(e => e.MovementDate).HasColumnType("datetime");
             entity.Property(e => e.OrderTypeCode).HasMaxLength(100);
             entity.Property(e => e.Responsible).HasMaxLength(100);
             entity.Property(e => e.StatusId).HasColumnName("StatusID");
             entity.Property(e => e.ToLocation).HasMaxLength(100);
-            entity.Property(e => e.TransferDate).HasColumnType("datetime");
-            entity.Property(e => e.TransferDescription).HasMaxLength(100);
             entity.Property(e => e.WarehouseCode).HasMaxLength(100);
 
             entity.HasOne(d => d.FromLocationNavigation).WithMany(p => p.MovementFromLocationNavigations)
@@ -424,7 +423,6 @@ public partial class ChromeContext : DbContext
 
             entity.Property(e => e.MovementCode).HasMaxLength(100);
             entity.Property(e => e.ProductCode).HasMaxLength(100);
-            entity.Property(e => e.Quantity).HasDefaultValue(0.0);
 
             entity.HasOne(d => d.MovementCodeNavigation).WithMany(p => p.MovementDetails)
                 .HasForeignKey(d => d.MovementCode)

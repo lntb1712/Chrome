@@ -2,7 +2,7 @@
 {
     public class OrderDetailBaseDTO
     {
-        public string ProductCode { get; set; }
+        public string? ProductCode { get; set; }
         public double Quantity { get; set; }
     }
 }

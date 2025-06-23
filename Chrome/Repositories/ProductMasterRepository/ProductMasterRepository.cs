@@ -56,6 +56,20 @@ namespace Chrome.Repositories.ProductMasterRepository
             return product!;
         }
 
+        public async Task<ProductMaster> GetProductWithLocationCode(string locationCode)
+        {
+            var product = await _context.ProductMasters
+                                 .Include(x => x.Category)
+                                 .Include(x => x.Inventories)
+                                 .Include(x => x.StorageProducts)
+                                 .ThenInclude(sp => sp.LocationMasters)
+                                 .Where(pm => pm.StorageProducts.Any(sp => sp.LocationMasters.Any(lm => lm.LocationCode == locationCode)))
+                                 .FirstOrDefaultAsync();
+
+            return product!;
+        }
+
+
         public async  Task<int> GetTotalProductCount()
         {
             var totalCount = await _context.ProductMasters.Include(x => x.Category)

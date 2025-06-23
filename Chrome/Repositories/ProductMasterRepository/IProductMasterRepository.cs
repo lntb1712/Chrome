@@ -13,5 +13,6 @@ namespace Chrome.Repositories.ProductMasterRepository
         Task<List<ProductMaster>> GetAllProductWithCategoryID(string categoryId,int page, int pageSize);
         Task<int> GetTotalProductWithCategoryIDCount(string categoryId);
         Task<List<ProductMaster>> GetProductMasterWithCategoryID(string[] categoryIds);
+        Task<ProductMaster> GetProductWithLocationCode (string locationCode);
     }
 }

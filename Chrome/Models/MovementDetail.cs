@@ -11,8 +11,6 @@ public partial class MovementDetail
 
     public double? Demand { get; set; }
 
-    public double? Quantity { get; set; }
-
     public virtual Movement MovementCodeNavigation { get; set; } = null!;
 
     public virtual ProductMaster ProductCodeNavigation { get; set; } = null!;

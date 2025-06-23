@@ -19,6 +19,7 @@ namespace Chrome.Repositories.LocationMasterRepository
                 .Include(x=>x.WarehouseCodeNavigation)
                 .Include(x=>x.StorageProduct)
                 .Include(x=>x.Inventories)
+                .ThenInclude(x=>x.ProductCodeNavigation)
                 .Where(x=>x.WarehouseCode==warehouseCode)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
@@ -32,6 +33,7 @@ namespace Chrome.Repositories.LocationMasterRepository
                 .Include(x => x.WarehouseCodeNavigation)
                 .Include(x => x.StorageProduct)
                 .Include(x => x.Inventories)
+                .ThenInclude(x => x.ProductCodeNavigation)
                 .FirstOrDefaultAsync(x => x.LocationCode == locationCode && x.WarehouseCode == warehouseCode);
             return locationMaster!;
         }
@@ -42,6 +44,7 @@ namespace Chrome.Repositories.LocationMasterRepository
                 .Include(x => x.WarehouseCodeNavigation)
                 .Include(x => x.StorageProduct)
                 .Include(x=>x.Inventories)
+                .ThenInclude(x => x.ProductCodeNavigation)
                 .Where(x=>x.WarehouseCode==warehouseCode)
                 .CountAsync();
         }

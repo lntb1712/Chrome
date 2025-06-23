@@ -74,7 +74,8 @@ namespace Chrome.Permission
             {"ucStorageProduct", @"^/api/StorageProduct"},
             {"ucPutAwayRules",@"^/api/PutAwayRules" },
             {"ucReservation",@"^/api/Reservation" },
-            {"ucPutAway",@"^/api/PutAway" }
+            {"ucPutAway",@"^/api/PutAway" },
+            {"ucMovement",@"^/api/Movement" }
         };
     }
 }

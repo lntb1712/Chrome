@@ -27,7 +27,7 @@ namespace Chrome.Services.LocationMasterService
                 LocationName = locationMasterRequestDTO.LocationName,
                 WarehouseCode = locationMasterRequestDTO.WarehouseCode,
                 StorageProductId = locationMasterRequestDTO.StorageProductId,
-                IsEmpty = false // Mặc định là true nếu không có giá trị
+                IsEmpty = true // Mặc định là true nếu không có giá trị
             };
             using (var transaction = await _context.Database.BeginTransactionAsync())
             {
@@ -120,8 +120,7 @@ namespace Chrome.Services.LocationMasterService
             foreach(var locationMaster in locationMasters)
             {
                 bool isEmpty = locationMaster.Inventories
-                                             .Where(x => x.LocationCode == locationMaster.LocationCode)
-                                             .Sum(x => x.Quantity) <= 0;
+                         .Sum(x => x.Quantity / (x.ProductCodeNavigation.BaseQuantity)) <= locationMaster.StorageProduct!.MaxQuantity;
 
                 var response = new LocationMasterResponseDTO
                 {
@@ -155,8 +154,7 @@ namespace Chrome.Services.LocationMasterService
                 return new ServiceResponse<LocationMasterResponseDTO>(false, "Vị trí không tồn tại");
             }
             bool isEmpty = locationMaster.Inventories
-                                            .Where(x => x.LocationCode == locationMaster.LocationCode)
-                                            .Sum(x => x.Quantity) <= 0;
+                        .Sum(x => x.Quantity / (x.ProductCodeNavigation.BaseQuantity)) <= locationMaster.StorageProduct!.MaxQuantity;
             var locationMasterResponse = new LocationMasterResponseDTO
             {
                 LocationCode = locationMaster.LocationCode,

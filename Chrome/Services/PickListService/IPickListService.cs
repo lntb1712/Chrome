@@ -1,5 +1,6 @@
 ﻿using Chrome.DTO;
 using Chrome.DTO.PickListDTO;
+using Microsoft.EntityFrameworkCore.Storage;
 using System.Threading.Tasks;
 
 namespace Chrome.Services.PickListService
@@ -10,7 +11,7 @@ namespace Chrome.Services.PickListService
         Task<ServiceResponse<PagedResponse<PickListResponseDTO>>> GetAllPickListsWithStatusAsync(string[] warehouseCodes, int statusId, int page = 1, int pageSize = 10);
         Task<ServiceResponse<PagedResponse<PickListResponseDTO>>> SearchPickListsAsync(string[] warehouseCodes, string textToSearch, int page = 1, int pageSize = 10);
         Task<ServiceResponse<PickListResponseDTO>> GetPickListByCodeAsync(string pickNo);
-        Task<ServiceResponse<bool>> AddPickList(PickListRequestDTO pickList);
+        Task<ServiceResponse<bool>> AddPickList(PickListRequestDTO pickList, IDbContextTransaction transaction = null!);
         Task<ServiceResponse<bool>> DeletePickList(string pickNo);
         Task<ServiceResponse<bool>> UpdatePickList(PickListRequestDTO pickList);
     }

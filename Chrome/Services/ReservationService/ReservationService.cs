@@ -9,6 +9,7 @@ using Chrome.Repositories.InventoryRepository;
 using Chrome.Repositories.ReservationRepository;
 using Chrome.Services.InventoryService;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -134,9 +135,11 @@ namespace Chrome.Services.ReservationService
                 return new ServiceResponse<PagedResponse<ReservationResponseDTO>>(false, $"Lỗi khi tìm kiếm reservation: {ex.Message}");
             }
         }
-        public async Task<ServiceResponse<bool>> AddReservation(ReservationRequestDTO reservation)
+        public async Task<ServiceResponse<bool>> AddReservation(ReservationRequestDTO reservation, IDbContextTransaction transaction = null!)
         {
-            using var transaction = await _context.Database.BeginTransactionAsync();
+            bool isExternalTransaction = transaction != null;
+            transaction ??= await _context.Database.BeginTransactionAsync();
+
             string[] formats = { "M/d/yyyy h:mm:ss tt", "MM/dd/yyyy hh:mm:ss tt", "dd/MM/yyyy" };
             if (!DateTime.TryParseExact(reservation.ReservationDate, formats, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime parsedDate))
             {
@@ -157,8 +160,8 @@ namespace Chrome.Services.ReservationService
                             Quantity = od.Demand ?? 0
                         })
                         .ToListAsync();
-                }
-                if (reservation.OrderTypeCode == "MO" || reservation.OrderTypeCode!.StartsWith("MO")) // Giả định "SO" là StockOut
+                }else
+                if (reservation.OrderTypeCode == "MV" || reservation.OrderTypeCode!.StartsWith("MV"))
                 {
                     orderDetails = await _context.MovementDetails
                         .Where(od => od.MovementCode == reservation.OrderId)
@@ -168,8 +171,8 @@ namespace Chrome.Services.ReservationService
                             Quantity = od.Demand ?? 0
                         })
                         .ToListAsync();
-                }
-                if (reservation.OrderTypeCode == "TF" || reservation.OrderTypeCode!.StartsWith("TF")) // Giả định "SO" là StockOut
+                }else
+                if (reservation.OrderTypeCode == "TF" || reservation.OrderTypeCode!.StartsWith("TF"))
                 {
                     orderDetails = await _context.TransferDetails
                         .Where(od => od.TransferCode == reservation.OrderId)
@@ -316,20 +319,21 @@ namespace Chrome.Services.ReservationService
                 }
 
                 await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
+                if (!isExternalTransaction) await transaction.CommitAsync();
                 return new ServiceResponse<bool>(true, "Thêm reservation và chi tiết thành công");
             }
             catch (DbUpdateException dbEx)
             {
-                await transaction.RollbackAsync();
+                if (!isExternalTransaction) await transaction.RollbackAsync();
                 return new ServiceResponse<bool>(false, $"Lỗi database khi thêm reservation: {dbEx.Message}");
             }
             catch (Exception ex)
             {
-                await transaction.RollbackAsync();
+                if (!isExternalTransaction) await transaction.RollbackAsync();
                 return new ServiceResponse<bool>(false, $"Lỗi khi thêm reservation: {ex.Message}");
             }
         }
+        
         public async Task<ServiceResponse<bool>> DeleteReservationAsync(string reservationCode)
         {
             using var transaction = await _context.Database.BeginTransactionAsync();

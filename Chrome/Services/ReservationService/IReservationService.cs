@@ -3,6 +3,7 @@ using Chrome.DTO.OrderTypeDTO;
 using Chrome.DTO.ReservationDTO;
 using Chrome.DTO.StatusMasterDTO;
 using Chrome.DTO.WarehouseMasterDTO;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace Chrome.Services.ReservationService
 {
@@ -11,7 +12,7 @@ namespace Chrome.Services.ReservationService
         Task<ServiceResponse<PagedResponse<ReservationResponseDTO>>> GetAllReservations(string[] warehouseCodes, int page, int pageSize);
         Task<ServiceResponse<PagedResponse<ReservationResponseDTO>>> GetAllReservationsWithStatus(string[] warehouseCodes, int statusId, int page, int pageSize);
         Task<ServiceResponse<PagedResponse<ReservationResponseDTO>>> SearchReservationsAsync(string[] warehouseCodes, string textToSearch, int page, int pageSize);
-        Task<ServiceResponse<bool>> AddReservation(ReservationRequestDTO reservation);
+        Task<ServiceResponse<bool>> AddReservation(ReservationRequestDTO reservation,IDbContextTransaction transaction = null!);
         Task<ServiceResponse<bool>> DeleteReservationAsync(string reservationCode);
         Task<ServiceResponse<bool>> UpdateReservation(ReservationRequestDTO reservation);
         Task<ServiceResponse<List<OrderTypeResponseDTO>>> GetListOrderType(string prefix);

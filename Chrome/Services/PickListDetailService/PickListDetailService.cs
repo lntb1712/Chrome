@@ -1,7 +1,9 @@
 ﻿using Chrome.DTO;
+using Chrome.DTO.InventoryDTO;
 using Chrome.DTO.PickListDetailDTO;
 using Chrome.Models;
 using Chrome.Repositories.PickListDetailRepository;
+using Chrome.Services.InventoryService;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Linq;
@@ -13,11 +15,13 @@ namespace Chrome.Services.PickListDetailService
     public class PickListDetailService : IPickListDetailService
     {
         private readonly IPickListDetailRepository _pickListDetailRepository;
+        private readonly IInventoryService _inventoryService;
         private readonly ChromeContext _context;
 
-        public PickListDetailService(IPickListDetailRepository pickListDetailRepository, ChromeContext context)
+        public PickListDetailService(IPickListDetailRepository pickListDetailRepository,IInventoryService inventoryService, ChromeContext context)
         {
             _pickListDetailRepository = pickListDetailRepository ?? throw new ArgumentNullException(nameof(pickListDetailRepository));
+            _inventoryService = inventoryService ?? throw new ArgumentNullException(nameof(inventoryService));
             _context = context ?? throw new ArgumentNullException(nameof(context));
         }
 
@@ -146,11 +150,76 @@ namespace Chrome.Services.PickListDetailService
                     return new ServiceResponse<bool>(false, "Chi tiết pick list không tồn tại.");
                 }
 
-                // Cập nhật các trường cho phép
-                existingDetail.Demand = pickListDetail.Demand ?? existingDetail.Demand;
+
                 existingDetail.Quantity = pickListDetail.Quantity ?? existingDetail.Quantity;
 
-                await _context.SaveChangesAsync();
+                //cập nhật tồn kho kho đi (-)
+                var quantityDiff = pickListDetail.Quantity - existingDetail.Quantity;
+                if (quantityDiff > 0)
+                {
+                    var pickList = await _context.PickLists
+                        .FirstOrDefaultAsync(p => p.PickNo == pickListDetail.PickNo);
+                    if(pickList == null || string.IsNullOrEmpty(pickList.WarehouseCode) || string.IsNullOrEmpty(pickListDetail.LocationCode))
+                    {
+                        return new ServiceResponse<bool>(false, " PickList hoặc thông tin WarehouseCode/LocationCode không hợp lệ");
+                    }    
+
+                    var inventoryRequest = new InventoryRequestDTO
+                    {
+                        WarehouseCode  = pickList.WarehouseCode,
+                        LocationCode = pickListDetail.LocationCode, 
+                        LotNo = pickListDetail.LotNo!,
+                        ProductCode = pickListDetail.ProductCode,
+                        Quantity = quantityDiff,
+                    };
+
+                    await _inventoryService.UpdateInventoryAsync(inventoryRequest);
+                }
+
+                //Cập nhật trạng thái đang thực hiện cho picklist
+                if (existingDetail.Quantity > 0 && existingDetail.Quantity < existingDetail.Demand)
+                {
+                    var pickList = await _context.PickLists
+                        .FirstOrDefaultAsync(pl => pl.PickNo == pickListDetail.PickNo);
+
+                    if (pickList == null)
+                    {
+                        return new ServiceResponse<bool>(false, "Không tìm thấy mã phiếu lấy");
+                    }
+                    pickList.StatusId = 2;
+                    _context.PickLists.Update(pickList);
+
+                }
+
+                //cập nhật trạng thái hoàn thành cho picklist và trạng thái đang thực hiện cho putaway
+                else if (existingDetail.Quantity == existingDetail.Demand)
+                {
+                    var pickList = await _context.PickLists
+                       .FirstOrDefaultAsync(pl => pl.PickNo == pickListDetail.PickNo);
+
+                    if (pickList == null)
+                    {
+                        return new ServiceResponse<bool>(false, "Không tìm thấy mã phiếu lấy");
+                    }
+                    pickList.StatusId = 3;
+                    _context.PickLists.Update(pickList);
+
+                    string pickNo = existingDetail.PickNo;
+                    string movementCode = pickNo.StartsWith("PICK_") ? pickNo.Substring(4) : pickNo;
+                    // Tìm movement dựa trên movementCode
+                    var movement = await _context.Movements
+                        .FirstOrDefaultAsync(m => m.MovementCode == movementCode);
+
+                    if (movement == null)
+                    {
+                        return new ServiceResponse<bool>(false, $"Không tìm thấy Movement với mã {movementCode}.");
+                    }
+                    movement.StatusId = 2;
+                    _context.Movements.Update(movement);
+                }
+
+
+                    await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
                 return new ServiceResponse<bool>(true, "Cập nhật chi tiết pick list thành công");
             }

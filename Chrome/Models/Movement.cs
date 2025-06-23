@@ -19,9 +19,9 @@ public partial class Movement
 
     public int? StatusId { get; set; }
 
-    public DateTime? TransferDate { get; set; }
+    public DateTime? MovementDate { get; set; }
 
-    public string? TransferDescription { get; set; }
+    public string? MovementDescription { get; set; }
 
     public virtual LocationMaster? FromLocationNavigation { get; set; }
 

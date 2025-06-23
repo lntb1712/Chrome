@@ -38,6 +38,22 @@ namespace Chrome.Repositories.PickListRepository
             return lstPickList;
         }
 
+        public async Task<PickList> GetPickListContainsMovement(string movementCode)
+        {
+            if (string.IsNullOrEmpty(movementCode))
+            {
+                throw new ArgumentNullException(nameof(movementCode), "Mã pick list không được để trống.");
+            }
+
+            var pickList = await _context.PickLists
+                                         .Include(x => x.ReservationCodeNavigation)
+                                         .Include(x => x.WarehouseCodeNavigation)
+                                         .Include(x => x.Status)
+                                         .FirstOrDefaultAsync(x => x.PickNo.Contains(movementCode));
+
+            return pickList!;
+        }
+
         public async Task<PickList> GetPickListWithCode(string pickNo)
         {
             if (string.IsNullOrEmpty(pickNo))

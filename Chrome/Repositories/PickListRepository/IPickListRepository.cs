@@ -9,5 +9,6 @@ namespace Chrome.Repositories.PickListRepository
         IQueryable<PickList> GetAllPickListWithStatus(string[] warehouseCodes, int statusId);
         IQueryable<PickList> SearchPickListAsync(string[] warehouseCodes, string textToSearch);
         Task<PickList> GetPickListWithCode(string pickNo);
+        Task<PickList> GetPickListContainsMovement(string movementCode);
     }
 }

@@ -11,6 +11,8 @@ using Chrome.Repositories.GroupFunctionRepository;
 using Chrome.Repositories.GroupManagementRepository;
 using Chrome.Repositories.InventoryRepository;
 using Chrome.Repositories.LocationMasterRepository;
+using Chrome.Repositories.MovementDetailRepository;
+using Chrome.Repositories.MovementRepository;
 using Chrome.Repositories.OrderTypeRepository;
 using Chrome.Repositories.PickListDetailRepository;
 using Chrome.Repositories.PickListRepository;
@@ -43,6 +45,8 @@ using Chrome.Services.InventoryService;
 using Chrome.Services.JWTService;
 using Chrome.Services.LocationMasterService;
 using Chrome.Services.LoginService;
+using Chrome.Services.MovementDetailService;
+using Chrome.Services.MovementService;
 using Chrome.Services.PickListDetailService;
 using Chrome.Services.PickListService;
 using Chrome.Services.ProductCustomerService;
@@ -109,6 +113,8 @@ builder.Services.AddScoped<IPickListRepository,PickListRepository>();
 builder.Services.AddScoped<IPickListDetailRepository, PickListDetailRepository>();
 builder.Services.AddScoped<IPutAwayRepository,PutAwayRepository>();
 builder.Services.AddScoped<IPutAwayDetailRepository, PutAwayDetailRepository>();
+builder.Services.AddScoped<IMovementRepository, MovementRepository>();
+builder.Services.AddScoped<IMovementDetailRepository, MovementDetailRepository>();
 
 
 // Đăng kí Dependency Injection cho các Service
@@ -141,6 +147,8 @@ builder.Services.AddScoped<IPickListService, PickListService>();
 builder.Services.AddScoped<IPickListDetailService, PickListDetailService>();
 builder.Services.AddScoped<IPutAwayService,PutAwayService>();   
 builder.Services.AddScoped<IPutAwayDetailService, PutAwayDetailService>();
+builder.Services.AddScoped<IMovementService, MovementService>();
+builder.Services.AddScoped<IMovementDetailService, MovementDetailService>();
 
 // Đăng ký IHttpContextAccessor để thực hiện sử dụng HttpCookie
 builder.Services.AddHttpContextAccessor();

@@ -4,6 +4,7 @@ using Chrome.Models;
 using Chrome.Repositories.PickListRepository;
 using Chrome.Services.ReservationService;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
@@ -154,9 +155,11 @@ namespace Chrome.Services.PickListService
             }
         }
 
-        public async Task<ServiceResponse<bool>> AddPickList(PickListRequestDTO pickList)
+        public async Task<ServiceResponse<bool>> AddPickList(PickListRequestDTO pickList, IDbContextTransaction transaction = null!)
         {
-            using var transaction = await _context.Database.BeginTransactionAsync();
+            bool isExternalTransaction = transaction != null;
+            transaction ??= await _context.Database.BeginTransactionAsync();
+           
             try
             {
                 if (pickList == null || string.IsNullOrEmpty(pickList.PickNo) || string.IsNullOrEmpty(pickList.WarehouseCode))
@@ -224,17 +227,17 @@ namespace Chrome.Services.PickListService
                 }
 
                 await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
+                if (!isExternalTransaction) await transaction.CommitAsync();
                 return new ServiceResponse<bool>(true, "Thêm pick list và chi tiết thành công");
             }
             catch (DbUpdateException dbEx)
             {
-                await transaction.RollbackAsync();
+                if (!isExternalTransaction) await transaction.RollbackAsync();
                 return new ServiceResponse<bool>(false, $"Lỗi database khi thêm pick list: {dbEx.Message}");
             }
             catch (Exception ex)
             {
-                await transaction.RollbackAsync();
+                if (!isExternalTransaction) await transaction.RollbackAsync();
                 return new ServiceResponse<bool>(false, $"Lỗi khi thêm pick list: {ex.Message}");
             }
         }
