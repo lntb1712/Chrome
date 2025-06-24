@@ -17,6 +17,7 @@ namespace Chrome.Repositories.AccountRepository
         {
             var lstAccount = await _context.AccountManagements
                                            .Include(x=>x.Group)
+                                           .ThenInclude(x=>x.GroupFunctions)
                                            .OrderBy(x=>x.UserName)
                                            .Skip((page-1)*pageSize)
                                            .Take(pageSize)
@@ -28,6 +29,7 @@ namespace Chrome.Repositories.AccountRepository
         {
             var lstAccountWithRole =await _context.AccountManagements
                                                   .Include(x=>x.Group)
+                                                  .ThenInclude(x => x.GroupFunctions)
                                                   .Where(x=>x.GroupId == groupID)
                                                   .OrderBy(x => x.UserName)
                                                   .Skip((page - 1) * pageSize)
@@ -40,6 +42,7 @@ namespace Chrome.Repositories.AccountRepository
         {
             var lstAccount = await _context.AccountManagements
                                            .Include(x => x.Group)
+                                           .ThenInclude(x => x.GroupFunctions)
                                            .FirstOrDefaultAsync(x=>x.UserName == userName);
             return lstAccount!;
         }
@@ -54,6 +57,7 @@ namespace Chrome.Repositories.AccountRepository
         {
             var account = await _context.AccountManagements
                                         .Include(x=>x.Group)
+                                        .ThenInclude(x => x.GroupFunctions)
                                         .Where(x => x.UserName.Contains(textToSearch) || x.FullName!.Contains(textToSearch))
                                         .OrderBy(x => x.UserName)
                                         .Skip((page - 1) * pageSize)

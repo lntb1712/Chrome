@@ -174,9 +174,9 @@ namespace Chrome.Services.PickListDetailService
                         ProductCode = pickListDetail.ProductCode,
                         Quantity = -quantityDiff,
                     };
+                    existingDetail.Quantity = pickListDetail.Quantity;
                     if (pickList.ReservationCodeNavigation!.OrderTypeCode!.StartsWith("SO"))
                     {
-                        existingDetail.Quantity = pickListDetail.Quantity;
                         var stockOutDetail = await _context.StockOutDetails
                                                         .FirstOrDefaultAsync(x => x.StockOutCode == pickListDetail.PickNo.Substring(5) && x.ProductCode == pickListDetail.ProductCode);
                         if (stockOutDetail == null)
@@ -185,6 +185,20 @@ namespace Chrome.Services.PickListDetailService
                         }
                         stockOutDetail!.Quantity = existingDetail.Quantity;
                         _context.StockOutDetails.Update(stockOutDetail);
+                    }
+                    else if (pickList.ReservationCodeNavigation!.OrderTypeCode!.StartsWith("TF"))
+                    {
+                        var orderCode = pickListDetail.PickNo.Substring(5);
+                        int lastUnderscoreIndex = orderCode.LastIndexOf('_');
+                        string transferCode = lastUnderscoreIndex != -1 ? orderCode.Substring(0, lastUnderscoreIndex) : orderCode;
+                        var transferDetail = await _context.TransferDetails
+                                                           .FirstOrDefaultAsync(x => x.TransferCode == transferCode && x.ProductCode == pickListDetail.ProductCode);
+                        if(transferDetail==null)
+                        {
+                            return new ServiceResponse<bool>(false, "Không tìm thấy chi tiết chuyển kho");
+                        }
+                        transferDetail!.QuantityInBounded = pickListDetail.Quantity;
+                        _context.TransferDetails.Update(transferDetail);
                     }
                     await _inventoryService.UpdateInventoryAsync(inventoryRequest, saveChanges: false);
                 }
@@ -243,7 +257,7 @@ namespace Chrome.Services.PickListDetailService
                     if (pickList.ReservationCodeNavigation!.OrderTypeCode!.StartsWith("MV"))
                     {
 
-                        string movementCode = pickNo.StartsWith("PICK_") ? pickNo.Substring(4) : pickNo;
+                        string movementCode = pickNo.StartsWith("PICK_") ? pickNo.Substring(5) : pickNo;
                         // Tìm movement dựa trên movementCode
                         var movement = await _context.Movements
                             .FirstOrDefaultAsync(m => m.MovementCode == movementCode);
@@ -255,6 +269,22 @@ namespace Chrome.Services.PickListDetailService
                         movement.StatusId = 2;
                         _context.Movements.Update(movement);
                     }
+                    else if (pickList.ReservationCodeNavigation!.OrderTypeCode!.StartsWith("TF"))
+                    {
+                        var orderCode = pickListDetail.PickNo.Substring(5);
+                        int lastUnderscoreIndex = orderCode.LastIndexOf('_');
+                        string transferCode = lastUnderscoreIndex != -1 ? orderCode.Substring(0, lastUnderscoreIndex) : orderCode;
+                        // Tìm movement dựa trên movementCode
+                        var transfer = await _context.Transfers
+                            .FirstOrDefaultAsync(m => m.TransferCode == transferCode);
+
+                        if (transfer == null)
+                        {
+                            return new ServiceResponse<bool>(false, $"Không tìm thấy lệnh chuyển kho với mã {transfer}.");
+                        }
+                        transfer.StatusId = 2;
+                        _context.Transfers.Update(transfer);
+                    }    
 
                 }
 

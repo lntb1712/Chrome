@@ -19,5 +19,7 @@ public partial class Stocktake
 
     public virtual StatusMaster? Status { get; set; }
 
+    public virtual ICollection<StocktakeDetail> StocktakeDetails { get; set; } = new List<StocktakeDetail>();
+
     public virtual WarehouseMaster? WarehouseCodeNavigation { get; set; }
 }

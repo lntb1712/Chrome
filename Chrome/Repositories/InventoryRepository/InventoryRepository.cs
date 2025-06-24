@@ -70,5 +70,15 @@ namespace Chrome.Repositories.InventoryRepository
                            .ThenInclude(x => x.Category)
                            .Where(x => x.ProductCode == productCode && x.WarehouseCode == warehouseCode);
         }
+
+        public IQueryable<Inventory> GetInventoryByWarehouseCodeAsync(string warehouseCode)
+        {
+            return _context.Inventories
+                          .Include(x => x.WarehouseCodeNavigation)
+                          .Include(x => x.LocationCodeNavigation)
+                          .Include(x => x.ProductCodeNavigation)
+                          .ThenInclude(x => x.Category)
+                          .Where(x =>x.WarehouseCode == warehouseCode);
+        }
     }
 }

@@ -13,7 +13,9 @@ public partial class Transfer
 
     public string? ToWarehouseCode { get; set; }
 
-    public string? Responsible { get; set; }
+    public string? ToResponsible { get; set; }
+
+    public string? FromResponsible { get; set; }
 
     public int? StatusId { get; set; }
 
@@ -21,13 +23,15 @@ public partial class Transfer
 
     public string? TransferDescription { get; set; }
 
+    public virtual AccountManagement? FromResponsibleNavigation { get; set; }
+
     public virtual WarehouseMaster? FromWarehouseCodeNavigation { get; set; }
 
     public virtual OrderType? OrderTypeCodeNavigation { get; set; }
 
-    public virtual AccountManagement? ResponsibleNavigation { get; set; }
-
     public virtual StatusMaster? Status { get; set; }
+
+    public virtual AccountManagement? ToResponsibleNavigation { get; set; }
 
     public virtual WarehouseMaster? ToWarehouseCodeNavigation { get; set; }
 

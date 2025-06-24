@@ -30,8 +30,12 @@ using Chrome.Repositories.StockInDetailRepository;
 using Chrome.Repositories.StockInRepository;
 using Chrome.Repositories.StockOutDetailRepository;
 using Chrome.Repositories.StockOutRepository;
+using Chrome.Repositories.StockTakeDetailRepository;
+using Chrome.Repositories.StockTakeRepository;
 using Chrome.Repositories.StorageProductRepository;
 using Chrome.Repositories.SupplierMasterRepository;
+using Chrome.Repositories.TransferDetailRepository;
+using Chrome.Repositories.TransferRepository;
 using Chrome.Repositories.WarehouseMasterRepository;
 using Chrome.Services.AccountManagementService;
 using Chrome.Services.BOMComponentService;
@@ -61,8 +65,12 @@ using Chrome.Services.StockInDetailService;
 using Chrome.Services.StockInService;
 using Chrome.Services.StockOutDetailService;
 using Chrome.Services.StockOutService;
+using Chrome.Services.StockTakeDetailService;
+using Chrome.Services.StockTakeService;
 using Chrome.Services.StorageProductService;
 using Chrome.Services.SupplierMasterService;
+using Chrome.Services.TransferDetailService;
+using Chrome.Services.TransferService;
 using Chrome.Services.WarehouseMasterService;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
@@ -115,6 +123,10 @@ builder.Services.AddScoped<IPutAwayRepository,PutAwayRepository>();
 builder.Services.AddScoped<IPutAwayDetailRepository, PutAwayDetailRepository>();
 builder.Services.AddScoped<IMovementRepository, MovementRepository>();
 builder.Services.AddScoped<IMovementDetailRepository, MovementDetailRepository>();
+builder.Services.AddScoped<ITransferRepository, TransferRepository>();
+builder.Services.AddScoped<ITransferDetailRepository, TransferDetailRepository>();
+builder.Services.AddScoped<IStockTakeRepository, StockTakeRepository>();
+builder.Services.AddScoped<IStockTakeDetailRepository,StocktakeDetailRepository>();
 
 
 // Đăng kí Dependency Injection cho các Service
@@ -149,6 +161,10 @@ builder.Services.AddScoped<IPutAwayService,PutAwayService>();
 builder.Services.AddScoped<IPutAwayDetailService, PutAwayDetailService>();
 builder.Services.AddScoped<IMovementService, MovementService>();
 builder.Services.AddScoped<IMovementDetailService, MovementDetailService>();
+builder.Services.AddScoped<ITransferService, TransferService>();
+builder.Services.AddScoped<ITransferDetailService, TransferDetailService>();
+builder.Services.AddScoped<IStockTakeService, StockTakeService>();
+builder.Services.AddScoped<IStockTakeDetailService, StockTakeDetailService>();
 
 // Đăng ký IHttpContextAccessor để thực hiện sử dụng HttpCookie
 builder.Services.AddHttpContextAccessor();

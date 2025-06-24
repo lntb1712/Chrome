@@ -19,6 +19,8 @@ public partial class WarehouseMaster
 
     public virtual ICollection<LocationMaster> LocationMasters { get; set; } = new List<LocationMaster>();
 
+    public virtual ICollection<ManufacturingOrder> ManufacturingOrders { get; set; } = new List<ManufacturingOrder>();
+
     public virtual ICollection<Movement> Movements { get; set; } = new List<Movement>();
 
     public virtual ICollection<PickList> PickLists { get; set; } = new List<PickList>();
@@ -36,6 +38,4 @@ public partial class WarehouseMaster
     public virtual ICollection<Transfer> TransferFromWarehouseCodeNavigations { get; set; } = new List<Transfer>();
 
     public virtual ICollection<Transfer> TransferToWarehouseCodeNavigations { get; set; } = new List<Transfer>();
-
-    public virtual ICollection<WorkCenterMaster> WorkCenterMasters { get; set; } = new List<WorkCenterMaster>();
 }

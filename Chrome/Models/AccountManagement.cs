@@ -27,5 +27,7 @@ public partial class AccountManagement
 
     public virtual ICollection<Stocktake> Stocktakes { get; set; } = new List<Stocktake>();
 
-    public virtual ICollection<Transfer> Transfers { get; set; } = new List<Transfer>();
+    public virtual ICollection<Transfer> TransferFromResponsibleNavigations { get; set; } = new List<Transfer>();
+
+    public virtual ICollection<Transfer> TransferToResponsibleNavigations { get; set; } = new List<Transfer>();
 }

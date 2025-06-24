@@ -33,7 +33,7 @@ public partial class ProductMaster
 
     public virtual ICollection<Inventory> Inventories { get; set; } = new List<Inventory>();
 
-    public virtual ICollection<ManufactoringOrderDetail> ManufactoringOrderDetails { get; set; } = new List<ManufactoringOrderDetail>();
+    public virtual ICollection<ManufacturingOrderDetail> ManufacturingOrderDetails { get; set; } = new List<ManufacturingOrderDetail>();
 
     public virtual ICollection<ManufacturingOrder> ManufacturingOrders { get; set; } = new List<ManufacturingOrder>();
 

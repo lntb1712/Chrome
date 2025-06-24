@@ -177,10 +177,29 @@ namespace Chrome.Services.PutAwayDetailService
                     else
                     {
                         await _inventoryService.UpdateInventoryAsync(inventoryRequest, saveChanges: false);
-                    }    
-                    
+                    }
 
-                    
+                    string putAwayCode = existingDetail.PutAwayCode;
+                    string orderCode = putAwayCode.StartsWith("PUT_") ? putAwayCode.Substring(4) : putAwayCode;
+                    if (putAway.OrderTypeCode!.StartsWith("TF"))
+                    {
+                        int lastUnderscoreIndex = orderCode.LastIndexOf('_');
+                        string transferCode = lastUnderscoreIndex != -1 ? orderCode.Substring(0, lastUnderscoreIndex) : orderCode;
+
+                        var transferDetail = await _context.TransferDetails
+                                                          .FirstOrDefaultAsync(x => x.TransferCode == transferCode && x.ProductCode == putAwayDetail.ProductCode);
+
+                        if (transferDetail == null)
+                        {
+                            return new ServiceResponse<bool>(false, $"Không tìm thấy chi tiết Lệnh chuyển kho với mã {transferCode}");
+                        }
+
+                        transferDetail!.QuantityOutBounded = putAwayDetail.Quantity;
+                        _context.TransferDetails.Update(transferDetail);
+                    }
+
+
+
                 }
                 existingDetail.Quantity = putAwayDetail.Quantity ;
                 //Cập nhật trạng thái đang thực hiện cho putAway
@@ -210,19 +229,38 @@ namespace Chrome.Services.PutAwayDetailService
                     putAway.StatusId = 3;
                     _context.PutAways.Update(putAway);
 
-                    string putAwayCode = existingDetail.PutAwayCode; // Hoặc lấy từ đối tượng liên quan
-                    string movementCode = putAwayCode.StartsWith("PUT_") ? putAwayCode.Substring(4) : putAwayCode;
-
-                    // Tìm movement dựa trên movementCode
-                    var movement = await _context.Movements
-                        .FirstOrDefaultAsync(m => m.MovementCode == movementCode);
-
-                    if (movement == null)
+                    string putAwayCode = existingDetail.PutAwayCode; 
+                    
+                    string orderCode = putAwayCode.StartsWith("PUT_") ? putAwayCode.Substring(4) : putAwayCode;
+                    if (putAway.OrderTypeCode!.StartsWith("MV"))
                     {
-                        return new ServiceResponse<bool>(false, $"Không tìm thấy Movement với mã {movementCode}.");
+                        // Tìm movement dựa trên movementCode
+                        var movement = await _context.Movements
+                            .FirstOrDefaultAsync(m => m.MovementCode == orderCode);
+
+                        if (movement == null)
+                        {
+                            return new ServiceResponse<bool>(false, $"Không tìm thấy Movement với mã {orderCode}.");
+                        }
+                        movement.StatusId = 3;
+                        _context.Movements.Update(movement);
                     }
-                    movement.StatusId = 3;
-                    _context.Movements.Update(movement);
+                    else if(putAway.OrderTypeCode!.StartsWith("TF"))
+                    {
+                        int lastUnderscoreIndex = orderCode.LastIndexOf('_');
+                        string transferCode = lastUnderscoreIndex != -1 ? orderCode.Substring(0, lastUnderscoreIndex) : orderCode;
+
+                        var transfer = await _context.Transfers
+                             .FirstOrDefaultAsync(x => x.TransferCode == transferCode);
+
+                        if (transfer == null)
+                        {
+                            return new ServiceResponse<bool>(false, $"Không tìm thấy Lệnh chuyển kho với mã {transferCode}");
+                        }
+
+                        transfer.StatusId = 3;
+                        _context.Transfers.Update(transfer);
+                    }
                 }
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();

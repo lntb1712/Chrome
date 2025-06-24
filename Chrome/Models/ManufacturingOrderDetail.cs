@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace Chrome.Models;
 
-public partial class ManufactoringOrderDetail
+public partial class ManufacturingOrderDetail
 {
     public string ManufacturingOrderCode { get; set; } = null!;
 

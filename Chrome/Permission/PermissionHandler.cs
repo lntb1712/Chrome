@@ -38,6 +38,10 @@ namespace Chrome.Permission
                 {
                     context.Succeed(requirement);
                 }
+                else
+                {
+                    context.Fail(); // chặn request nếu không match permission
+                }
 
                 return Task.CompletedTask;
             }
@@ -48,6 +52,10 @@ namespace Chrome.Permission
                 && userWarehouses.Contains(warehouseId))
             {
                 context.Succeed(requirement);
+            }
+            else
+            {
+                context.Fail(); // chặn request nếu không match permission
             }
 
             return Task.CompletedTask;
@@ -75,7 +83,8 @@ namespace Chrome.Permission
             {"ucPutAwayRules",@"^/api/PutAwayRules" },
             {"ucReservation",@"^/api/Reservation" },
             {"ucPutAway",@"^/api/PutAway" },
-            {"ucMovement",@"^/api/Movement" }
+            {"ucMovement",@"^/api/Movement" },
+            {"ucStockTake",@"^/api/StockTake" }
         };
     }
 }

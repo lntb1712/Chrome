@@ -9,6 +9,8 @@ public partial class OrderType
 
     public string? OrderTypeName { get; set; }
 
+    public virtual ICollection<ManufacturingOrder> ManufacturingOrders { get; set; } = new List<ManufacturingOrder>();
+
     public virtual ICollection<Movement> Movements { get; set; } = new List<Movement>();
 
     public virtual ICollection<PutAway> PutAways { get; set; } = new List<PutAway>();

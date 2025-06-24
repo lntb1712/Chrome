@@ -7,11 +7,13 @@ public partial class ManufacturingOrder
 {
     public string ManufacturingOrderCode { get; set; } = null!;
 
+    public string? OrderTypeCode { get; set; }
+
     public string ProductCode { get; set; } = null!;
 
     public string Bomcode { get; set; } = null!;
 
-    public string? BomVersion { get; set; }
+    public string BomVersion { get; set; } = null!;
 
     public int? Quantity { get; set; }
 
@@ -27,15 +29,15 @@ public partial class ManufacturingOrder
 
     public int? StatusId { get; set; }
 
-    public string? WorkCenterCode { get; set; }
-
     public string? WarehouseCode { get; set; }
 
-    public virtual Bommaster? Bommaster { get; set; }
+    public virtual Bommaster Bommaster { get; set; } = null!;
+
+    public virtual OrderType? OrderTypeCodeNavigation { get; set; }
 
     public virtual ProductMaster ProductCodeNavigation { get; set; } = null!;
 
     public virtual AccountManagement? ResponsibleNavigation { get; set; }
 
-    public virtual WorkCenterMaster? WorkCenterMaster { get; set; }
+    public virtual WarehouseMaster? WarehouseCodeNavigation { get; set; }
 }
