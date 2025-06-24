@@ -45,7 +45,7 @@ namespace Chrome.Services.StockTakeDetailService
                         ProductName = sd.ProductCodeNavigation!.ProductName!,
                         Lotno = sd.Lotno,
                         LocationCode = sd.LocationCode,
-                        Quantity = sd.Quantity,
+                        Quantity = sd.Quantity / (sd.ProductCodeNavigation.BaseQuantity),
                         CountedQuantity = sd.CountedQuantity
                     })
                     .ToListAsync();
@@ -85,7 +85,7 @@ namespace Chrome.Services.StockTakeDetailService
                         ProductName = sd.ProductCodeNavigation!.ProductName!,
                         Lotno = sd.Lotno,
                         LocationCode = sd.LocationCode,
-                        Quantity = sd.Quantity,
+                        Quantity = sd.Quantity / (sd.ProductCodeNavigation.BaseQuantity),
                         CountedQuantity = sd.CountedQuantity
                     })
                     .ToListAsync();
@@ -120,7 +120,7 @@ namespace Chrome.Services.StockTakeDetailService
                         ProductName = sd.ProductCodeNavigation!.ProductName!,
                         Lotno = sd.Lotno,
                         LocationCode = sd.LocationCode,
-                        Quantity = sd.Quantity,
+                        Quantity = sd.Quantity / (sd.ProductCodeNavigation.BaseQuantity),
                         CountedQuantity = sd.CountedQuantity
                     })
                     .ToListAsync();
@@ -159,10 +159,18 @@ namespace Chrome.Services.StockTakeDetailService
                 {
                     return new ServiceResponse<bool>(false, "Chi tiết kiểm kho không tồn tại.");
                 }
+                existingDetail.CountedQuantity = StockTakeDetail.CountedQuantity ;
+                if(existingDetail.CountedQuantity>0)
+                {
+                    var stockTake = await _context.Stocktakes.FirstOrDefaultAsync(x => x.StocktakeCode == existingDetail.StocktakeCode);
+                    if(stockTake ==null)
+                    {
+                        return new ServiceResponse<bool>(false, "Không tìm thấy lệnh kiểm kê");
+                    }    
+                    stockTake.StatusId = 2;
+                    _context.Stocktakes.Update(stockTake);
 
-                // Update allowed fields
-                existingDetail.Quantity = StockTakeDetail.Quantity ?? existingDetail.Quantity;
-                existingDetail.CountedQuantity = StockTakeDetail.CountedQuantity ?? existingDetail.CountedQuantity;
+                }    
 
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();

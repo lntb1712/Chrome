@@ -126,7 +126,7 @@ namespace Chrome.Services.StockTakeService
                     return new ServiceResponse<PagedResponse<StockTakeResponseDTO>>(false, "Dữ liệu nhận vào không hợp lệ");
                 }
 
-                var query = _StockTakeRepository.SearchStockTakesAsync(warehouseCodes, null, textToSearch);
+                var query = _StockTakeRepository.SearchStockTakesAsync(warehouseCodes,textToSearch);
                 var totalItems = await query.CountAsync();
                 var StockTakes = await query
                     .Skip((page - 1) * pageSize)
@@ -287,7 +287,7 @@ namespace Chrome.Services.StockTakeService
                 }
                 existingStockTake.WarehouseCode = StockTake.WarehouseCode;
                 existingStockTake.Responsible = StockTake.Responsible;
-                existingStockTake.StatusId = StockTake.StatusId;
+                
 
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
@@ -439,5 +439,61 @@ namespace Chrome.Services.StockTakeService
             }
         }
 
+        public async Task<ServiceResponse<bool>> ConfirmnStockTake(StockTakeRequestDTO stockTake)
+        {
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                if (stockTake == null || string.IsNullOrEmpty(stockTake.StocktakeCode))
+                {
+                    return new ServiceResponse<bool>(false, "Dữ liệu đầu vào không hợp lệ. StockTakeCode là bắt buộc.");
+                }
+
+                var existingStockTake = await _context.Stocktakes
+                    .FirstOrDefaultAsync(st => st.StocktakeCode == stockTake.StocktakeCode);
+                if (existingStockTake == null)
+                {
+                    return new ServiceResponse<bool>(false, "Kiểm kho không tồn tại.");
+                }
+
+                existingStockTake.StatusId = 3;
+                var query =  _StockTakeDetailRepository.GetStockTakeDetailsByStockTakeCodeAsync(stockTake.StocktakeCode);
+                var lstDetail = query.Select(x => new Inventory
+                {
+                    WarehouseCode = existingStockTake.WarehouseCode!,
+                    LocationCode =x.LocationCode,
+                    Lotno =x.Lotno,
+                    ProductCode =x.ProductCode,
+                    Quantity =x.CountedQuantity,
+                    ReceiveDate = DateTime.Now,  
+                });
+
+                 _context.Inventories.UpdateRange(lstDetail);
+
+
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+                return new ServiceResponse<bool>(true, "Cập nhật kiểm kho thành công");
+            }
+            catch (DbUpdateException dbEx)
+            {
+                await transaction.RollbackAsync();
+                if (dbEx.InnerException != null)
+                {
+                    string error = dbEx.InnerException.Message.ToLower();
+                    if (error.Contains("foreign key"))
+                    {
+                        return new ServiceResponse<bool>(false, "Dữ liệu tham chiếu không đúng (WarehouseCode, Responsible hoặc StatusID)");
+                    }
+                }
+                return new ServiceResponse<bool>(false, $"Lỗi database khi cập nhật kiểm kho: {dbEx.Message}");
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                return new ServiceResponse<bool>(false, $"Lỗi khi cập nhật kiểm kho: {ex.Message}");
+            }
+        }
     }
 }

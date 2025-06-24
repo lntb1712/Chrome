@@ -126,6 +126,27 @@ public class StockTakeController : ControllerBase
             return StatusCode(StatusCodes.Status500InternalServerError, $"Lỗi: {ex.Message}");
         }
     }
+    [HttpPut("ConfirmnStockTake")]
+    public async Task<IActionResult> ConfirmnStockTake([FromBody] StockTakeRequestDTO StockTake)
+    {
+        try
+        {
+            var response = await _StockTakeService.ConfirmnStockTake(StockTake);
+            if (!response.Success)
+            {
+                return Conflict(new
+                {
+                    Success = false,
+                    Message = response.Message
+                });
+            }
+            return Ok(response);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, $"Lỗi: {ex.Message}");
+        }
+    }
 
     [HttpDelete("DeleteStockTake")]
     public async Task<IActionResult> DeleteStockTake([FromQuery] string StockTakeCode)

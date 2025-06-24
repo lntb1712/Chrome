@@ -33,18 +33,13 @@ namespace Chrome.Repositories.StockTakeRepository
                 .AsQueryable();
         }
 
-        public IQueryable<Stocktake> SearchStockTakesAsync(string[] warehouseCodes, string StockTakeCode, string textToSearch)
+        public IQueryable<Stocktake> SearchStockTakesAsync(string[] warehouseCodes,  string textToSearch)
         {
             var query = _context.Stocktakes
                 .Include(x => x.WarehouseCodeNavigation)
                 .Include(x => x.ResponsibleNavigation)
                 .Include(x => x.Status)
                 .Where(st => warehouseCodes.Contains(st.WarehouseCode));
-
-            if (!string.IsNullOrEmpty(StockTakeCode))
-            {
-                query = query.Where(st => st.StocktakeCode == StockTakeCode);
-            }
 
             if (!string.IsNullOrEmpty(textToSearch))
             {

@@ -7,6 +7,6 @@ namespace Chrome.Repositories.StockTakeRepository
     {
         IQueryable<Stocktake> GetAllStockTakesAsync(string[] warehouseCodes);
         IQueryable<Stocktake> GetStockTakeByStockTakeCodeAsync(string StockTakeCode);
-        IQueryable<Stocktake> SearchStockTakesAsync(string[] warehouseCodes, string StockTakeCode, string textToSearch);
+        IQueryable<Stocktake> SearchStockTakesAsync(string[] warehouseCodes, string textToSearch);
     }
 }

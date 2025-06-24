@@ -2,6 +2,7 @@
 using Chrome.DTO.AccountManagementDTO;
 using Chrome.DTO.InventoryDTO;
 using Chrome.DTO.StatusMasterDTO;
+using Chrome.DTO.StockTakeDetailDTO;
 using Chrome.DTO.StockTakeDTO;
 using Chrome.DTO.WarehouseMasterDTO;
 
@@ -15,6 +16,7 @@ namespace Chrome.Services.StockTakeService
         Task<ServiceResponse<bool>> AddStockTake(StockTakeRequestDTO StockTake);
         Task<ServiceResponse<bool>> UpdateStockTake(StockTakeRequestDTO StockTake);
         Task<ServiceResponse<bool>> DeleteStockTakeAsync(string StockTakeCode);
+        Task<ServiceResponse<bool>> ConfirmnStockTake(StockTakeRequestDTO stockTake);
         Task<ServiceResponse<List<AccountManagementResponseDTO>>> GetListResponsibleAsync(string warehouseCode);
         Task<ServiceResponse<List<StatusMasterResponseDTO>>> GetListStatusMaster();
         Task<ServiceResponse<List<WarehouseMasterResponseDTO>>> GetListWarehousePermission(string[] warehouseCodes);
