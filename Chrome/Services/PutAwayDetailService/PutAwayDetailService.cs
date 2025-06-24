@@ -2,6 +2,7 @@
 using Chrome.DTO.InventoryDTO;
 using Chrome.DTO.PutAwayDetailDTO;
 using Chrome.Models;
+using Chrome.Repositories.InventoryRepository;
 using Chrome.Repositories.PutAwayDetailRepository;
 using Chrome.Services.InventoryService;
 using Microsoft.EntityFrameworkCore;
@@ -14,12 +15,14 @@ namespace Chrome.Services.PutAwayDetailService
     public class PutAwayDetailService : IPutAwayDetailService
     {
         private readonly IPutAwayDetailRepository _putAwayDetailRepository;
+        private readonly IInventoryRepository _inventoryRepository;
         private readonly IInventoryService _inventoryService;
         private readonly ChromeContext _context;
 
-        public PutAwayDetailService(IPutAwayDetailRepository putAwayDetailRepository, IInventoryService inventoryService, ChromeContext context)
+        public PutAwayDetailService(IPutAwayDetailRepository putAwayDetailRepository,IInventoryRepository inventoryRepository, IInventoryService inventoryService, ChromeContext context)
         {
             _putAwayDetailRepository = putAwayDetailRepository ?? throw new ArgumentNullException(nameof(putAwayDetailRepository));
+            _inventoryRepository = inventoryRepository ?? throw new ArgumentNullException(nameof(inventoryRepository));
             _inventoryService = inventoryService ?? throw new ArgumentNullException(nameof(inventoryService));
             _context = context ?? throw new ArgumentNullException(nameof(context));
         }
@@ -142,7 +145,7 @@ namespace Chrome.Services.PutAwayDetailService
                 {
                     return new ServiceResponse<bool>(false, "Chi tiết putaway không tồn tại.");
                 }
-                existingDetail.Quantity = putAwayDetail.Quantity ?? existingDetail.Quantity;
+               
                 var quantityDiff = putAwayDetail.Quantity - existingDetail.Quantity;
 
 
@@ -166,9 +169,20 @@ namespace Chrome.Services.PutAwayDetailService
                         ProductCode = putAwayDetail.ProductCode,
                         Quantity = quantityDiff,
                     };
-                    await _inventoryService.UpdateInventoryAsync(inventoryRequest);
-                }
+                    var existingInventory = await _inventoryRepository.GetInventoryWithCode(putAway.LocationCodeNavigation.WarehouseCode, putAway.LocationCode, putAwayDetail.ProductCode, putAwayDetail.LotNo!);
+                    if(existingInventory==null)
+                    {
+                        await _inventoryService.AddInventory(inventoryRequest, saveChanges: false);
+                    }
+                    else
+                    {
+                        await _inventoryService.UpdateInventoryAsync(inventoryRequest, saveChanges: false);
+                    }    
+                    
 
+                    
+                }
+                existingDetail.Quantity = putAwayDetail.Quantity ;
                 //Cập nhật trạng thái đang thực hiện cho putAway
                 if (existingDetail.Quantity > 0 && existingDetail.Quantity < existingDetail.Demand)
                 {

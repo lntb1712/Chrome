@@ -1,5 +1,6 @@
 ﻿using Chrome.DTO;
 using Chrome.DTO.PickListDTO;
+using Chrome.DTO.StatusMasterDTO;
 using Microsoft.EntityFrameworkCore.Storage;
 using System.Threading.Tasks;
 
@@ -14,5 +15,7 @@ namespace Chrome.Services.PickListService
         Task<ServiceResponse<bool>> AddPickList(PickListRequestDTO pickList, IDbContextTransaction transaction = null!);
         Task<ServiceResponse<bool>> DeletePickList(string pickNo);
         Task<ServiceResponse<bool>> UpdatePickList(PickListRequestDTO pickList);
+        Task<ServiceResponse<List<StatusMasterResponseDTO>>> GetListStatusMaster();
+        Task<ServiceResponse<PickListResponseDTO>> GetPickListByStockOutCodeAsync(string stockOutCode);
     }
 }

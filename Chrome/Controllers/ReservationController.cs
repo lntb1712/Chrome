@@ -156,6 +156,70 @@ namespace Chrome.Controllers
             }
         }
 
+        [HttpGet("GetReservationsByStockOutCodeAsync")]
+        public async Task<IActionResult> GetReservationsByStockOutCodeAsync([FromQuery] string stockOutCode)
+        {
+            try
+            {
+                var response = await _reservationService.GetReservationsByStockOutCodeAsync(stockOutCode);
+                if (!response.Success)
+                {
+                    return NotFound(new
+                    {
+                        Success = false,
+                        Message = response.Message
+                    });
+                }
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, $"Lỗi: {ex.Message}");
+            }
+        }
+        [HttpGet("GetReservationsByTransferCodeAsync")]
+        public async Task<IActionResult> GetReservationsByTransferCodeAsync([FromQuery] string transferCode)
+        {
+            try
+            {
+                var response = await _reservationService.GetReservationsByStockOutCodeAsync(transferCode);
+                if (!response.Success)
+                {
+                    return NotFound(new
+                    {
+                        Success = false,
+                        Message = response.Message
+                    });
+                }
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, $"Lỗi: {ex.Message}");
+            }
+        }
+        [HttpGet("GetReservationsByMovementCodeAsync")]
+        public async Task<IActionResult> GetReservationsByMovementCodeAsync([FromQuery] string movementCode)
+        {
+            try
+            {
+                var response = await _reservationService.GetReservationsByStockOutCodeAsync(movementCode);
+                if (!response.Success)
+                {
+                    return NotFound(new
+                    {
+                        Success = false,
+                        Message = response.Message
+                    });
+                }
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, $"Lỗi: {ex.Message}");
+            }
+        }
+
         [HttpPost("AddReservation")]
         public async Task<IActionResult> AddReservation([FromBody] ReservationRequestDTO reservation)
         {
@@ -248,5 +312,6 @@ namespace Chrome.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, $"Lỗi: {ex.Message}");
             }
         }
+
     }
 }

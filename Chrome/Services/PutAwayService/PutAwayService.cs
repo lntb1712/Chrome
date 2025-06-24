@@ -1,5 +1,6 @@
 ﻿using Chrome.DTO;
 using Chrome.DTO.PutAwayDTO;
+using Chrome.DTO.StatusMasterDTO;
 using Chrome.Models;
 using Chrome.Repositories.PutawayRepository;
 using Chrome.Repositories.PutAwayRepository;
@@ -170,7 +171,25 @@ namespace Chrome.Services.PutAwayService
                 return new ServiceResponse<PutAwayResponseDTO>(false, $"Lỗi khi lấy chi tiết put away: {ex.Message}");
             }
         }
+        public async Task<ServiceResponse<List<StatusMasterResponseDTO>>> GetListStatusMaster()
+        {
+            try
+            {
+                var statuses = await _context.StatusMasters
+                    .Select(x => new StatusMasterResponseDTO
+                    {
+                        StatusId = x.StatusId,
+                        StatusName = x.StatusName
+                    })
+                    .ToListAsync();
 
+                return new ServiceResponse<List<StatusMasterResponseDTO>>(true, "Lấy danh sách StatusMaster thành công", statuses);
+            }
+            catch (Exception ex)
+            {
+                return new ServiceResponse<List<StatusMasterResponseDTO>>(false, $"Lỗi khi lấy danh sách StatusMaster: {ex.Message}");
+            }
+        }
         public async Task<ServiceResponse<bool>> AddPutAway(PutAwayRequestDTO putAway, IDbContextTransaction transaction = null!)
         {
             bool isExternalTransaction = transaction != null;

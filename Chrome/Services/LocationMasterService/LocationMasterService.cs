@@ -199,7 +199,8 @@ namespace Chrome.Services.LocationMasterService
                     existingLocationMaster.LocationName = locationMasterRequestDTO.LocationName;
                     existingLocationMaster.WarehouseCode = locationMasterRequestDTO.WarehouseCode;
                     existingLocationMaster.StorageProductId = locationMasterRequestDTO.StorageProductId;
-
+                    existingLocationMaster.IsEmpty = existingLocationMaster.Inventories
+                        .Sum(x => x.Quantity / (x.ProductCodeNavigation.BaseQuantity)) <= existingLocationMaster.StorageProduct!.MaxQuantity;
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
                     return new ServiceResponse<bool>(true, "Cập nhật thành công");

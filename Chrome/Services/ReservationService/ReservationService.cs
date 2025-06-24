@@ -200,7 +200,7 @@ namespace Chrome.Services.ReservationService
                     if (totalRequiredQuantity <= 0)
                         continue;
 
-                    var inventoryItems = await _inventoryRepository.GetInventoryByProductCodeAsync(orderDetail.ProductCode, reservation.WarehouseCode!)
+                    var inventoryItems = await _inventoryRepository.GetInventoryByProductCodeAsync(orderDetail.ProductCode!, reservation.WarehouseCode!)
                         .OrderBy(x => x.ReceiveDate) // FIFO dựa trên ngày nhận hàng
                         .ToListAsync();
 
@@ -256,7 +256,7 @@ namespace Chrome.Services.ReservationService
                     if (remainingQuantity <= 0)
                         continue;
 
-                    var inventoryItems = await _inventoryRepository.GetInventoryByProductCodeAsync(orderDetail.ProductCode, reservation.WarehouseCode!)
+                    var inventoryItems = await _inventoryRepository.GetInventoryByProductCodeAsync(orderDetail.ProductCode!, reservation.WarehouseCode!)
                         .OrderBy(x => x.ReceiveDate)
                         .ToListAsync();
 

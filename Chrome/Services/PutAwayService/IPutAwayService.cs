@@ -1,5 +1,6 @@
 ﻿using Chrome.DTO;
 using Chrome.DTO.PutAwayDTO;
+using Chrome.DTO.StatusMasterDTO;
 using Microsoft.EntityFrameworkCore.Storage;
 
 namespace Chrome.Services.PutAwayService
@@ -13,5 +14,6 @@ namespace Chrome.Services.PutAwayService
         Task<ServiceResponse<bool>> AddPutAway(PutAwayRequestDTO putAway, IDbContextTransaction transaction = null!);
         Task<ServiceResponse<bool>> DeletePutAway(string putAwayCode);
         Task<ServiceResponse<bool>> UpdatePutAway(PutAwayRequestDTO putAway);
+        Task<ServiceResponse<List<StatusMasterResponseDTO>>> GetListStatusMaster();
     }
 }

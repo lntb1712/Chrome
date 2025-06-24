@@ -354,7 +354,7 @@ namespace Chrome.Services.MovementService
             {
                 return new ServiceResponse<PickListResponseDTO>(false, "Mã chuyển kệ không được để trống ");
             }    
-            var pickList=  await _pickListRepository.GetPickListContainsMovement(movementCode);
+            var pickList=  await _pickListRepository.GetPickListContainCode(movementCode);
             var pickListResponse = new PickListResponseDTO
             {
                 PickNo = pickList.PickNo,

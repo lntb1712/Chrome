@@ -1,5 +1,6 @@
 ﻿using Chrome.DTO;
 using Chrome.DTO.PickListDTO;
+using Chrome.DTO.StatusMasterDTO;
 using Chrome.Models;
 using Chrome.Repositories.PickListRepository;
 using Chrome.Services.ReservationService;
@@ -330,6 +331,59 @@ namespace Chrome.Services.PickListService
             {
                 await transaction.RollbackAsync();
                 return new ServiceResponse<bool>(false, $"Lỗi khi cập nhật pick list: {ex.Message}");
+            }
+        }
+        public async Task<ServiceResponse<List<StatusMasterResponseDTO>>> GetListStatusMaster()
+        {
+            try
+            {
+                var statuses = await _context.StatusMasters
+                    .Select(x => new StatusMasterResponseDTO
+                    {
+                        StatusId = x.StatusId,
+                        StatusName = x.StatusName
+                    })
+                    .ToListAsync();
+
+                return new ServiceResponse<List<StatusMasterResponseDTO>>(true, "Lấy danh sách StatusMaster thành công", statuses);
+            }
+            catch (Exception ex)
+            {
+                return new ServiceResponse<List<StatusMasterResponseDTO>>(false, $"Lỗi khi lấy danh sách StatusMaster: {ex.Message}");
+            }
+        }
+
+        public async Task<ServiceResponse<PickListResponseDTO>> GetPickListByStockOutCodeAsync(string stockOutCode)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(stockOutCode))
+                {
+                    return new ServiceResponse<PickListResponseDTO>(false, "Mã phiếu xuất không được để trống");
+                }
+
+                var pickList = await _pickListRepository.GetPickListContainCode(stockOutCode);
+                if (pickList == null)
+                {
+                    return new ServiceResponse<PickListResponseDTO>(false, "Pick list không tồn tại");
+                }
+
+                var response = new PickListResponseDTO
+                {
+                    PickNo = pickList.PickNo,
+                    ReservationCode = pickList.ReservationCode,
+                    WarehouseCode = pickList.WarehouseCode,
+                    WarehouseName = pickList.WarehouseCodeNavigation!.WarehouseName,
+                    PickDate = pickList.PickDate!.Value.ToString("dd/MM/yyyy"),
+                    StatusId = pickList.StatusId,
+                    StatusName = pickList.Status!.StatusName
+                };
+
+                return new ServiceResponse<PickListResponseDTO>(true, "Lấy  pick list thành công", response);
+            }
+            catch (Exception ex)
+            {
+                return new ServiceResponse<PickListResponseDTO>(false, $"Lỗi khi lấy  pick list: {ex.Message}");
             }
         }
     }

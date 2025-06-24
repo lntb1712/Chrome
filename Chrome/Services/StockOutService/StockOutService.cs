@@ -2,6 +2,7 @@
 using Chrome.DTO.AccountManagementDTO;
 using Chrome.DTO.CustomerMasterDTO;
 using Chrome.DTO.OrderTypeDTO;
+using Chrome.DTO.ReservationDTO;
 using Chrome.DTO.StatusMasterDTO;
 using Chrome.DTO.StockOutDTO;
 using Chrome.DTO.WarehouseMasterDTO;
@@ -9,9 +10,11 @@ using Chrome.Models;
 using Chrome.Repositories.AccountRepository;
 using Chrome.Repositories.CustomerMasterRepository;
 using Chrome.Repositories.OrderTypeRepository;
+using Chrome.Repositories.ReservationRepository;
 using Chrome.Repositories.StatusMasterRepository;
 using Chrome.Repositories.StockOutRepository;
 using Chrome.Repositories.WarehouseMasterRepository;
+using DocumentFormat.OpenXml.VariantTypes;
 using Microsoft.EntityFrameworkCore;
 using System.Globalization;
 
@@ -25,6 +28,7 @@ namespace Chrome.Services.StockOutService
         private readonly ICustomerMasterRepository _customerMasterRepository;
         private readonly IStatusMasterRepository _statusMasterRepository;
         private readonly IWarehouseMasterRepository _warehouseMasterRepository;
+        private readonly IReservationRepository _reservationRepository;
         private readonly ChromeContext _context;
 
         public StockOutService(
@@ -34,6 +38,7 @@ namespace Chrome.Services.StockOutService
             ICustomerMasterRepository customerMasterRepository,
             IStatusMasterRepository statusMasterRepository,
             IWarehouseMasterRepository warehouseMasterRepository,
+            IReservationRepository reservationRepository,
             ChromeContext context)
         {
             _stockOutRepository = stockOutRepository;
@@ -42,6 +47,7 @@ namespace Chrome.Services.StockOutService
             _customerMasterRepository = customerMasterRepository;
             _statusMasterRepository = statusMasterRepository;
             _warehouseMasterRepository = warehouseMasterRepository;
+            _reservationRepository = reservationRepository;
             _context = context;
         }
 
@@ -359,5 +365,7 @@ namespace Chrome.Services.StockOutService
                 }
             }
         }
+
+       
     } 
 }

@@ -92,7 +92,8 @@ namespace Chrome.Controllers
         {
             try
             {
-                var response = await _pickListService.GetPickListByCodeAsync(pickNo);
+                string decodedPickNo = Uri.UnescapeDataString(pickNo);
+                var response = await _pickListService.GetPickListByCodeAsync(decodedPickNo);
                 if (!response.Success)
                 {
                     return NotFound(new
@@ -136,7 +137,8 @@ namespace Chrome.Controllers
         {
             try
             {
-                var response = await _pickListService.DeletePickList(pickNo);
+                string decodedPickNo = Uri.UnescapeDataString(pickNo);
+                var response = await _pickListService.DeletePickList(decodedPickNo);
                 if (!response.Success)
                 {
                     return Conflict(new
@@ -162,6 +164,49 @@ namespace Chrome.Controllers
                 if (!response.Success)
                 {
                     return Conflict(new
+                    {
+                        Success = false,
+                        Message = response.Message
+                    });
+                }
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, $"Lỗi: {ex.Message}");
+            }
+        }
+        [HttpGet("GetListStatusMaster")]
+        public async Task<IActionResult> GetListStatusMaster()
+        {
+            try
+            {
+                var response = await _pickListService.GetListStatusMaster();
+                if (!response.Success)
+                {
+                    return NotFound(new
+                    {
+                        Success = false,
+                        Message = response.Message
+                    });
+                }
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, $"Lỗi: {ex.Message}");
+            }
+        }
+        [HttpGet("GetPickListByStockOutCodeAsync")]
+        public async Task<IActionResult> GetPickListByStockOutCodeAsync([FromQuery]string stockOutCode)
+        {
+            try
+            {
+                string decodedStockOutCode = Uri.UnescapeDataString(stockOutCode);
+                var response = await _pickListService.GetPickListByStockOutCodeAsync(decodedStockOutCode);
+                if (!response.Success)
+                {
+                    return NotFound(new
                     {
                         Success = false,
                         Message = response.Message
