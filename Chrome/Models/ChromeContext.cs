@@ -95,7 +95,7 @@ public partial class ChromeContext : DbContext
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
-        => optionsBuilder.UseSqlServer("Server=localhost;Database=Chrome;Trusted_Connection=True;TrustServerCertificate=True");
+        => optionsBuilder.UseSqlServer("Server=localhost;Database=Chrome;Trusted_Connection=True;TrustServerCertificate=True;");
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -322,19 +322,19 @@ public partial class ChromeContext : DbContext
 
         modelBuilder.Entity<ManufacturingOrder>(entity =>
         {
-            entity.HasKey(e => new { e.ManufacturingOrderCode, e.ProductCode, e.Bomcode, e.BomVersion }).HasName("PK__Manufact__79CE0E420BF57786");
+            entity.HasKey(e => e.ManufacturingOrderCode).HasName("PK__Manufact__5DC020C3ECC4B20D");
 
             entity.ToTable("ManufacturingOrder");
 
             entity.Property(e => e.ManufacturingOrderCode).HasMaxLength(100);
-            entity.Property(e => e.ProductCode).HasMaxLength(100);
+            entity.Property(e => e.BomVersion).HasMaxLength(100);
             entity.Property(e => e.Bomcode)
                 .HasMaxLength(100)
                 .HasColumnName("BOMCode");
-            entity.Property(e => e.BomVersion).HasMaxLength(100);
             entity.Property(e => e.Deadline).HasColumnType("datetime");
             entity.Property(e => e.Lotno).HasMaxLength(100);
             entity.Property(e => e.OrderTypeCode).HasMaxLength(100);
+            entity.Property(e => e.ProductCode).HasMaxLength(100);
             entity.Property(e => e.Responsible).HasMaxLength(100);
             entity.Property(e => e.ScheduleDate).HasColumnType("datetime");
             entity.Property(e => e.StatusId).HasColumnName("StatusID");
@@ -342,30 +342,32 @@ public partial class ChromeContext : DbContext
 
             entity.HasOne(d => d.OrderTypeCodeNavigation).WithMany(p => p.ManufacturingOrders)
                 .HasForeignKey(d => d.OrderTypeCode)
-                .HasConstraintName("FK__Manufactu__Order__503BEA1C");
+                .HasConstraintName("FK__Manufactu__Order__03BB8E22");
 
             entity.HasOne(d => d.ProductCodeNavigation).WithMany(p => p.ManufacturingOrders)
                 .HasForeignKey(d => d.ProductCode)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__Manufactu__Produ__4F47C5E3");
+                .HasConstraintName("FK__Manufactu__Produ__02C769E9");
 
             entity.HasOne(d => d.ResponsibleNavigation).WithMany(p => p.ManufacturingOrders)
                 .HasForeignKey(d => d.Responsible)
-                .HasConstraintName("FK__Manufactu__Respo__5224328E");
+                .HasConstraintName("FK__Manufactu__Respo__05A3D694");
+
+            entity.HasOne(d => d.Status).WithMany(p => p.ManufacturingOrders)
+                .HasForeignKey(d => d.StatusId)
+                .HasConstraintName("FK__Manufactu__Statu__078C1F06");
 
             entity.HasOne(d => d.WarehouseCodeNavigation).WithMany(p => p.ManufacturingOrders)
                 .HasForeignKey(d => d.WarehouseCode)
-                .HasConstraintName("FK__Manufactu__Wareh__531856C7");
+                .HasConstraintName("FK__Manufactu__Wareh__0697FACD");
 
             entity.HasOne(d => d.Bommaster).WithMany(p => p.ManufacturingOrders)
                 .HasForeignKey(d => new { d.Bomcode, d.BomVersion })
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__ManufacturingOrd__51300E55");
+                .HasConstraintName("FK__ManufacturingOrd__04AFB25B");
         });
 
         modelBuilder.Entity<ManufacturingOrderDetail>(entity =>
         {
-            entity.HasKey(e => new { e.ManufacturingOrderCode, e.ComponentCode }).HasName("PK__Manufact__D558EF7C361DBEE7");
+            entity.HasKey(e => new { e.ManufacturingOrderCode, e.ComponentCode }).HasName("PK__Manufact__D558EF7CABA83A05");
 
             entity.ToTable("ManufacturingOrderDetail");
 
@@ -375,7 +377,12 @@ public partial class ChromeContext : DbContext
             entity.HasOne(d => d.ComponentCodeNavigation).WithMany(p => p.ManufacturingOrderDetails)
                 .HasForeignKey(d => d.ComponentCode)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__Manufactu__Compo__55F4C372");
+                .HasConstraintName("FK__Manufactu__Compo__0A688BB1");
+
+            entity.HasOne(d => d.ManufacturingOrderCodeNavigation).WithMany(p => p.ManufacturingOrderDetails)
+                .HasForeignKey(d => d.ManufacturingOrderCode)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK__Manufactu__Manuf__0B5CAFEA");
         });
 
         modelBuilder.Entity<Movement>(entity =>

@@ -33,6 +33,13 @@ namespace Chrome.Repositories.BOMMasterRepository
                                     .FirstOrDefaultAsync(x => x.Bomcode == bomCode && x.Bomversion == bomVersion);
             return bomMaster!;
         }
+        public async Task<Bommaster> GetBOMMasterByProductCode(string productCode)
+        {
+            var bomMaster = await _context.Bommasters
+                                    .Include(x => x.ProductCodeNavigation)
+                                    .FirstOrDefaultAsync(x => x.ProductCode==productCode && x.IsActive ==true);
+            return bomMaster!;
+        }
 
         public async Task<List<Bommaster>> GetListVersionByBomCode(string bomCode)
         {

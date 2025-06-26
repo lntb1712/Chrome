@@ -219,6 +219,27 @@ namespace Chrome.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, $"Lỗi: {ex.Message}");
             }
         }
+        [HttpGet("GetReservationsByManufacturingCodeAsync")]
+        public async Task<IActionResult> GetReservationsByManufacturingCodeAsync([FromQuery] string manufacturingCode)
+        {
+            try
+            {
+                var response = await _reservationService.GetReservationsByManufacturingCodeAsync(manufacturingCode);
+                if (!response.Success)
+                {
+                    return NotFound(new
+                    {
+                        Success = false,
+                        Message = response.Message
+                    });
+                }
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, $"Lỗi: {ex.Message}");
+            }
+        }
 
         [HttpPost("AddReservation")]
         public async Task<IActionResult> AddReservation([FromBody] ReservationRequestDTO reservation)
@@ -234,7 +255,7 @@ namespace Chrome.Controllers
                     });
                 }
 
-                var response = await _reservationService.AddReservation(reservation);
+                var response = await _reservationService.AddOrUpdateReservation(reservation);
                 if (!response.Success)
                 {
                     return Conflict(new
@@ -282,36 +303,6 @@ namespace Chrome.Controllers
             }
         }
 
-        [HttpPut("UpdateReservation")]
-        public async Task<IActionResult> UpdateReservation([FromBody] ReservationRequestDTO reservation)
-        {
-            try
-            {
-                if (reservation == null || string.IsNullOrEmpty(reservation.ReservationCode))
-                {
-                    return BadRequest(new
-                    {
-                        Success = false,
-                        Message = "Dữ liệu đầu vào không hợp lệ hoặc mã reservation không được để trống"
-                    });
-                }
-
-                var response = await _reservationService.UpdateReservation(reservation);
-                if (!response.Success)
-                {
-                    return Conflict(new
-                    {
-                        Success = false,
-                        Message = response.Message
-                    });
-                }
-                return Ok(response);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, $"Lỗi: {ex.Message}");
-            }
-        }
 
     }
 }

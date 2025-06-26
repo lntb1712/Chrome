@@ -11,6 +11,8 @@ using Chrome.Repositories.GroupFunctionRepository;
 using Chrome.Repositories.GroupManagementRepository;
 using Chrome.Repositories.InventoryRepository;
 using Chrome.Repositories.LocationMasterRepository;
+using Chrome.Repositories.ManufacturingOrderDetailRepository;
+using Chrome.Repositories.ManufacturingOrderRepository;
 using Chrome.Repositories.MovementDetailRepository;
 using Chrome.Repositories.MovementRepository;
 using Chrome.Repositories.OrderTypeRepository;
@@ -49,6 +51,8 @@ using Chrome.Services.InventoryService;
 using Chrome.Services.JWTService;
 using Chrome.Services.LocationMasterService;
 using Chrome.Services.LoginService;
+using Chrome.Services.ManufacturingOrderDetailService;
+using Chrome.Services.ManufacturingOrderService;
 using Chrome.Services.MovementDetailService;
 using Chrome.Services.MovementService;
 using Chrome.Services.PickListDetailService;
@@ -127,6 +131,8 @@ builder.Services.AddScoped<ITransferRepository, TransferRepository>();
 builder.Services.AddScoped<ITransferDetailRepository, TransferDetailRepository>();
 builder.Services.AddScoped<IStockTakeRepository, StockTakeRepository>();
 builder.Services.AddScoped<IStockTakeDetailRepository,StocktakeDetailRepository>();
+builder.Services.AddScoped<IManufacturingOrderRepository, ManufacturingOrderRepository>();
+builder.Services.AddScoped<IManufacturingOrderDetailRepository, ManufacturingOrderDetailRepository>();
 
 
 // Đăng kí Dependency Injection cho các Service
@@ -165,6 +171,8 @@ builder.Services.AddScoped<ITransferService, TransferService>();
 builder.Services.AddScoped<ITransferDetailService, TransferDetailService>();
 builder.Services.AddScoped<IStockTakeService, StockTakeService>();
 builder.Services.AddScoped<IStockTakeDetailService, StockTakeDetailService>();
+builder.Services.AddScoped<IManufacturingOrderService, ManufacturingOrderService>();
+builder.Services.AddScoped<IManufacturingOrderDetailService, ManufacturingOrderDetailService>();
 
 // Đăng ký IHttpContextAccessor để thực hiện sử dụng HttpCookie
 builder.Services.AddHttpContextAccessor();

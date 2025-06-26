@@ -9,6 +9,8 @@ public partial class StatusMaster
 
     public string? StatusName { get; set; }
 
+    public virtual ICollection<ManufacturingOrder> ManufacturingOrders { get; set; } = new List<ManufacturingOrder>();
+
     public virtual ICollection<Movement> Movements { get; set; } = new List<Movement>();
 
     public virtual ICollection<PickList> PickLists { get; set; } = new List<PickList>();

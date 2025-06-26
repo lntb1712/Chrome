@@ -5,16 +5,13 @@ using Chrome.DTO.ReservationDTO;
 using Chrome.DTO.StatusMasterDTO;
 using Chrome.DTO.WarehouseMasterDTO;
 using Chrome.Models;
+using Chrome.Repositories.BOMComponentRepository;
 using Chrome.Repositories.InventoryRepository;
 using Chrome.Repositories.ReservationRepository;
-using Chrome.Services.InventoryService;
+using Chrome.Services.BOMMasterService;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
-using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace Chrome.Services.ReservationService
 {
@@ -22,12 +19,14 @@ namespace Chrome.Services.ReservationService
     {
         private readonly IReservationRepository _reservationRepository;
         private readonly IInventoryRepository _inventoryRepository;
+        private readonly IBOMComponentRepository _bOMComponentRepository;
         private readonly ChromeContext _context;
 
-        public ReservationService(IReservationRepository reservationRepository, IInventoryRepository inventoryRepository, ChromeContext context)
+        public ReservationService(IReservationRepository reservationRepository,IBOMComponentRepository bOMComponentRepository, IInventoryRepository inventoryRepository, ChromeContext context)
         {
             _reservationRepository = reservationRepository ?? throw new ArgumentNullException(nameof(reservationRepository));
             _inventoryRepository = inventoryRepository;
+            _bOMComponentRepository = bOMComponentRepository;
             _context = context ?? throw new ArgumentNullException(nameof(context));
         }
 
@@ -135,192 +134,73 @@ namespace Chrome.Services.ReservationService
                 return new ServiceResponse<PagedResponse<ReservationResponseDTO>>(false, $"Lỗi khi tìm kiếm reservation: {ex.Message}");
             }
         }
-        public async Task<ServiceResponse<bool>> AddReservation(ReservationRequestDTO reservation, IDbContextTransaction transaction = null!)
+        public async Task<ServiceResponse<bool>> AddOrUpdateReservation(ReservationRequestDTO reservation, IDbContextTransaction transaction = null!)
         {
             bool isExternalTransaction = transaction != null;
             transaction ??= await _context.Database.BeginTransactionAsync();
 
-            string[] formats = { "M/d/yyyy h:mm:ss tt", "MM/dd/yyyy hh:mm:ss tt", "dd/MM/yyyy" };
-            if (!DateTime.TryParseExact(reservation.ReservationDate, formats, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime parsedDate))
-            {
-                return new ServiceResponse<bool>(false, "Ngày giữ hàng không đúng định dạng. Vui lòng sử dụng dd/MM/yyyy hoặc M/d/yyyy h:mm:ss tt.");
-            }
-
             try
             {
-                // Xác định loại OrderId (StockOut) dựa trên OrderTypeCode
-                var orderDetails = new List<OrderDetailBaseDTO>();
-                if (reservation.OrderTypeCode == "SO" || reservation.OrderTypeCode!.StartsWith("SO")) // Giả định "SO" là StockOut
+                // Validate date format
+                string[] formats = { "M/d/yyyy h:mm:ss tt", "MM/dd/yyyy hh:mm:ss tt", "dd/MM/yyyy" };
+                if (!DateTime.TryParseExact(reservation.ReservationDate, formats, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime parsedDate))
                 {
-                    orderDetails = await _context.StockOutDetails
-                        .Where(od => od.StockOutCode == reservation.OrderId)
-                        .Select(od => new OrderDetailBaseDTO
-                        {
-                            ProductCode = od.ProductCode,
-                            Quantity = od.Demand ?? 0
-                        })
-                        .ToListAsync();
-                }else
-                if (reservation.OrderTypeCode == "MV" || reservation.OrderTypeCode!.StartsWith("MV"))
+                    return new ServiceResponse<bool>(false, "Ngày giữ hàng không đúng định dạng. Vui lòng sử dụng dd/MM/yyyy hoặc M/d/yyyy h:mm:ss tt.");
+                }
+
+                // Get order details based on OrderTypeCode
+                var orderDetails = await GetOrderDetailsAsync(reservation.OrderTypeCode!, reservation.OrderId!);
+                if (!orderDetails.Any())
                 {
-                    orderDetails = await _context.MovementDetails
-                        .Where(od => od.MovementCode == reservation.OrderId)
-                        .Select(od => new OrderDetailBaseDTO
-                        {
-                            ProductCode = od.ProductCode,
-                            Quantity = od.Demand ?? 0
-                        })
-                        .ToListAsync();
-                }else
-                if (reservation.OrderTypeCode == "TF" || reservation.OrderTypeCode!.StartsWith("TF"))
+                    return new ServiceResponse<bool>(false, reservation.OrderTypeCode!.StartsWith("MO")
+                        ? $"Không tìm thấy chi tiết BOM cho mã lệnh sản xuất {reservation.OrderId}."
+                        : "Không tìm thấy chi tiết đơn hàng để tạo ReservationDetail.");
+                }
+
+                // Check inventory and existing reservations
+                bool isMO = reservation.OrderTypeCode!.StartsWith("MO");
+                var shortageErrors = await ValidateInventoryAsync(reservation, orderDetails, isMO);
+                if (!isMO && shortageErrors.Any())
                 {
-                    orderDetails = await _context.TransferDetails
-                        .Where(od => od.TransferCode == reservation.OrderId)
-                        .Select(od => new OrderDetailBaseDTO
-                        {
-                            ProductCode = od.ProductCode,
-                            Quantity = od.Demand ?? 0
-                        })
-                        .ToListAsync();
+                    return new ServiceResponse<bool>(false, string.Join("\n", shortageErrors));
+                }
+
+                // Update or create reservation
+                var existingReservation = await _context.Reservations
+                    .FirstOrDefaultAsync(x => x.ReservationCode == reservation.ReservationCode);
+
+                if (existingReservation != null)
+                {
+                    existingReservation.OrderTypeCode = reservation.OrderTypeCode;
+                    existingReservation.OrderId = reservation.OrderId;
+                    existingReservation.ReservationDate = parsedDate;
+                    existingReservation.WarehouseCode = reservation.WarehouseCode;
+                    existingReservation.StatusId = reservation.StatusId;
+                    _context.Reservations.Update(existingReservation);
                 }
                 else
                 {
-                    return new ServiceResponse<bool>(false, "Loại OrderId không được hỗ trợ.");
+                    var newReservation = new Reservation
+                    {
+                        ReservationCode = reservation.ReservationCode,
+                        OrderTypeCode = reservation.OrderTypeCode,
+                        OrderId = reservation.OrderId,
+                        ReservationDate = parsedDate,
+                        WarehouseCode = reservation.WarehouseCode,
+                        StatusId = 1
+                    };
+                    await _reservationRepository.AddAsync(newReservation, saveChanges: false);
                 }
 
-                if (!orderDetails.Any())
-                {
-                    return new ServiceResponse<bool>(false, "Không tìm thấy chi tiết đơn hàng để tạo ReservationDetail.");
-                }
-
-                // Kiểm tra tồn kho và reservation hiện có trước khi tạo, bỏ qua status = 3
-                foreach (var orderDetail in orderDetails)
-                {
-                    double totalRequiredQuantity = orderDetail.Quantity;
-                    if (totalRequiredQuantity <= 0)
-                        continue;
-
-                    var inventoryItems = await _inventoryRepository.GetInventoryByProductCodeAsync(orderDetail.ProductCode!, reservation.WarehouseCode!)
-                        .OrderBy(x => x.ReceiveDate) // FIFO dựa trên ngày nhận hàng
-                        .ToListAsync();
-
-                    if (!inventoryItems.Any())
-                    {
-                        return new ServiceResponse<bool>(false, $"Không có tồn kho cho sản phẩm {orderDetail.ProductCode}");
-                    }
-
-                    double remainingQuantityToCheck = totalRequiredQuantity;
-                    foreach (var inventory in inventoryItems)
-                    {
-                        // Tính tồn kho khả dụng sau khi trừ reservation hiện có, chỉ tính các reservation chưa hoàn thành (StatusId != 3)
-                        var reservedQuantity = await _context.ReservationDetails
-                            .Include(rd => rd.ReservationCodeNavigation) // Tải thông tin Reservation liên quan
-                            .Where(rd => rd.ProductCode == inventory.ProductCode &&
-                                         rd.Lotno == inventory.Lotno &&
-                                         rd.LocationCode == inventory.LocationCode &&
-                                         rd.ReservationCodeNavigation!.StatusId != 3)
-                            .SumAsync(rd => (double?)rd.QuantityReserved) ?? 0;
-
-                        double availableQuantity = (inventory.Quantity ?? 0) - reservedQuantity;
-                        if (availableQuantity <= 0)
-                            continue;
-
-                        remainingQuantityToCheck -= availableQuantity;
-                        if (remainingQuantityToCheck <= 0)
-                            break;
-                    }
-
-                    if (remainingQuantityToCheck > 0)
-                    {
-                        return new ServiceResponse<bool>(false, $"Không đủ tồn kho khả dụng cho sản phẩm {orderDetail.ProductCode} sau khi trừ reservation chưa hoàn thành");
-                    }
-                }
-
-                // Nếu kiểm tra qua, tạo Reservation
-                var entity = new Reservation
-                {
-                    ReservationCode = reservation.ReservationCode,
-                    OrderTypeCode = reservation.OrderTypeCode,
-                    OrderId = reservation.OrderId,
-                    ReservationDate = parsedDate,
-                    WarehouseCode = reservation.WarehouseCode,
-                    StatusId = 1 // Giả định trạng thái mặc định
-                };
-
-                await _reservationRepository.AddAsync(entity, saveChanges: false);
-
-                // Tạo ReservationDetail theo FIFO
-                foreach (var orderDetail in orderDetails)
-                {
-                    double remainingQuantity = orderDetail.Quantity;
-                    if (remainingQuantity <= 0)
-                        continue;
-
-                    var inventoryItems = await _inventoryRepository.GetInventoryByProductCodeAsync(orderDetail.ProductCode!, reservation.WarehouseCode!)
-                        .OrderBy(x => x.ReceiveDate)
-                        .ToListAsync();
-
-                    foreach (var inventory in inventoryItems)
-                    {
-                        if (remainingQuantity <= 0)
-                            break;
-
-                        // Tính tồn kho khả dụng sau khi trừ reservation hiện có, chỉ tính các reservation chưa hoàn thành (StatusId != 3)
-                        var reservedQuantity = await _context.ReservationDetails
-                            .Join(_context.Reservations,
-                                  rd => rd.ReservationCode,
-                                  r => r.ReservationCode,
-                                  (rd, r) => new { ReservationDetail = rd, Reservation = r })
-                            .Where(x => x.ReservationDetail.ProductCode == inventory.ProductCode &&
-                                        x.ReservationDetail.Lotno == inventory.Lotno &&
-                                        x.ReservationDetail.LocationCode == inventory.LocationCode &&
-                                        x.Reservation.StatusId != 3 &&
-                                        x.Reservation.ReservationCode != reservation.ReservationCode) // Loại trừ reservation hiện tại
-                            .SumAsync(x => (double?)x.ReservationDetail.QuantityReserved) ?? 0;
-
-                        double availableQuantity = (inventory.Quantity ?? 0) - reservedQuantity;
-                        if (availableQuantity <= 0)
-                            continue;
-
-                        double quantityToReserve = Math.Min(remainingQuantity, availableQuantity);
-                        remainingQuantity -= quantityToReserve;
-
-                        // Kiểm tra ReservationDetail đã tồn tại chưa
-                        var existingDetail = await _context.ReservationDetails
-                            .FirstOrDefaultAsync(rd => rd.ReservationCode == reservation.ReservationCode &&
-                                                       rd.ProductCode == orderDetail.ProductCode &&
-                                                       rd.Lotno == inventory.Lotno &&
-                                                       rd.LocationCode == inventory.LocationCode);
-
-                        if (existingDetail != null)
-                        {
-                            existingDetail.QuantityReserved += (float)quantityToReserve;
-                            _context.ReservationDetails.Update(existingDetail);
-                        }
-                        else
-                        {
-                            var reservationDetail = new ReservationDetail
-                            {
-                                ReservationCode = reservation.ReservationCode,
-                                ProductCode = orderDetail.ProductCode,
-                                Lotno = inventory.Lotno,
-                                LocationCode = inventory.LocationCode,
-                                QuantityReserved = (float)quantityToReserve
-                            };
-                            await _context.ReservationDetails.AddAsync(reservationDetail);
-                        }
-                    }
-
-                    if (remainingQuantity > 0)
-                    {
-                        await transaction.RollbackAsync();
-                        return new ServiceResponse<bool>(false, $"Lỗi nội bộ: Không đủ tồn kho dù đã kiểm tra trước. Vui lòng thử lại.");
-                    }
-                }
+                // Create or update ReservationDetails using FIFO
+                await CreateOrUpdateReservationDetailsAsync(reservation, orderDetails);
 
                 await _context.SaveChangesAsync();
                 if (!isExternalTransaction) await transaction.CommitAsync();
-                return new ServiceResponse<bool>(true, "Thêm reservation và chi tiết thành công");
+
+                return shortageErrors.Any()
+                    ? new ServiceResponse<bool>(true, $"Thêm reservation thành công nhưng có lỗi thiếu tồn kho:\n{string.Join("\n", shortageErrors)}")
+                    : new ServiceResponse<bool>(true, "Thêm reservation và chi tiết thành công");
             }
             catch (DbUpdateException dbEx)
             {
@@ -333,7 +213,176 @@ namespace Chrome.Services.ReservationService
                 return new ServiceResponse<bool>(false, $"Lỗi khi thêm reservation: {ex.Message}");
             }
         }
-        
+
+        private async Task<List<OrderDetailBaseDTO>> GetOrderDetailsAsync(string orderTypeCode, string orderId)
+        {
+            if (orderTypeCode.StartsWith("SO"))
+            {
+                return await _context.StockOutDetails
+                    .Where(od => od.StockOutCode == orderId)
+                    .Select(od => new OrderDetailBaseDTO
+                    {
+                        ProductCode = od.ProductCode,
+                        Quantity = od.Demand ?? 0
+                    })
+                    .ToListAsync();
+            }
+            else if (orderTypeCode.StartsWith("MV"))
+            {
+                return await _context.MovementDetails
+                    .Where(od => od.MovementCode == orderId)
+                    .Select(od => new OrderDetailBaseDTO
+                    {
+                        ProductCode = od.ProductCode,
+                        Quantity = od.Demand ?? 0
+                    })
+                    .ToListAsync();
+            }
+            else if (orderTypeCode.StartsWith("TF"))
+            {
+                return await _context.TransferDetails
+                    .Where(od => od.TransferCode == orderId)
+                    .Select(od => new OrderDetailBaseDTO
+                    {
+                        ProductCode = od.ProductCode,
+                        Quantity = od.Demand ?? 0
+                    })
+                    .ToListAsync();
+            }
+            else if (orderTypeCode.StartsWith("MO"))
+            {
+                var manufacturing = await _context.ManufacturingOrders
+                    .FirstOrDefaultAsync(x => x.ManufacturingOrderCode == orderId);
+                if (manufacturing == null)
+                {
+                    return new List<OrderDetailBaseDTO>();
+                }
+
+                var bomComponents = await _bOMComponentRepository.GetRecursiveBOMAsync(manufacturing.Bomcode!, manufacturing.BomVersion!);
+                return bomComponents?.Any() == true
+                    ? bomComponents
+                        .GroupBy(x => x.ComponentCode)
+                        .Select(g => new OrderDetailBaseDTO
+                        {
+                            ProductCode = g.Key,
+                            Quantity = g.Sum(bom => bom.TotalQuantity * manufacturing.Quantity ?? 0)
+                        })
+                        .ToList()
+                    : new List<OrderDetailBaseDTO>();
+            }
+
+            return new List<OrderDetailBaseDTO>();
+        }
+
+        private async Task<List<string>> ValidateInventoryAsync(ReservationRequestDTO reservation, List<OrderDetailBaseDTO> orderDetails, bool isMO)
+        {
+            var shortageErrors = new List<string>();
+            foreach (var orderDetail in orderDetails)
+            {
+                if (orderDetail.Quantity <= 0) continue;
+
+                var inventoryItems = await _inventoryRepository.GetInventoryByProductCodeAsync(orderDetail.ProductCode!, reservation.WarehouseCode!)
+                    .OrderBy(x => x.ReceiveDate)
+                    .ToListAsync();
+
+                if (!inventoryItems.Any())
+                {
+                    if (isMO)
+                        shortageErrors.Add($"Không có tồn kho cho sản phẩm {orderDetail.ProductCode}");
+                    else
+                        return new List<string> { $"Không có tồn kho cho sản phẩm {orderDetail.ProductCode}" };
+                    continue;
+                }
+
+                double remainingQuantity = orderDetail.Quantity;
+                foreach (var inventory in inventoryItems)
+                {
+                    var reservedQuantity = await _context.ReservationDetails
+                        .Include(rd => rd.ReservationCodeNavigation)
+                        .Where(rd => rd.ProductCode == inventory.ProductCode &&
+                                    rd.Lotno == inventory.Lotno &&
+                                    rd.ReservationCodeNavigation!.StatusId != 3)
+                        .SumAsync(rd => (double?)rd.QuantityReserved) ?? 0;
+
+                    double availableQuantity = (inventory.Quantity ?? 0) - reservedQuantity;
+                    if (availableQuantity > 0)
+                    {
+                        remainingQuantity -= availableQuantity;
+                        if (remainingQuantity <= 0) break;
+                    }
+                }
+
+                if (remainingQuantity > 0)
+                {
+                    var errorMessage = $"Thiếu {remainingQuantity} đơn vị tồn kho cho sản phẩm {orderDetail.ProductCode} sau khi trừ reservation";
+                    if (isMO)
+                        shortageErrors.Add(errorMessage);
+                    else
+                        return new List<string> { errorMessage };
+                }
+            }
+            return shortageErrors;
+        }
+
+        private async Task CreateOrUpdateReservationDetailsAsync(ReservationRequestDTO reservation, List<OrderDetailBaseDTO> orderDetails)
+        {
+            foreach (var orderDetail in orderDetails)
+            {
+                double remainingQuantity = orderDetail.Quantity;
+                if (remainingQuantity <= 0) continue;
+
+                var inventoryItems = await _inventoryRepository.GetInventoryByProductCodeAsync(orderDetail.ProductCode!, reservation.WarehouseCode!)
+                    .OrderBy(x => x.ReceiveDate)
+                    .ToListAsync();
+
+                foreach (var inventory in inventoryItems)
+                {
+                    if (remainingQuantity <= 0) break;
+
+                    var reservedQuantity = await _context.ReservationDetails
+                        .Join(_context.Reservations,
+                              rd => rd.ReservationCode,
+                              r => r.ReservationCode,
+                              (rd, r) => new { ReservationDetail = rd, Reservation = r })
+                        .Where(x => x.ReservationDetail.ProductCode == inventory.ProductCode &&
+                                    x.ReservationDetail.Lotno == inventory.Lotno &&
+                                    x.ReservationDetail.LocationCode == inventory.LocationCode &&
+                                    x.Reservation.StatusId != 3 &&
+                                    x.Reservation.ReservationCode != reservation.ReservationCode)
+                        .SumAsync(x => (double?)x.ReservationDetail.QuantityReserved) ?? 0;
+
+                    double availableQuantity = (inventory.Quantity ?? 0) - reservedQuantity;
+                    if (availableQuantity <= 0) continue;
+
+                    double quantityToReserve = Math.Min(remainingQuantity, availableQuantity);
+                    remainingQuantity -= quantityToReserve;
+
+                    var existingDetail = await _context.ReservationDetails
+                        .FirstOrDefaultAsync(rd => rd.ReservationCode == reservation.ReservationCode &&
+                                                  rd.ProductCode == orderDetail.ProductCode &&
+                                                  rd.Lotno == inventory.Lotno &&
+                                                  rd.LocationCode == inventory.LocationCode);
+
+                    if (existingDetail != null)
+                    {
+                        existingDetail.QuantityReserved = (float)quantityToReserve;
+                        _context.ReservationDetails.Update(existingDetail);
+                    }
+                    else
+                    {
+                        var reservationDetail = new ReservationDetail
+                        {
+                            ReservationCode = reservation.ReservationCode,
+                            ProductCode = orderDetail.ProductCode,
+                            Lotno = inventory.Lotno,
+                            LocationCode = inventory.LocationCode,
+                            QuantityReserved = (float)quantityToReserve
+                        };
+                        await _context.ReservationDetails.AddAsync(reservationDetail);
+                    }
+                }
+            }
+        }
         public async Task<ServiceResponse<bool>> DeleteReservationAsync(string reservationCode)
         {
             using var transaction = await _context.Database.BeginTransactionAsync();
@@ -360,44 +409,7 @@ namespace Chrome.Services.ReservationService
             }
         }
 
-        public async Task<ServiceResponse<bool>> UpdateReservation(ReservationRequestDTO reservation)
-        {
-            using var transaction = await _context.Database.BeginTransactionAsync();
-            string[] formats = {
-                "M/d/yyyy h:mm:ss tt",
-                "MM/dd/yyyy hh:mm:ss tt",
-                "dd/MM/yyyy"
-            };
-            if (!DateTime.TryParseExact(reservation.ReservationDate, formats, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime parsedDate))
-            {
-                return new ServiceResponse<bool>(false, "Ngày giữ hàng không đúng định dạng. Vui lòng sử dụng dd/MM/yyyy hoặc M/d/yyyy h:mm:ss tt.");
-            }
-            try
-            {
-                var existingReservation = await _reservationRepository.GetReservationWithCode(reservation.ReservationCode);
-                if (existingReservation == null)
-                    return new ServiceResponse<bool>(false, "Reservation không tồn tại");
-
-                existingReservation.OrderTypeCode = reservation.OrderTypeCode;
-                existingReservation.OrderId = reservation.OrderId;
-                existingReservation.ReservationDate = parsedDate;
-                existingReservation.WarehouseCode = reservation.WarehouseCode;
-                existingReservation.StatusId = reservation.StatusId;
-                await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
-                return new ServiceResponse<bool>(true, "Cập nhật reservation thành công");
-            }
-            catch (DbUpdateException dbEx)
-            {
-                await transaction.RollbackAsync();
-                return new ServiceResponse<bool>(false, $"Lỗi database khi cập nhật reservation: {dbEx.Message}");
-            }
-            catch (Exception ex)
-            {
-                await transaction.RollbackAsync();
-                return new ServiceResponse<bool>(false, $"Lỗi khi cập nhật reservation: {ex.Message}");
-            }
-        }
+      
 
         public async Task<ServiceResponse<List<OrderTypeResponseDTO>>> GetListOrderType(string prefix)
         {
@@ -559,6 +571,40 @@ namespace Chrome.Services.ReservationService
             catch (Exception ex)
             {
                 return new ServiceResponse<ReservationResponseDTO>(false, $"Lỗi khi lấy reservation theo TransferCode: {ex.Message}");
+            }
+        }
+
+        public async Task<ServiceResponse<ReservationResponseDTO>> GetReservationsByManufacturingCodeAsync(string manufacturingCode)
+        {
+            try
+            {
+                var reservation = await _context.Reservations
+                    .Where(r => r.OrderTypeCode == "MO" || r.OrderTypeCode!.StartsWith("MO"))
+                    .Where(r => r.OrderId == manufacturingCode)
+                    .Select(r => new ReservationResponseDTO
+                    {
+                        ReservationCode = r.ReservationCode,
+                        OrderTypeCode = r.OrderTypeCode,
+                        OrderTypeName = r.OrderTypeCodeNavigation!.OrderTypeName,
+                        OrderId = r.OrderId,
+                        ReservationDate = r.ReservationDate!.Value.ToString("dd/MM/yyyy"),
+                        WarehouseCode = r.WarehouseCode,
+                        WarehouseName = r.WarehouseCodeNavigation!.WarehouseName,
+                        StatusId = r.StatusId,
+                        StatusName = r.Status!.StatusName
+                    })
+                    .FirstOrDefaultAsync();
+
+                if (reservation == null)
+                {
+                    return new ServiceResponse<ReservationResponseDTO>(false, "Không tìm thấy reservation theo lệnh sản xuất");
+                }
+
+                return new ServiceResponse<ReservationResponseDTO>(true, "Lấy reservation theo lệnh sản xuất thành công", reservation);
+            }
+            catch (Exception ex)
+            {
+                return new ServiceResponse<ReservationResponseDTO>(false, $"Lỗi khi lấy reservation theo lệnh sản xuất: {ex.Message}");
             }
         }
     }

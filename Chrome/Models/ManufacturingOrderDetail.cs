@@ -16,4 +16,6 @@ public partial class ManufacturingOrderDetail
     public double? ScraptRate { get; set; }
 
     public virtual ProductMaster ComponentCodeNavigation { get; set; } = null!;
+
+    public virtual ManufacturingOrder ManufacturingOrderCodeNavigation { get; set; } = null!;
 }

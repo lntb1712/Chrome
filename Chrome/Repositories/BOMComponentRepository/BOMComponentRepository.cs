@@ -32,6 +32,7 @@ namespace Chrome.Repositories.BOMComponentRepository
                                              && x.ComponentCode == componentCode);
             return bomComponent!;
         }
+    
 
         public async Task<List<BOMNodeDTO>> GetRecursiveBOMAsync(string topLevelBOM, string topLevelVersion)
         {

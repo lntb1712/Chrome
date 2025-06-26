@@ -217,7 +217,7 @@ namespace Chrome.Services.MovementDetailService
                     ReservationDate = DateTime.Now.ToString("dd/MM/yyyy"),
                     WarehouseCode = warehouseCode
                 };
-                var reservationResponse = await _reservationService.AddReservation(reservationRequest,transaction);
+                var reservationResponse = await _reservationService.AddOrUpdateReservation(reservationRequest,transaction);
                 if (!reservationResponse.Success)
                 {
                     await transaction.RollbackAsync();

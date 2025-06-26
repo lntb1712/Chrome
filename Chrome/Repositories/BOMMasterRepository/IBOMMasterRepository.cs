@@ -11,5 +11,6 @@ namespace Chrome.Repositories.BOMMasterRepository
         Task<List<Bommaster>> SearchBOMMaster(string textToSearch, int page, int pageSize);
         Task<int> GetTotalSearchBOMMasterCount(string textToSearch);
         Task<List<Bommaster>> GetListVersionByBomCode(string bomCode);
+        Task<Bommaster> GetBOMMasterByProductCode(string productCode);
     }
 }
