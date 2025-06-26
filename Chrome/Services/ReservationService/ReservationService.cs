@@ -251,24 +251,14 @@ namespace Chrome.Services.ReservationService
             }
             else if (orderTypeCode.StartsWith("MO"))
             {
-                var manufacturing = await _context.ManufacturingOrders
-                    .FirstOrDefaultAsync(x => x.ManufacturingOrderCode == orderId);
-                if (manufacturing == null)
-                {
-                    return new List<OrderDetailBaseDTO>();
-                }
-
-                var bomComponents = await _bOMComponentRepository.GetRecursiveBOMAsync(manufacturing.Bomcode!, manufacturing.BomVersion!);
-                return bomComponents?.Any() == true
-                    ? bomComponents
-                        .GroupBy(x => x.ComponentCode)
-                        .Select(g => new OrderDetailBaseDTO
-                        {
-                            ProductCode = g.Key,
-                            Quantity = g.Sum(bom => bom.TotalQuantity * manufacturing.Quantity ?? 0)
-                        })
-                        .ToList()
-                    : new List<OrderDetailBaseDTO>();
+                return await _context.ManufacturingOrderDetails
+                   .Where(od => od.ManufacturingOrderCode == orderId)
+                   .Select(od => new OrderDetailBaseDTO
+                   {
+                       ProductCode = od.ComponentCode,
+                       Quantity = od.ToConsumeQuantity ?? 0
+                   })
+                   .ToListAsync();
             }
 
             return new List<OrderDetailBaseDTO>();

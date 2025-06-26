@@ -731,6 +731,15 @@ namespace Chrome.Services.ManufacturingOrderService
                         await transaction.RollbackAsync();
                         return new ServiceResponse<bool>(false, $"Lỗi khi tạo putaway: {putAwayResponse.Message}");
                     }
+                    var putAwayDetail = new PutAwayDetail
+                    {
+                        PutAwayCode = putAwayCode,
+                        ProductCode = manufacturing.ProductCode!,
+                        LotNo = manufacturing.Lotno,
+                        Demand = manufacturing.QuantityProduced,
+                        Quantity = 0,
+                    };
+                    await _context.PutAwayDetails.AddAsync(putAwayDetail);
 
                     // Update manufacturing order status to "Completed" (assuming statusId 3 is Completed)
                     manufacturing.StatusId = 3;

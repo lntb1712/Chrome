@@ -95,13 +95,13 @@ public partial class ChromeContext : DbContext
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
-        => optionsBuilder.UseSqlServer("Server=localhost;Database=Chrome;Trusted_Connection=True;TrustServerCertificate=True;");
+        => optionsBuilder.UseSqlServer("Server=localhost;Database=Chrome;Trusted_Connection=True;TrustServerCertificate=True");
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<AccountManagement>(entity =>
         {
-            entity.HasKey(e => e.UserName).HasName("PK__AccountM__C9F28457FCBC6E8C");
+            entity.HasKey(e => e.UserName).HasName("PK__AccountM__C9F28457CB15F2DF");
 
             entity.ToTable("AccountManagement");
 
@@ -112,12 +112,12 @@ public partial class ChromeContext : DbContext
 
             entity.HasOne(d => d.Group).WithMany(p => p.AccountManagements)
                 .HasForeignKey(d => d.GroupId)
-                .HasConstraintName("FK__AccountMa__Group__4BAC3F29");
+                .HasConstraintName("FK__AccountMa__Group__151B244E");
         });
 
         modelBuilder.Entity<BomComponent>(entity =>
         {
-            entity.HasKey(e => new { e.Bomcode, e.ComponentCode, e.BomVersion }).HasName("PK__BOM_Comp__568017D4703A16DF");
+            entity.HasKey(e => new { e.Bomcode, e.ComponentCode, e.BomVersion }).HasName("PK__BOM_Comp__568017D45A2463B0");
 
             entity.ToTable("BOM_Component");
 
@@ -130,12 +130,12 @@ public partial class ChromeContext : DbContext
             entity.HasOne(d => d.ComponentCodeNavigation).WithMany(p => p.BomComponents)
                 .HasForeignKey(d => d.ComponentCode)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__BOM_Compo__Compo__2EDAF651");
+                .HasConstraintName("FK__BOM_Compo__Compo__160F4887");
 
             entity.HasOne(d => d.Bommaster).WithMany(p => p.BomComponents)
                 .HasForeignKey(d => new { d.Bomcode, d.BomVersion })
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__BOM_Component__2DE6D218");
+                .HasConstraintName("FK__BOM_Component__17036CC0");
         });
 
         modelBuilder.Entity<BomOperation>(entity =>
@@ -152,7 +152,7 @@ public partial class ChromeContext : DbContext
 
         modelBuilder.Entity<Bommaster>(entity =>
         {
-            entity.HasKey(e => new { e.Bomcode, e.Bomversion }).HasName("PK__BOMMaste__1DABFE87C6E1DF2D");
+            entity.HasKey(e => new { e.Bomcode, e.Bomversion }).HasName("PK__BOMMaste__1DABFE874AF9D326");
 
             entity.ToTable("BOMMaster");
 
@@ -166,12 +166,12 @@ public partial class ChromeContext : DbContext
 
             entity.HasOne(d => d.ProductCodeNavigation).WithMany(p => p.Bommasters)
                 .HasForeignKey(d => d.ProductCode)
-                .HasConstraintName("FK__BOMMaster__Produ__2B0A656D");
+                .HasConstraintName("FK__BOMMaster__Produ__17F790F9");
         });
 
         modelBuilder.Entity<Category>(entity =>
         {
-            entity.HasKey(e => e.CategoryId).HasName("PK__Category__19093A2B645EE928");
+            entity.HasKey(e => e.CategoryId).HasName("PK__Category__19093A2BE6972720");
 
             entity.ToTable("Category");
 
@@ -182,7 +182,7 @@ public partial class ChromeContext : DbContext
 
         modelBuilder.Entity<CustomerMaster>(entity =>
         {
-            entity.HasKey(e => e.CustomerCode).HasName("PK__Customer__066785203E3DB407");
+            entity.HasKey(e => e.CustomerCode).HasName("PK__Customer__06678520ECAE1374");
 
             entity.ToTable("CustomerMaster");
 
@@ -192,7 +192,7 @@ public partial class ChromeContext : DbContext
 
         modelBuilder.Entity<CustomerProduct>(entity =>
         {
-            entity.HasKey(e => new { e.CustomerCode, e.ProductCode }).HasName("PK__Customer__F49365045B222EF1");
+            entity.HasKey(e => new { e.CustomerCode, e.ProductCode }).HasName("PK__Customer__F4936504457F0697");
 
             entity.ToTable("CustomerProduct");
 
@@ -202,17 +202,17 @@ public partial class ChromeContext : DbContext
             entity.HasOne(d => d.CustomerCodeNavigation).WithMany(p => p.CustomerProducts)
                 .HasForeignKey(d => d.CustomerCode)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__CustomerP__Custo__6383C8BA");
+                .HasConstraintName("FK__CustomerP__Custo__18EBB532");
 
             entity.HasOne(d => d.ProductCodeNavigation).WithMany(p => p.CustomerProducts)
                 .HasForeignKey(d => d.ProductCode)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__CustomerP__Produ__6477ECF3");
+                .HasConstraintName("FK__CustomerP__Produ__19DFD96B");
         });
 
         modelBuilder.Entity<Function>(entity =>
         {
-            entity.HasKey(e => e.FunctionId).HasName("PK__Function__31ABF9180B000925");
+            entity.HasKey(e => e.FunctionId).HasName("PK__Function__31ABF9185A103009");
 
             entity.Property(e => e.FunctionId)
                 .HasMaxLength(100)
@@ -221,7 +221,7 @@ public partial class ChromeContext : DbContext
 
         modelBuilder.Entity<GroupFunction>(entity =>
         {
-            entity.HasKey(e => new { e.GroupId, e.FunctionId, e.ApplicableLocation }).HasName("PK__GroupFun__CAF59E7ED7EBB810");
+            entity.HasKey(e => new { e.GroupId, e.FunctionId, e.ApplicableLocation }).HasName("PK__GroupFun__CAF59E7E933D7B7A");
 
             entity.Property(e => e.GroupId)
                 .HasMaxLength(100)
@@ -235,22 +235,22 @@ public partial class ChromeContext : DbContext
             entity.HasOne(d => d.ApplicableLocationNavigation).WithMany(p => p.GroupFunctions)
                 .HasForeignKey(d => d.ApplicableLocation)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__GroupFunc__Appli__5441852A");
+                .HasConstraintName("FK__GroupFunc__Appli__1AD3FDA4");
 
             entity.HasOne(d => d.Function).WithMany(p => p.GroupFunctions)
                 .HasForeignKey(d => d.FunctionId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__GroupFunc__Funct__534D60F1");
+                .HasConstraintName("FK__GroupFunc__Funct__1BC821DD");
 
             entity.HasOne(d => d.Group).WithMany(p => p.GroupFunctions)
                 .HasForeignKey(d => d.GroupId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__GroupFunc__Group__52593CB8");
+                .HasConstraintName("FK__GroupFunc__Group__1CBC4616");
         });
 
         modelBuilder.Entity<GroupManagement>(entity =>
         {
-            entity.HasKey(e => e.GroupId).HasName("PK__GroupMan__149AF30A3599C67C");
+            entity.HasKey(e => e.GroupId).HasName("PK__GroupMan__149AF30AB6E1B312");
 
             entity.ToTable("GroupManagement");
 
@@ -261,7 +261,7 @@ public partial class ChromeContext : DbContext
 
         modelBuilder.Entity<Inventory>(entity =>
         {
-            entity.HasKey(e => new { e.WarehouseCode, e.LocationCode, e.ProductCode, e.Lotno }).HasName("PK__Inventor__BB86ECC737C7F962");
+            entity.HasKey(e => new { e.WarehouseCode, e.LocationCode, e.ProductCode, e.Lotno }).HasName("PK__Inventor__BB86ECC7470AC1A3");
 
             entity.ToTable("Inventory");
 
@@ -274,22 +274,22 @@ public partial class ChromeContext : DbContext
             entity.HasOne(d => d.LocationCodeNavigation).WithMany(p => p.Inventories)
                 .HasForeignKey(d => d.LocationCode)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__Inventory__Locat__6EF57B66");
+                .HasConstraintName("FK__Inventory__Locat__1DB06A4F");
 
             entity.HasOne(d => d.ProductCodeNavigation).WithMany(p => p.Inventories)
                 .HasForeignKey(d => d.ProductCode)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__Inventory__Produ__6FE99F9F");
+                .HasConstraintName("FK__Inventory__Produ__1EA48E88");
 
             entity.HasOne(d => d.WarehouseCodeNavigation).WithMany(p => p.Inventories)
                 .HasForeignKey(d => d.WarehouseCode)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__Inventory__Wareh__6E01572D");
+                .HasConstraintName("FK__Inventory__Wareh__1F98B2C1");
         });
 
         modelBuilder.Entity<LocationMaster>(entity =>
         {
-            entity.HasKey(e => e.LocationCode).HasName("PK__Location__DDB144D4C109C354");
+            entity.HasKey(e => e.LocationCode).HasName("PK__Location__DDB144D433F0CAD8");
 
             entity.ToTable("LocationMaster");
 
@@ -302,11 +302,11 @@ public partial class ChromeContext : DbContext
 
             entity.HasOne(d => d.StorageProduct).WithMany(p => p.LocationMasters)
                 .HasForeignKey(d => d.StorageProductId)
-                .HasConstraintName("FK__LocationM__Stora__6B24EA82");
+                .HasConstraintName("FK__LocationM__Stora__208CD6FA");
 
             entity.HasOne(d => d.WarehouseCodeNavigation).WithMany(p => p.LocationMasters)
                 .HasForeignKey(d => d.WarehouseCode)
-                .HasConstraintName("FK__LocationM__Wareh__6A30C649");
+                .HasConstraintName("FK__LocationM__Wareh__2180FB33");
         });
 
         modelBuilder.Entity<ManufWorkOrder>(entity =>
@@ -322,7 +322,7 @@ public partial class ChromeContext : DbContext
 
         modelBuilder.Entity<ManufacturingOrder>(entity =>
         {
-            entity.HasKey(e => e.ManufacturingOrderCode).HasName("PK__Manufact__5DC020C3ECC4B20D");
+            entity.HasKey(e => e.ManufacturingOrderCode).HasName("PK__Manufact__5DC020C38956F6D4");
 
             entity.ToTable("ManufacturingOrder");
 
@@ -342,32 +342,32 @@ public partial class ChromeContext : DbContext
 
             entity.HasOne(d => d.OrderTypeCodeNavigation).WithMany(p => p.ManufacturingOrders)
                 .HasForeignKey(d => d.OrderTypeCode)
-                .HasConstraintName("FK__Manufactu__Order__03BB8E22");
+                .HasConstraintName("FK__Manufactu__Order__22751F6C");
 
             entity.HasOne(d => d.ProductCodeNavigation).WithMany(p => p.ManufacturingOrders)
                 .HasForeignKey(d => d.ProductCode)
-                .HasConstraintName("FK__Manufactu__Produ__02C769E9");
+                .HasConstraintName("FK__Manufactu__Produ__236943A5");
 
             entity.HasOne(d => d.ResponsibleNavigation).WithMany(p => p.ManufacturingOrders)
                 .HasForeignKey(d => d.Responsible)
-                .HasConstraintName("FK__Manufactu__Respo__05A3D694");
+                .HasConstraintName("FK__Manufactu__Respo__245D67DE");
 
             entity.HasOne(d => d.Status).WithMany(p => p.ManufacturingOrders)
                 .HasForeignKey(d => d.StatusId)
-                .HasConstraintName("FK__Manufactu__Statu__078C1F06");
+                .HasConstraintName("FK__Manufactu__Statu__25518C17");
 
             entity.HasOne(d => d.WarehouseCodeNavigation).WithMany(p => p.ManufacturingOrders)
                 .HasForeignKey(d => d.WarehouseCode)
-                .HasConstraintName("FK__Manufactu__Wareh__0697FACD");
+                .HasConstraintName("FK__Manufactu__Wareh__2645B050");
 
             entity.HasOne(d => d.Bommaster).WithMany(p => p.ManufacturingOrders)
                 .HasForeignKey(d => new { d.Bomcode, d.BomVersion })
-                .HasConstraintName("FK__ManufacturingOrd__04AFB25B");
+                .HasConstraintName("FK__ManufacturingOrd__2739D489");
         });
 
         modelBuilder.Entity<ManufacturingOrderDetail>(entity =>
         {
-            entity.HasKey(e => new { e.ManufacturingOrderCode, e.ComponentCode }).HasName("PK__Manufact__D558EF7CABA83A05");
+            entity.HasKey(e => new { e.ManufacturingOrderCode, e.ComponentCode }).HasName("PK__Manufact__D558EF7C5FBF4FB9");
 
             entity.ToTable("ManufacturingOrderDetail");
 
@@ -377,17 +377,17 @@ public partial class ChromeContext : DbContext
             entity.HasOne(d => d.ComponentCodeNavigation).WithMany(p => p.ManufacturingOrderDetails)
                 .HasForeignKey(d => d.ComponentCode)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__Manufactu__Compo__0A688BB1");
+                .HasConstraintName("FK__Manufactu__Compo__282DF8C2");
 
             entity.HasOne(d => d.ManufacturingOrderCodeNavigation).WithMany(p => p.ManufacturingOrderDetails)
                 .HasForeignKey(d => d.ManufacturingOrderCode)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__Manufactu__Manuf__0B5CAFEA");
+                .HasConstraintName("FK__Manufactu__Manuf__29221CFB");
         });
 
         modelBuilder.Entity<Movement>(entity =>
         {
-            entity.HasKey(e => e.MovementCode).HasName("PK__Movement__8B71BE1C9E0DC626");
+            entity.HasKey(e => e.MovementCode).HasName("PK__Movement__8B71BE1C2D8950F4");
 
             entity.ToTable("Movement");
 
@@ -403,32 +403,32 @@ public partial class ChromeContext : DbContext
 
             entity.HasOne(d => d.FromLocationNavigation).WithMany(p => p.MovementFromLocationNavigations)
                 .HasForeignKey(d => d.FromLocation)
-                .HasConstraintName("FK__Movement__FromLo__2180FB33");
+                .HasConstraintName("FK__Movement__FromLo__2A164134");
 
             entity.HasOne(d => d.OrderTypeCodeNavigation).WithMany(p => p.Movements)
                 .HasForeignKey(d => d.OrderTypeCode)
-                .HasConstraintName("FK__Movement__OrderT__1F98B2C1");
+                .HasConstraintName("FK__Movement__OrderT__2B0A656D");
 
             entity.HasOne(d => d.ResponsibleNavigation).WithMany(p => p.Movements)
                 .HasForeignKey(d => d.Responsible)
-                .HasConstraintName("FK__Movement__Respon__236943A5");
+                .HasConstraintName("FK__Movement__Respon__2BFE89A6");
 
             entity.HasOne(d => d.Status).WithMany(p => p.Movements)
                 .HasForeignKey(d => d.StatusId)
-                .HasConstraintName("FK__Movement__Status__245D67DE");
+                .HasConstraintName("FK__Movement__Status__2CF2ADDF");
 
             entity.HasOne(d => d.ToLocationNavigation).WithMany(p => p.MovementToLocationNavigations)
                 .HasForeignKey(d => d.ToLocation)
-                .HasConstraintName("FK__Movement__ToLoca__22751F6C");
+                .HasConstraintName("FK__Movement__ToLoca__2DE6D218");
 
             entity.HasOne(d => d.WarehouseCodeNavigation).WithMany(p => p.Movements)
                 .HasForeignKey(d => d.WarehouseCode)
-                .HasConstraintName("FK__Movement__Wareho__208CD6FA");
+                .HasConstraintName("FK__Movement__Wareho__2EDAF651");
         });
 
         modelBuilder.Entity<MovementDetail>(entity =>
         {
-            entity.HasKey(e => new { e.MovementCode, e.ProductCode }).HasName("PK__Movement__79855E380BB63170");
+            entity.HasKey(e => new { e.MovementCode, e.ProductCode }).HasName("PK__Movement__79855E385A48F8C8");
 
             entity.ToTable("MovementDetail");
 
@@ -438,17 +438,17 @@ public partial class ChromeContext : DbContext
             entity.HasOne(d => d.MovementCodeNavigation).WithMany(p => p.MovementDetails)
                 .HasForeignKey(d => d.MovementCode)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__MovementD__Movem__2739D489");
+                .HasConstraintName("FK__MovementD__Movem__2FCF1A8A");
 
             entity.HasOne(d => d.ProductCodeNavigation).WithMany(p => p.MovementDetails)
                 .HasForeignKey(d => d.ProductCode)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__MovementD__Produ__282DF8C2");
+                .HasConstraintName("FK__MovementD__Produ__30C33EC3");
         });
 
         modelBuilder.Entity<OrderType>(entity =>
         {
-            entity.HasKey(e => e.OrderTypeCode).HasName("PK__OrderTyp__6FE062556F58C25C");
+            entity.HasKey(e => e.OrderTypeCode).HasName("PK__OrderTyp__6FE06255B9D50731");
 
             entity.ToTable("OrderType");
 
@@ -457,7 +457,7 @@ public partial class ChromeContext : DbContext
 
         modelBuilder.Entity<PickList>(entity =>
         {
-            entity.HasKey(e => e.PickNo).HasName("PK__PickList__C80F569C2C20900A");
+            entity.HasKey(e => e.PickNo).HasName("PK__PickList__C80F569C37500F27");
 
             entity.ToTable("PickList");
 
@@ -469,47 +469,47 @@ public partial class ChromeContext : DbContext
 
             entity.HasOne(d => d.ReservationCodeNavigation).WithMany(p => p.PickLists)
                 .HasForeignKey(d => d.ReservationCode)
-                .HasConstraintName("FK__PickList__Reserv__3B40CD36");
+                .HasConstraintName("FK__PickList__Reserv__31B762FC");
 
             entity.HasOne(d => d.Status).WithMany(p => p.PickLists)
                 .HasForeignKey(d => d.StatusId)
-                .HasConstraintName("FK__PickList__Status__3D2915A8");
+                .HasConstraintName("FK__PickList__Status__32AB8735");
 
             entity.HasOne(d => d.WarehouseCodeNavigation).WithMany(p => p.PickLists)
                 .HasForeignKey(d => d.WarehouseCode)
-                .HasConstraintName("FK__PickList__Wareho__3C34F16F");
+                .HasConstraintName("FK__PickList__Wareho__339FAB6E");
         });
 
         modelBuilder.Entity<PickListDetail>(entity =>
         {
-            entity.HasKey(e => new { e.PickNo, e.ProductCode }).HasName("PK__PickList__3AFBB6B87CB5F9C0");
+            entity.HasKey(e => new { e.PickNo, e.ProductCode, e.LotNo }).HasName("PK__PickList__FDBAD66CDC599D89");
 
             entity.ToTable("PickListDetail");
 
             entity.Property(e => e.PickNo).HasMaxLength(100);
             entity.Property(e => e.ProductCode).HasMaxLength(100);
-            entity.Property(e => e.LocationCode).HasMaxLength(100);
             entity.Property(e => e.LotNo).HasMaxLength(100);
+            entity.Property(e => e.LocationCode).HasMaxLength(100);
             entity.Property(e => e.Quantity).HasDefaultValue(0.0);
 
             entity.HasOne(d => d.LocationCodeNavigation).WithMany(p => p.PickListDetails)
                 .HasForeignKey(d => d.LocationCode)
-                .HasConstraintName("FK__PickListD__Locat__42E1EEFE");
+                .HasConstraintName("FK__PickListD__Locat__3493CFA7");
 
             entity.HasOne(d => d.PickNoNavigation).WithMany(p => p.PickListDetails)
                 .HasForeignKey(d => d.PickNo)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__PickListD__PickN__40F9A68C");
+                .HasConstraintName("FK__PickListD__PickN__3587F3E0");
 
             entity.HasOne(d => d.ProductCodeNavigation).WithMany(p => p.PickListDetails)
                 .HasForeignKey(d => d.ProductCode)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__PickListD__Produ__41EDCAC5");
+                .HasConstraintName("FK__PickListD__Produ__367C1819");
         });
 
         modelBuilder.Entity<ProductMaster>(entity =>
         {
-            entity.HasKey(e => e.ProductCode).HasName("PK__ProductM__2F4E024EF342B585");
+            entity.HasKey(e => e.ProductCode).HasName("PK__ProductM__2F4E024EBE729325");
 
             entity.ToTable("ProductMaster");
 
@@ -526,12 +526,12 @@ public partial class ChromeContext : DbContext
 
             entity.HasOne(d => d.Category).WithMany(p => p.ProductMasters)
                 .HasForeignKey(d => d.CategoryId)
-                .HasConstraintName("FK__ProductMa__Categ__59063A47");
+                .HasConstraintName("FK__ProductMa__Categ__37703C52");
         });
 
         modelBuilder.Entity<ProductSupplier>(entity =>
         {
-            entity.HasKey(e => new { e.SupplierCode, e.ProductCode }).HasName("PK__ProductS__B64A783E416AC0CE");
+            entity.HasKey(e => new { e.SupplierCode, e.ProductCode }).HasName("PK__ProductS__B64A783ECBDB4BE3");
 
             entity.ToTable("ProductSupplier");
 
@@ -541,17 +541,17 @@ public partial class ChromeContext : DbContext
             entity.HasOne(d => d.ProductCodeNavigation).WithMany(p => p.ProductSuppliers)
                 .HasForeignKey(d => d.ProductCode)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__ProductSu__Produ__5EBF139D");
+                .HasConstraintName("FK__ProductSu__Produ__3864608B");
 
             entity.HasOne(d => d.SupplierCodeNavigation).WithMany(p => p.ProductSuppliers)
                 .HasForeignKey(d => d.SupplierCode)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__ProductSu__Suppl__5DCAEF64");
+                .HasConstraintName("FK__ProductSu__Suppl__395884C4");
         });
 
         modelBuilder.Entity<PutAway>(entity =>
         {
-            entity.HasKey(e => e.PutAwayCode).HasName("PK__PutAway__4283C165D6A8929E");
+            entity.HasKey(e => e.PutAwayCode).HasName("PK__PutAway__4283C165A02D1B3B");
 
             entity.ToTable("PutAway");
 
@@ -564,24 +564,24 @@ public partial class ChromeContext : DbContext
 
             entity.HasOne(d => d.LocationCodeNavigation).WithMany(p => p.PutAways)
                 .HasForeignKey(d => d.LocationCode)
-                .HasConstraintName("FK__PutAway__Locatio__46B27FE2");
+                .HasConstraintName("FK__PutAway__Locatio__3A4CA8FD");
 
             entity.HasOne(d => d.OrderTypeCodeNavigation).WithMany(p => p.PutAways)
                 .HasForeignKey(d => d.OrderTypeCode)
-                .HasConstraintName("FK__PutAway__OrderTy__45BE5BA9");
+                .HasConstraintName("FK__PutAway__OrderTy__3B40CD36");
 
             entity.HasOne(d => d.ResponsibleNavigation).WithMany(p => p.PutAways)
                 .HasForeignKey(d => d.Responsible)
-                .HasConstraintName("FK__PutAway__Respons__47A6A41B");
+                .HasConstraintName("FK__PutAway__Respons__3C34F16F");
 
             entity.HasOne(d => d.Status).WithMany(p => p.PutAways)
                 .HasForeignKey(d => d.StatusId)
-                .HasConstraintName("FK__PutAway__StatusI__489AC854");
+                .HasConstraintName("FK__PutAway__StatusI__3D2915A8");
         });
 
         modelBuilder.Entity<PutAwayDetail>(entity =>
         {
-            entity.HasKey(e => new { e.PutAwayCode, e.ProductCode }).HasName("PK__PutAwayD__B077214117C1EA7F");
+            entity.HasKey(e => new { e.PutAwayCode, e.ProductCode }).HasName("PK__PutAwayD__B077214134F2214F");
 
             entity.ToTable("PutAwayDetail");
 
@@ -592,17 +592,17 @@ public partial class ChromeContext : DbContext
             entity.HasOne(d => d.ProductCodeNavigation).WithMany(p => p.PutAwayDetails)
                 .HasForeignKey(d => d.ProductCode)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__PutAwayDe__Produ__4C6B5938");
+                .HasConstraintName("FK__PutAwayDe__Produ__3E1D39E1");
 
             entity.HasOne(d => d.PutAwayCodeNavigation).WithMany(p => p.PutAwayDetails)
                 .HasForeignKey(d => d.PutAwayCode)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__PutAwayDe__PutAw__4B7734FF");
+                .HasConstraintName("FK__PutAwayDe__PutAw__3F115E1A");
         });
 
         modelBuilder.Entity<PutAwayRule>(entity =>
         {
-            entity.HasKey(e => e.PutAwaysRuleCode).HasName("PK__PutAwayR__F3CC5F4D035F78FE");
+            entity.HasKey(e => e.PutAwaysRuleCode).HasName("PK__PutAwayR__F3CC5F4D7E33657F");
 
             entity.Property(e => e.PutAwaysRuleCode).HasMaxLength(100);
             entity.Property(e => e.LocationCode).HasMaxLength(100);
@@ -614,24 +614,24 @@ public partial class ChromeContext : DbContext
 
             entity.HasOne(d => d.LocationCodeNavigation).WithMany(p => p.PutAwayRules)
                 .HasForeignKey(d => d.LocationCode)
-                .HasConstraintName("FK__PutAwayRu__Locat__1BC821DD");
+                .HasConstraintName("FK__PutAwayRu__Locat__40058253");
 
             entity.HasOne(d => d.ProductCodeNavigation).WithMany(p => p.PutAwayRules)
                 .HasForeignKey(d => d.ProductCode)
-                .HasConstraintName("FK__PutAwayRu__Produ__1AD3FDA4");
+                .HasConstraintName("FK__PutAwayRu__Produ__40F9A68C");
 
             entity.HasOne(d => d.StorageProduct).WithMany(p => p.PutAwayRules)
                 .HasForeignKey(d => d.StorageProductId)
-                .HasConstraintName("FK__PutAwayRu__Stora__1CBC4616");
+                .HasConstraintName("FK__PutAwayRu__Stora__41EDCAC5");
 
             entity.HasOne(d => d.WarehouseToApplyNavigation).WithMany(p => p.PutAwayRules)
                 .HasForeignKey(d => d.WarehouseToApply)
-                .HasConstraintName("FK__PutAwayRu__Wareh__19DFD96B");
+                .HasConstraintName("FK__PutAwayRu__Wareh__42E1EEFE");
         });
 
         modelBuilder.Entity<Reservation>(entity =>
         {
-            entity.HasKey(e => e.ReservationCode).HasName("PK__Reservat__2081C0BAE9562E99");
+            entity.HasKey(e => e.ReservationCode).HasName("PK__Reservat__2081C0BA9FCB79F1");
 
             entity.ToTable("Reservation");
 
@@ -646,20 +646,20 @@ public partial class ChromeContext : DbContext
 
             entity.HasOne(d => d.OrderTypeCodeNavigation).WithMany(p => p.Reservations)
                 .HasForeignKey(d => d.OrderTypeCode)
-                .HasConstraintName("FK__Reservati__Order__32AB8735");
+                .HasConstraintName("FK__Reservati__Order__43D61337");
 
             entity.HasOne(d => d.Status).WithMany(p => p.Reservations)
                 .HasForeignKey(d => d.StatusId)
-                .HasConstraintName("FK__Reservati__Statu__31B762FC");
+                .HasConstraintName("FK__Reservati__Statu__44CA3770");
 
             entity.HasOne(d => d.WarehouseCodeNavigation).WithMany(p => p.Reservations)
                 .HasForeignKey(d => d.WarehouseCode)
-                .HasConstraintName("FK__Reservati__Wareh__339FAB6E");
+                .HasConstraintName("FK__Reservati__Wareh__45BE5BA9");
         });
 
         modelBuilder.Entity<ReservationDetail>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__Reservat__3213E83FDE7FAFC1");
+            entity.HasKey(e => e.Id).HasName("PK__Reservat__3213E83FAEDECE58");
 
             entity.ToTable("ReservationDetail");
 
@@ -671,20 +671,20 @@ public partial class ChromeContext : DbContext
 
             entity.HasOne(d => d.LocationCodeNavigation).WithMany(p => p.ReservationDetails)
                 .HasForeignKey(d => d.LocationCode)
-                .HasConstraintName("FK__Reservati__Locat__3864608B");
+                .HasConstraintName("FK__Reservati__Locat__46B27FE2");
 
             entity.HasOne(d => d.ProductCodeNavigation).WithMany(p => p.ReservationDetails)
                 .HasForeignKey(d => d.ProductCode)
-                .HasConstraintName("FK__Reservati__Produ__37703C52");
+                .HasConstraintName("FK__Reservati__Produ__47A6A41B");
 
             entity.HasOne(d => d.ReservationCodeNavigation).WithMany(p => p.ReservationDetails)
                 .HasForeignKey(d => d.ReservationCode)
-                .HasConstraintName("FK__Reservati__Reser__367C1819");
+                .HasConstraintName("FK__Reservati__Reser__489AC854");
         });
 
         modelBuilder.Entity<StatusMaster>(entity =>
         {
-            entity.HasKey(e => e.StatusId).HasName("PK__StatusMa__C8EE2043CFB35098");
+            entity.HasKey(e => e.StatusId).HasName("PK__StatusMa__C8EE20430FCF0482");
 
             entity.ToTable("StatusMaster");
 
@@ -695,7 +695,7 @@ public partial class ChromeContext : DbContext
 
         modelBuilder.Entity<StockIn>(entity =>
         {
-            entity.HasKey(e => e.StockInCode).HasName("PK__StockIn__3FAEE5C54A1FB5E9");
+            entity.HasKey(e => e.StockInCode).HasName("PK__StockIn__3FAEE5C51F381F09");
 
             entity.ToTable("StockIn");
 
@@ -709,28 +709,28 @@ public partial class ChromeContext : DbContext
 
             entity.HasOne(d => d.OrderTypeCodeNavigation).WithMany(p => p.StockIns)
                 .HasForeignKey(d => d.OrderTypeCode)
-                .HasConstraintName("FK__StockIn__OrderTy__76969D2E");
+                .HasConstraintName("FK__StockIn__OrderTy__498EEC8D");
 
             entity.HasOne(d => d.ResponsibleNavigation).WithMany(p => p.StockIns)
                 .HasForeignKey(d => d.Responsible)
-                .HasConstraintName("FK__StockIn__Respons__797309D9");
+                .HasConstraintName("FK__StockIn__Respons__4A8310C6");
 
             entity.HasOne(d => d.Status).WithMany(p => p.StockIns)
                 .HasForeignKey(d => d.StatusId)
-                .HasConstraintName("FK__StockIn__StatusI__7A672E12");
+                .HasConstraintName("FK__StockIn__StatusI__4B7734FF");
 
             entity.HasOne(d => d.SupplierCodeNavigation).WithMany(p => p.StockIns)
                 .HasForeignKey(d => d.SupplierCode)
-                .HasConstraintName("FK__StockIn__Supplie__787EE5A0");
+                .HasConstraintName("FK__StockIn__Supplie__4C6B5938");
 
             entity.HasOne(d => d.WarehouseCodeNavigation).WithMany(p => p.StockIns)
                 .HasForeignKey(d => d.WarehouseCode)
-                .HasConstraintName("FK__StockIn__Warehou__778AC167");
+                .HasConstraintName("FK__StockIn__Warehou__4D5F7D71");
         });
 
         modelBuilder.Entity<StockInDetail>(entity =>
         {
-            entity.HasKey(e => new { e.StockInCode, e.ProductCode }).HasName("PK__StockInD__CD5A05E19AD062E8");
+            entity.HasKey(e => new { e.StockInCode, e.ProductCode }).HasName("PK__StockInD__CD5A05E17BF43782");
 
             entity.ToTable("StockInDetail");
 
@@ -742,17 +742,17 @@ public partial class ChromeContext : DbContext
             entity.HasOne(d => d.ProductCodeNavigation).WithMany(p => p.StockInDetails)
                 .HasForeignKey(d => d.ProductCode)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__StockInDe__Produ__7F2BE32F");
+                .HasConstraintName("FK__StockInDe__Produ__4E53A1AA");
 
             entity.HasOne(d => d.StockInCodeNavigation).WithMany(p => p.StockInDetails)
                 .HasForeignKey(d => d.StockInCode)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__StockInDe__Stock__7E37BEF6");
+                .HasConstraintName("FK__StockInDe__Stock__4F47C5E3");
         });
 
         modelBuilder.Entity<StockOut>(entity =>
         {
-            entity.HasKey(e => e.StockOutCode).HasName("PK__StockOut__C9B8C856DE2129E1");
+            entity.HasKey(e => e.StockOutCode).HasName("PK__StockOut__C9B8C85606FD7037");
 
             entity.ToTable("StockOut");
 
@@ -766,28 +766,28 @@ public partial class ChromeContext : DbContext
 
             entity.HasOne(d => d.CustomerCodeNavigation).WithMany(p => p.StockOuts)
                 .HasForeignKey(d => d.CustomerCode)
-                .HasConstraintName("FK__StockOut__Custom__03F0984C");
+                .HasConstraintName("FK__StockOut__Custom__503BEA1C");
 
             entity.HasOne(d => d.OrderTypeCodeNavigation).WithMany(p => p.StockOuts)
                 .HasForeignKey(d => d.OrderTypeCode)
-                .HasConstraintName("FK__StockOut__OrderT__02084FDA");
+                .HasConstraintName("FK__StockOut__OrderT__51300E55");
 
             entity.HasOne(d => d.ResponsibleNavigation).WithMany(p => p.StockOuts)
                 .HasForeignKey(d => d.Responsible)
-                .HasConstraintName("FK__StockOut__Respon__04E4BC85");
+                .HasConstraintName("FK__StockOut__Respon__5224328E");
 
             entity.HasOne(d => d.Status).WithMany(p => p.StockOuts)
                 .HasForeignKey(d => d.StatusId)
-                .HasConstraintName("FK__StockOut__Status__05D8E0BE");
+                .HasConstraintName("FK__StockOut__Status__531856C7");
 
             entity.HasOne(d => d.WarehouseCodeNavigation).WithMany(p => p.StockOuts)
                 .HasForeignKey(d => d.WarehouseCode)
-                .HasConstraintName("FK__StockOut__Wareho__02FC7413");
+                .HasConstraintName("FK__StockOut__Wareho__540C7B00");
         });
 
         modelBuilder.Entity<StockOutDetail>(entity =>
         {
-            entity.HasKey(e => new { e.StockOutCode, e.ProductCode }).HasName("PK__StockOut__3B4C28722600E8B4");
+            entity.HasKey(e => new { e.StockOutCode, e.ProductCode }).HasName("PK__StockOut__3B4C28728ECC0AAA");
 
             entity.ToTable("StockOutDetail");
 
@@ -798,17 +798,17 @@ public partial class ChromeContext : DbContext
             entity.HasOne(d => d.ProductCodeNavigation).WithMany(p => p.StockOutDetails)
                 .HasForeignKey(d => d.ProductCode)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__StockOutD__Produ__0A9D95DB");
+                .HasConstraintName("FK__StockOutD__Produ__55009F39");
 
             entity.HasOne(d => d.StockOutCodeNavigation).WithMany(p => p.StockOutDetails)
                 .HasForeignKey(d => d.StockOutCode)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__StockOutD__Stock__09A971A2");
+                .HasConstraintName("FK__StockOutD__Stock__55F4C372");
         });
 
         modelBuilder.Entity<Stocktake>(entity =>
         {
-            entity.HasKey(e => e.StocktakeCode).HasName("PK__Stocktak__66FC570887279D28");
+            entity.HasKey(e => e.StocktakeCode).HasName("PK__Stocktak__66FC570896E450AC");
 
             entity.ToTable("Stocktake");
 
@@ -820,20 +820,20 @@ public partial class ChromeContext : DbContext
 
             entity.HasOne(d => d.ResponsibleNavigation).WithMany(p => p.Stocktakes)
                 .HasForeignKey(d => d.Responsible)
-                .HasConstraintName("FK__Stocktake__Respo__59C55456");
+                .HasConstraintName("FK__Stocktake__Respo__56E8E7AB");
 
             entity.HasOne(d => d.Status).WithMany(p => p.Stocktakes)
                 .HasForeignKey(d => d.StatusId)
-                .HasConstraintName("FK__Stocktake__Statu__58D1301D");
+                .HasConstraintName("FK__Stocktake__Statu__57DD0BE4");
 
             entity.HasOne(d => d.WarehouseCodeNavigation).WithMany(p => p.Stocktakes)
                 .HasForeignKey(d => d.WarehouseCode)
-                .HasConstraintName("FK__Stocktake__Wareh__5AB9788F");
+                .HasConstraintName("FK__Stocktake__Wareh__58D1301D");
         });
 
         modelBuilder.Entity<StocktakeDetail>(entity =>
         {
-            entity.HasKey(e => new { e.StocktakeCode, e.ProductCode, e.Lotno, e.LocationCode }).HasName("PK__Stocktak__261401C38FD51BCE");
+            entity.HasKey(e => new { e.StocktakeCode, e.ProductCode, e.Lotno, e.LocationCode }).HasName("PK__Stocktak__261401C3FD1F6307");
 
             entity.ToTable("StocktakeDetail");
 
@@ -845,22 +845,22 @@ public partial class ChromeContext : DbContext
             entity.HasOne(d => d.LocationCodeNavigation).WithMany(p => p.StocktakeDetails)
                 .HasForeignKey(d => d.LocationCode)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__Stocktake__Locat__5E8A0973");
+                .HasConstraintName("FK__Stocktake__Locat__59C55456");
 
             entity.HasOne(d => d.ProductCodeNavigation).WithMany(p => p.StocktakeDetails)
                 .HasForeignKey(d => d.ProductCode)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__Stocktake__Produ__5D95E53A");
+                .HasConstraintName("FK__Stocktake__Produ__5AB9788F");
 
             entity.HasOne(d => d.StocktakeCodeNavigation).WithMany(p => p.StocktakeDetails)
                 .HasForeignKey(d => d.StocktakeCode)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__Stocktake__Stock__6BE40491");
+                .HasConstraintName("FK__Stocktake__Stock__5BAD9CC8");
         });
 
         modelBuilder.Entity<StorageProduct>(entity =>
         {
-            entity.HasKey(e => e.StorageProductId).HasName("PK__StorageP__6066276FC8E03BA5");
+            entity.HasKey(e => e.StorageProductId).HasName("PK__StorageP__6066276FE6F36854");
 
             entity.ToTable("StorageProduct");
 
@@ -871,12 +871,12 @@ public partial class ChromeContext : DbContext
 
             entity.HasOne(d => d.ProductCodeNavigation).WithMany(p => p.StorageProducts)
                 .HasForeignKey(d => d.ProductCode)
-                .HasConstraintName("FK__StoragePr__Produ__6754599E");
+                .HasConstraintName("FK__StoragePr__Produ__5CA1C101");
         });
 
         modelBuilder.Entity<SupplierMaster>(entity =>
         {
-            entity.HasKey(e => e.SupplierCode).HasName("PK__Supplier__44BE981AF12102C9");
+            entity.HasKey(e => e.SupplierCode).HasName("PK__Supplier__44BE981A0A16026A");
 
             entity.ToTable("SupplierMaster");
 
@@ -886,7 +886,7 @@ public partial class ChromeContext : DbContext
 
         modelBuilder.Entity<Transfer>(entity =>
         {
-            entity.HasKey(e => e.TransferCode).HasName("PK__Transfer__CE99A4C47BE44C4C");
+            entity.HasKey(e => e.TransferCode).HasName("PK__Transfer__CE99A4C47A159288");
 
             entity.ToTable("Transfer");
 
@@ -901,32 +901,32 @@ public partial class ChromeContext : DbContext
 
             entity.HasOne(d => d.FromResponsibleNavigation).WithMany(p => p.TransferFromResponsibleNavigations)
                 .HasForeignKey(d => d.FromResponsible)
-                .HasConstraintName("FK__Transfer__FromRe__10566F31");
+                .HasConstraintName("FK__Transfer__FromRe__5D95E53A");
 
             entity.HasOne(d => d.FromWarehouseCodeNavigation).WithMany(p => p.TransferFromWarehouseCodeNavigations)
                 .HasForeignKey(d => d.FromWarehouseCode)
-                .HasConstraintName("FK__Transfer__FromWa__0D7A0286");
+                .HasConstraintName("FK__Transfer__FromWa__5E8A0973");
 
             entity.HasOne(d => d.OrderTypeCodeNavigation).WithMany(p => p.Transfers)
                 .HasForeignKey(d => d.OrderTypeCode)
-                .HasConstraintName("FK__Transfer__OrderT__123EB7A3");
+                .HasConstraintName("FK__Transfer__OrderT__5F7E2DAC");
 
             entity.HasOne(d => d.Status).WithMany(p => p.Transfers)
                 .HasForeignKey(d => d.StatusId)
-                .HasConstraintName("FK__Transfer__Status__114A936A");
+                .HasConstraintName("FK__Transfer__Status__607251E5");
 
             entity.HasOne(d => d.ToResponsibleNavigation).WithMany(p => p.TransferToResponsibleNavigations)
                 .HasForeignKey(d => d.ToResponsible)
-                .HasConstraintName("FK__Transfer__ToResp__0F624AF8");
+                .HasConstraintName("FK__Transfer__ToResp__6166761E");
 
             entity.HasOne(d => d.ToWarehouseCodeNavigation).WithMany(p => p.TransferToWarehouseCodeNavigations)
                 .HasForeignKey(d => d.ToWarehouseCode)
-                .HasConstraintName("FK__Transfer__ToWare__0E6E26BF");
+                .HasConstraintName("FK__Transfer__ToWare__625A9A57");
         });
 
         modelBuilder.Entity<TransferDetail>(entity =>
         {
-            entity.HasKey(e => new { e.TransferCode, e.ProductCode }).HasName("PK__Transfer__3C6D44E0FE26A688");
+            entity.HasKey(e => new { e.TransferCode, e.ProductCode }).HasName("PK__Transfer__3C6D44E0047E59CF");
 
             entity.ToTable("TransferDetail");
 
@@ -938,17 +938,17 @@ public partial class ChromeContext : DbContext
             entity.HasOne(d => d.ProductCodeNavigation).WithMany(p => p.TransferDetails)
                 .HasForeignKey(d => d.ProductCode)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__TransferD__Produ__17036CC0");
+                .HasConstraintName("FK__TransferD__Produ__634EBE90");
 
             entity.HasOne(d => d.TransferCodeNavigation).WithMany(p => p.TransferDetails)
                 .HasForeignKey(d => d.TransferCode)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__TransferD__Trans__160F4887");
+                .HasConstraintName("FK__TransferD__Trans__6442E2C9");
         });
 
         modelBuilder.Entity<WarehouseMaster>(entity =>
         {
-            entity.HasKey(e => e.WarehouseCode).HasName("PK__Warehous__1686A057ED05858B");
+            entity.HasKey(e => e.WarehouseCode).HasName("PK__Warehous__1686A057FAE4C1A4");
 
             entity.ToTable("WarehouseMaster");
 

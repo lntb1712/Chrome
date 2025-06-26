@@ -76,7 +76,7 @@ namespace Chrome.Permission
             {"ucPickList", @"^/api/PickList"},
             {"ucTransfer", @"^/api/Transfer"},
             {"ucProductStructureVersion", @"^/api/ProductStructureVersion"},
-            {"ucProductionOrder", @"^/api/ManufacturingOrder"},
+            {"ucManufacturingOrder", @"^/api/ManufacturingOrder"},
             {"ucProductSupplier", @"^/api/ProductMaster/[^/]+/ProductSupplier"},
             {"ucProductCustomer", @"^/api/ProductMaster/[^/]+/ProductCustomer"},
             {"ucStorageProduct", @"^/api/StorageProduct"},

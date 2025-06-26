@@ -81,7 +81,7 @@ namespace Chrome.Services.PutAwayRulesService
             {
                 try
                 {
-                    await _putAwayRulesRepository.DeleteAsync(putAwayRule, saveChanges: false);
+                    await _putAwayRulesRepository.DeleteAsync(putAwayRuleCode, saveChanges: false);
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
                     return new ServiceResponse<bool>(true, "Xóa quy tắc sắp xếp hàng hóa thành công");
