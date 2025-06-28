@@ -291,7 +291,6 @@ namespace Chrome.Controllers
             }
         }
 
-
         [HttpGet("GetListBomMaster")]
         public async Task<IActionResult> GetListBomMaster([FromQuery]string productCode)
         {
@@ -307,6 +306,28 @@ namespace Chrome.Controllers
             catch (Exception ex)
             {
                 return StatusCode(StatusCodes.Status500InternalServerError, new { Success = false, Message = $"Lỗi: {ex.Message}" });
+            }
+        }
+
+        [HttpGet("CheckInventoryShortageForManufacturingOrderAsync")]
+        public async Task<IActionResult> CheckInventoryShortageForManufacturingOrderAsync([FromQuery] string manufacturingOrderCode, [FromQuery] string warehouseCode)
+        {
+            try
+            {
+                var response = await _manufacturingOrderService.CheckInventoryShortageForManufacturingOrderAsync(manufacturingOrderCode, warehouseCode);
+                if (!response.Success)
+                {
+                    return NotFound(new
+                    {
+                        Success = true,
+                        Message = response.Message
+                    });
+                }
+                return Ok(response);
+            }
+            catch(Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, $"Lỗi : {ex.Message}");
             }
         }
     }

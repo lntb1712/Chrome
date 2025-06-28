@@ -3,6 +3,7 @@ using Chrome.DTO.AccountManagementDTO;
 using Chrome.DTO.BOMComponentDTO;
 using Chrome.DTO.BOMMasterDTO;
 using Chrome.DTO.ManufacturingOrderDTO;
+using Chrome.DTO.OrderDetailBaseDTO;
 using Chrome.DTO.OrderTypeDTO;
 using Chrome.DTO.ProductMasterDTO;
 using Chrome.DTO.PutAwayDTO;
@@ -74,7 +75,83 @@ namespace Chrome.Services.ManufacturingOrderService
             _inventoryRepository = inventoryRepository;
             _context = context;
         }
+        public async Task<ServiceResponse<List<ProductShortageDTO>>> CheckInventoryShortageForManufacturingOrderAsync(string manufacturingOrderCode, string warehouseCode)
+        {
+            try
+            {
+                // Get order details for the manufacturing order
+                var orderDetails = await _context.ManufacturingOrderDetails
+                    .Where(od => od.ManufacturingOrderCode == manufacturingOrderCode)
+                    .Select(od => new OrderDetailBaseDTO
+                    {
+                        ProductCode = od.ComponentCode,
+                        Quantity = od.ToConsumeQuantity ?? 0
+                    })
+                    .ToListAsync();
 
+                if (!orderDetails.Any())
+                {
+                    return new ServiceResponse<List<ProductShortageDTO>>(false, $"Không tìm thấy chi tiết BOM cho mã lệnh sản xuất {manufacturingOrderCode}");
+                }
+
+                var shortageList = new List<ProductShortageDTO>();
+
+                // Check inventory for each product
+                foreach (var orderDetail in orderDetails)
+                {
+                    if (orderDetail.Quantity <= 0) continue;
+
+                    var inventoryItems = await _inventoryRepository.GetInventoryByProductCodeAsync(orderDetail.ProductCode!, warehouseCode)
+                        .OrderBy(x => x.ReceiveDate)
+                        .ToListAsync();
+
+                    double remainingQuantity = orderDetail.Quantity;
+
+                    foreach (var inventory in inventoryItems)
+                    {
+                        var reservedQuantity = await _context.ReservationDetails
+                            .Include(rd => rd.ReservationCodeNavigation)
+                            .Where(rd => rd.ProductCode == inventory.ProductCode &&
+                                        rd.Lotno == inventory.Lotno &&
+                                        rd.ReservationCodeNavigation!.StatusId != 3)
+                            .SumAsync(rd => (double?)rd.QuantityReserved) ?? 0;
+
+                        double availableQuantity = (inventory.Quantity ?? 0) - reservedQuantity;
+                        if (availableQuantity > 0)
+                        {
+                            remainingQuantity -= availableQuantity;
+                            if (remainingQuantity <= 0) break;
+                        }
+                    }
+
+                    if (remainingQuantity > 0)
+                    {
+                        shortageList.Add(new ProductShortageDTO
+                        {
+                            ProductCode = orderDetail.ProductCode,
+                            ProductName = (await _context.ProductMasters
+                                .Where(p => p.ProductCode == orderDetail.ProductCode)
+                                .Select(p => p.ProductName)
+                                .FirstOrDefaultAsync()) ?? orderDetail.ProductCode,
+                            RequiredQuantity = orderDetail.Quantity,
+                            ShortageQuantity = remainingQuantity,
+                            WarehouseCode = warehouseCode
+                        });
+                    }
+                }
+
+                if (!shortageList.Any())
+                {
+                    return new ServiceResponse<List<ProductShortageDTO>>(true, "Đủ偶:Đủ tồn kho cho tất cả sản phẩm trong lệnh sản xuất", shortageList);
+                }
+
+                return new ServiceResponse<List<ProductShortageDTO>>(true, "Danh sách sản phẩm thiếu tồn kho", shortageList);
+            }
+            catch (Exception ex)
+            {
+                return new ServiceResponse<List<ProductShortageDTO>>(false, $"Lỗi khi kiểm tra tồn kho: {ex.Message}");
+            }
+        }
         public async Task<ServiceResponse<bool>> AddManufacturingOrderAsync(ManufacturingOrderRequestDTO manufacturingOrder)
         {
             // Kiểm tra dữ liệu đầu vào
