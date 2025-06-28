@@ -22,7 +22,7 @@ namespace Chrome.Services.MovementService
         Task<ServiceResponse<List<AccountManagementResponseDTO>>> GetListResponsibleAsync();
         Task<ServiceResponse<List<StatusMasterResponseDTO>>> GetListStatusMaster();
         Task<ServiceResponse<List<WarehouseMasterResponseDTO>>> GetListWarehousePermission(string[] warehouseCodes);
-        Task<ServiceResponse<List<LocationMasterResponseDTO>>> GetListToLocation(string warehouseCode);
+        Task<ServiceResponse<List<LocationMasterResponseDTO>>> GetListToLocation(string warehouseCode,string fromLocation);
         Task<ServiceResponse<List<LocationMasterResponseDTO>>> GetListFromLocation(string warehouseCode);
         Task<ServiceResponse<PutAwayResponseDTO>> GetPutAwayContainsMovement(string movementCode);
         Task<ServiceResponse<PickListResponseDTO>> GetPickListContainsMovement(string movementCode);

@@ -269,11 +269,11 @@ namespace Chrome.Controllers
         }
 
         [HttpGet("GetListToLocation")]
-        public async Task<IActionResult> GetListToLocation([FromQuery] string warehouseCode)
+        public async Task<IActionResult> GetListToLocation([FromQuery] string warehouseCode, [FromQuery] string fromLocation)
         {
             try
             {
-                var response = await _movementService.GetListToLocation(warehouseCode);
+                var response = await _movementService.GetListToLocation(warehouseCode, fromLocation);
                 if (!response.Success)
                 {
                     return NotFound(new

@@ -527,7 +527,7 @@ namespace Chrome.Services.ReservationService
             try
             {
                 var reservation = await _context.Reservations
-                    .Where(r => r.OrderTypeCode == "MO" || r.OrderTypeCode!.StartsWith("MO"))
+                    .Where(r => r.OrderTypeCode == "MV" || r.OrderTypeCode!.StartsWith("MV"))
                     .Where(r => r.OrderId == movementCode)
                     .Select(r => new ReservationAndDetailResponseDTO
                     {
@@ -544,7 +544,7 @@ namespace Chrome.Services.ReservationService
                     .FirstOrDefaultAsync();
                 if (reservation == null)
                 {
-                    return new ServiceResponse<ReservationAndDetailResponseDTO>(false, "Không tìm thấy reservation theo StockOutCode");
+                    return new ServiceResponse<ReservationAndDetailResponseDTO>(false, "Không tìm thấy reservation theo lệnh chuyển kệ");
                 }
                 var reservationDetail = _reservationDetailRepository.GetAllReservationDetailsAsync(reservation!.ReservationCode);
 

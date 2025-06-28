@@ -226,7 +226,7 @@ namespace Chrome.Services.MovementService
             return new ServiceResponse<PagedResponse<MovementResponseDTO>>(true, "Lấy danh sách lệnh chuyển kệ thành công", pagedResponse);
         }
       
-        public async Task<ServiceResponse<List<LocationMasterResponseDTO>>> GetListToLocation(string warehouseCode)
+        public async Task<ServiceResponse<List<LocationMasterResponseDTO>>> GetListToLocation(string warehouseCode,string fromLocation)
         {
             if (string.IsNullOrEmpty(warehouseCode))
             {
@@ -235,7 +235,8 @@ namespace Chrome.Services.MovementService
             try
             {
                 var locations = await _locationMasterRepository.GetAllLocationMaster(warehouseCode, 1, int.MaxValue);
-                var locationResponse = locations
+                var fromLocationStorage = await _locationMasterRepository.GetLocationMasterWithCode(warehouseCode, fromLocation);
+                var locationResponse = locations.Where(x => x.IsEmpty == true && x.StorageProduct!.ProductCode == fromLocationStorage.StorageProduct!.ProductCode)
                 .Select(l => new LocationMasterResponseDTO
                 {
                     LocationCode = l.LocationCode,
@@ -265,7 +266,7 @@ namespace Chrome.Services.MovementService
             try
             {
                 var locations = await _locationMasterRepository.GetAllLocationMaster(warehouseCode,1,int.MaxValue);
-                var locationResponse = locations.Where(x=>x.IsEmpty==true)
+                var locationResponse = locations
                 .Select(l => new LocationMasterResponseDTO
                 {
                     LocationCode = l.LocationCode,
