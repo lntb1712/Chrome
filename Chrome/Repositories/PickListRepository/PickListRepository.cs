@@ -48,6 +48,7 @@ namespace Chrome.Repositories.PickListRepository
             var pickList = await _context.PickLists
                                          .Include(x => x.ReservationCodeNavigation)
                                          .Include(x => x.WarehouseCodeNavigation)
+                                         .Include(x=>x.PickListDetails)
                                          .Include(x => x.Status)
                                          .FirstOrDefaultAsync(x => x.PickNo.Contains(orderCode));
 

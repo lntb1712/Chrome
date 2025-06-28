@@ -17,9 +17,9 @@ namespace Chrome.Services.ReservationService
         Task<ServiceResponse<List<OrderTypeResponseDTO>>> GetListOrderType(string prefix);
         Task<ServiceResponse<List<StatusMasterResponseDTO>>> GetListStatusMaster();
         Task<ServiceResponse<List<WarehouseMasterResponseDTO>>> GetListWarehousePermission(string[] warehouseCodes);
-        Task<ServiceResponse<ReservationResponseDTO>> GetReservationsByStockOutCodeAsync(string stockOutCode);
-        Task<ServiceResponse<ReservationResponseDTO>> GetReservationsByMovementCodeAsync(string movementCode);
-        Task<ServiceResponse<ReservationResponseDTO>> GetReservationsByTransferCodeAsync(string transferCode);
-        Task<ServiceResponse<ReservationResponseDTO>> GetReservationsByManufacturingCodeAsync(string manufacturingCode);
+        Task<ServiceResponse<ReservationAndDetailResponseDTO>> GetReservationsByStockOutCodeAsync(string stockOutCode);
+        Task<ServiceResponse<ReservationAndDetailResponseDTO>> GetReservationsByMovementCodeAsync(string movementCode);
+        Task<ServiceResponse<ReservationAndDetailResponseDTO>> GetReservationsByTransferCodeAsync(string transferCode);
+        Task<ServiceResponse<ReservationAndDetailResponseDTO>> GetReservationsByManufacturingCodeAsync(string manufacturingCode);
     }
 }

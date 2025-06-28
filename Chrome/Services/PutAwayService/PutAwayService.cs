@@ -1,7 +1,9 @@
 ﻿using Chrome.DTO;
+using Chrome.DTO.PutAwayDetailDTO;
 using Chrome.DTO.PutAwayDTO;
 using Chrome.DTO.StatusMasterDTO;
 using Chrome.Models;
+using Chrome.Repositories.PutAwayDetailRepository;
 using Chrome.Repositories.PutawayRepository;
 using Chrome.Repositories.PutAwayRepository;
 using Microsoft.EntityFrameworkCore;
@@ -15,11 +17,13 @@ namespace Chrome.Services.PutAwayService
     public class PutAwayService : IPutAwayService
     {
         private readonly IPutAwayRepository _putAwayRepository;
+        private readonly IPutAwayDetailRepository _putAwayDetailRepository;
         private readonly ChromeContext _context;
 
-        public PutAwayService(IPutAwayRepository putAwayRepository, ChromeContext context)
+        public PutAwayService(IPutAwayRepository putAwayRepository,IPutAwayDetailRepository putAwayDetailRepository, ChromeContext context)
         {
             _putAwayRepository = putAwayRepository ?? throw new ArgumentNullException(nameof(putAwayRepository));
+            _putAwayDetailRepository = putAwayDetailRepository ?? throw new ArgumentNullException(nameof(putAwayDetailRepository));
             _context = context ?? throw new ArgumentNullException(nameof(context));
         }
 
@@ -378,6 +382,60 @@ namespace Chrome.Services.PutAwayService
             {
                 await transaction.RollbackAsync();
                 return new ServiceResponse<bool>(false, $"Lỗi khi cập nhật put away: {ex.Message}");
+            }
+        }
+
+        public async Task<ServiceResponse<PutAwayAndDetailResponseDTO>> GetPutAwayContainsCodeAsync(string orderCode )
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(orderCode))
+                {
+                    return new ServiceResponse<PutAwayAndDetailResponseDTO>(false, "Mã lệnh không được để trống");
+                }
+
+                var putAway = await _putAwayRepository.GetPutAwayContainsCodeAsync(orderCode);
+                if (putAway == null)
+                {
+                    return new ServiceResponse<PutAwayAndDetailResponseDTO>(false, "Put away không tồn tại");
+                }
+
+                var putAwayDetail = _putAwayDetailRepository.GetPutAwayDetailsByPutawayNoAsync(putAway.PutAwayCode);
+                if (putAwayDetail==null)
+                {
+                    return new ServiceResponse<PutAwayAndDetailResponseDTO>(false, "Không tìm thấy chi tiết để hàng");
+                }
+
+                var response = new PutAwayAndDetailResponseDTO
+                {
+                    PutAwayCode = putAway.PutAwayCode,
+                    OrderTypeCode = putAway.OrderTypeCode,
+                    OrderTypeName = putAway.OrderTypeCodeNavigation != null ? putAway.OrderTypeCodeNavigation.OrderTypeName : null,
+                    LocationCode = putAway.LocationCode,
+                    LocationName = putAway.LocationCodeNavigation != null ? putAway.LocationCodeNavigation.LocationName : null,
+                    Responsible = putAway.Responsible,
+                    FullNameResponsible = putAway.ResponsibleNavigation != null ? putAway.ResponsibleNavigation.FullName : null,
+                    StatusId = putAway.StatusId,
+                    StatusName = putAway.Status != null ? putAway.Status.StatusName : null,
+                    PutAwayDate = putAway.PutAwayDate != null ? putAway.PutAwayDate.Value.ToString("dd/MM/yyyy") : null,
+                    PutAwayDescription = putAway.PutAwayDescription,
+                    putAwayDetailResponseDTOs = await putAwayDetail.Select(pd => new PutAwayDetailResponseDTO
+                    {
+                        PutAwayCode = pd.PutAwayCode,
+                        ProductCode = pd.ProductCode,
+                        ProductName = pd.ProductCodeNavigation!.ProductName!,
+                        LotNo = pd.LotNo,
+                        Demand = pd.Demand,
+                        Quantity = pd.Quantity
+                    }).ToListAsync()
+
+                };
+
+                return new ServiceResponse<PutAwayAndDetailResponseDTO>(true, "Lấy chi tiết put away thành công", response);
+            }
+            catch (Exception ex)
+            {
+                return new ServiceResponse<PutAwayAndDetailResponseDTO>(false, $"Lỗi khi lấy chi tiết put away: {ex.Message}");
             }
         }
     }

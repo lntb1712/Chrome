@@ -16,6 +16,6 @@ namespace Chrome.Services.PickListService
         Task<ServiceResponse<bool>> DeletePickList(string pickNo);
         Task<ServiceResponse<bool>> UpdatePickList(PickListRequestDTO pickList);
         Task<ServiceResponse<List<StatusMasterResponseDTO>>> GetListStatusMaster();
-        Task<ServiceResponse<PickListResponseDTO>> GetPickListByStockOutCodeAsync(string stockOutCode);
+        Task<ServiceResponse<PickAndDetailResponseDTO>> GetPickListContainCodeAsync(string orderCode);
     }
 }

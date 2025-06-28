@@ -197,13 +197,13 @@ namespace Chrome.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, $"Lỗi: {ex.Message}");
             }
         }
-        [HttpGet("GetPickListByStockOutCodeAsync")]
-        public async Task<IActionResult> GetPickListByStockOutCodeAsync([FromQuery]string stockOutCode)
+        [HttpGet("GetPickListContainCodeAsync")]
+        public async Task<IActionResult> GetPickListContainCodeAsync([FromQuery]string orderCode)
         {
             try
             {
-                string decodedStockOutCode = Uri.UnescapeDataString(stockOutCode);
-                var response = await _pickListService.GetPickListByStockOutCodeAsync(decodedStockOutCode);
+                string decodedStockOutCode = Uri.UnescapeDataString(orderCode);
+                var response = await _pickListService.GetPickListContainCodeAsync(decodedStockOutCode);
                 if (!response.Success)
                 {
                     return NotFound(new

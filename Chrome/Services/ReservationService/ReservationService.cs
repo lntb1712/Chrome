@@ -1,12 +1,14 @@
 ﻿using Chrome.DTO;
 using Chrome.DTO.OrderDetailBaseDTO;
 using Chrome.DTO.OrderTypeDTO;
+using Chrome.DTO.ReservationDetailDTO;
 using Chrome.DTO.ReservationDTO;
 using Chrome.DTO.StatusMasterDTO;
 using Chrome.DTO.WarehouseMasterDTO;
 using Chrome.Models;
 using Chrome.Repositories.BOMComponentRepository;
 using Chrome.Repositories.InventoryRepository;
+using Chrome.Repositories.ReservationDetailRepository;
 using Chrome.Repositories.ReservationRepository;
 using Chrome.Services.BOMMasterService;
 using Microsoft.EntityFrameworkCore;
@@ -18,15 +20,15 @@ namespace Chrome.Services.ReservationService
     public class ReservationService : IReservationService
     {
         private readonly IReservationRepository _reservationRepository;
+        private readonly IReservationDetailRepository _reservationDetailRepository;
         private readonly IInventoryRepository _inventoryRepository;
-        private readonly IBOMComponentRepository _bOMComponentRepository;
         private readonly ChromeContext _context;
 
-        public ReservationService(IReservationRepository reservationRepository,IBOMComponentRepository bOMComponentRepository, IInventoryRepository inventoryRepository, ChromeContext context)
+        public ReservationService(IReservationRepository reservationRepository,IReservationDetailRepository reservationDetailRepository, IInventoryRepository inventoryRepository, ChromeContext context)
         {
             _reservationRepository = reservationRepository ?? throw new ArgumentNullException(nameof(reservationRepository));
+            _reservationDetailRepository = reservationDetailRepository ?? throw new ArgumentNullException(nameof(reservationDetailRepository));
             _inventoryRepository = inventoryRepository;
-            _bOMComponentRepository = bOMComponentRepository;
             _context = context ?? throw new ArgumentNullException(nameof(context));
         }
 
@@ -134,6 +136,7 @@ namespace Chrome.Services.ReservationService
                 return new ServiceResponse<PagedResponse<ReservationResponseDTO>>(false, $"Lỗi khi tìm kiếm reservation: {ex.Message}");
             }
         }
+  
         public async Task<ServiceResponse<bool>> AddOrUpdateReservation(ReservationRequestDTO reservation, IDbContextTransaction transaction = null!)
         {
             bool isExternalTransaction = transaction != null;
@@ -399,8 +402,6 @@ namespace Chrome.Services.ReservationService
             }
         }
 
-      
-
         public async Task<ServiceResponse<List<OrderTypeResponseDTO>>> GetListOrderType(string prefix)
         {
             try
@@ -462,14 +463,19 @@ namespace Chrome.Services.ReservationService
                 return new ServiceResponse<List<WarehouseMasterResponseDTO>>(false, $"Lỗi khi lấy danh sách WarehousePermission: {ex.Message}");
             }
         }
-        public async Task<ServiceResponse<ReservationResponseDTO>> GetReservationsByStockOutCodeAsync(string stockOutCode)
+        public async Task<ServiceResponse<ReservationAndDetailResponseDTO>> GetReservationsByStockOutCodeAsync(string stockOutCode)
         {
             try
             {
+                
                 var reservation = await _context.Reservations
+                    .Include(x=>x.ReservationDetails)
+                    .Include(x => x.OrderTypeCodeNavigation)
+                    .Include(x => x.WarehouseCodeNavigation)
+                    .Include(x => x.Status)
                     .Where(r => r.OrderTypeCode == "SO" || r.OrderTypeCode!.StartsWith("SO"))
                     .Where(r => r.OrderId == stockOutCode)
-                    .Select(r => new ReservationResponseDTO
+                    .Select(r => new ReservationAndDetailResponseDTO    
                     {
                         ReservationCode = r.ReservationCode,
                         OrderTypeCode = r.OrderTypeCode,
@@ -485,25 +491,45 @@ namespace Chrome.Services.ReservationService
 
                 if (reservation == null)
                 {
-                    return new ServiceResponse<ReservationResponseDTO>(false, "Không tìm thấy reservation theo StockOutCode");
+                    return new ServiceResponse<ReservationAndDetailResponseDTO>(false, "Không tìm thấy reservation theo StockOutCode");
                 }
 
-                return new ServiceResponse<ReservationResponseDTO>(true, "Lấy reservation theo StockOutCode thành công", reservation);
+                var reservationDetail = _reservationDetailRepository.GetAllReservationDetailsAsync(reservation!.ReservationCode);
+
+                if(reservationDetail==null)
+                {
+                    return new ServiceResponse<ReservationAndDetailResponseDTO>(false, "Không tìm thấy chi tiết giữ hàng");
+                }
+
+                reservation.reservationDetailResponseDTOs = await reservationDetail.Select(x => new ReservationDetailResponseDTO
+                {
+                    ReservationCode = x.ReservationCode,
+                    ProductCode = x.ProductCode,
+                    ProductName = x.ProductCodeNavigation!.ProductName,
+                    Lotno = x.Lotno,
+                    LocationCode = x.LocationCode,
+                    LocationName = x.LocationCodeNavigation!.LocationName,
+                    QuantityReserved = x.QuantityReserved
+                }).ToListAsync();
+
+               
+
+                return new ServiceResponse<ReservationAndDetailResponseDTO>(true, "Lấy reservation theo StockOutCode thành công", reservation);
             }
             catch (Exception ex)
             {
-                return new ServiceResponse<ReservationResponseDTO>(false, $"Lỗi khi lấy reservation theo StockOutCode: {ex.Message}");
+                return new ServiceResponse<ReservationAndDetailResponseDTO>(false, $"Lỗi khi lấy reservation theo StockOutCode: {ex.Message}");
             }
         }
 
-        public async Task<ServiceResponse<ReservationResponseDTO>> GetReservationsByMovementCodeAsync(string movementCode)
+        public async Task<ServiceResponse<ReservationAndDetailResponseDTO>> GetReservationsByMovementCodeAsync(string movementCode)
         {
             try
             {
                 var reservation = await _context.Reservations
                     .Where(r => r.OrderTypeCode == "MO" || r.OrderTypeCode!.StartsWith("MO"))
                     .Where(r => r.OrderId == movementCode)
-                    .Select(r => new ReservationResponseDTO
+                    .Select(r => new ReservationAndDetailResponseDTO
                     {
                         ReservationCode = r.ReservationCode,
                         OrderTypeCode = r.OrderTypeCode,
@@ -516,28 +542,46 @@ namespace Chrome.Services.ReservationService
                         StatusName = r.Status!.StatusName
                     })
                     .FirstOrDefaultAsync();
-
                 if (reservation == null)
                 {
-                    return new ServiceResponse<ReservationResponseDTO>(false, "Không tìm thấy reservation theo MovementCode");
+                    return new ServiceResponse<ReservationAndDetailResponseDTO>(false, "Không tìm thấy reservation theo StockOutCode");
+                }
+                var reservationDetail = _reservationDetailRepository.GetAllReservationDetailsAsync(reservation!.ReservationCode);
+
+                if (reservationDetail == null)
+                {
+                    return new ServiceResponse<ReservationAndDetailResponseDTO>(false, "Không tìm thấy chi tiết giữ hàng");
                 }
 
-                return new ServiceResponse<ReservationResponseDTO>(true, "Lấy reservation theo MovementCode thành công", reservation);
+                reservation.reservationDetailResponseDTOs = await reservationDetail.Select(x => new ReservationDetailResponseDTO
+                {
+                    ReservationCode = x.ReservationCode,
+                    ProductCode = x.ProductCode,
+                    ProductName = x.ProductCodeNavigation!.ProductName,
+                    Lotno = x.Lotno,
+                    LocationCode = x.LocationCode,
+                    LocationName = x.LocationCodeNavigation!.LocationName,
+                    QuantityReserved = x.QuantityReserved
+                }).ToListAsync();
+
+                
+
+                return new ServiceResponse<ReservationAndDetailResponseDTO>(true, "Lấy reservation theo MovementCode thành công", reservation);
             }
             catch (Exception ex)
             {
-                return new ServiceResponse<ReservationResponseDTO>(false, $"Lỗi khi lấy reservation theo MovementCode: {ex.Message}");
+                return new ServiceResponse<ReservationAndDetailResponseDTO>(false, $"Lỗi khi lấy reservation theo MovementCode: {ex.Message}");
             }
         }
 
-        public async Task<ServiceResponse<ReservationResponseDTO>> GetReservationsByTransferCodeAsync(string transferCode)
+        public async Task<ServiceResponse<ReservationAndDetailResponseDTO>> GetReservationsByTransferCodeAsync(string transferCode)
         {
             try
             {
                 var reservation = await _context.Reservations
                     .Where(r => r.OrderTypeCode == "TF" || r.OrderTypeCode!.StartsWith("TF"))
                     .Where(r => r.OrderId == transferCode)
-                    .Select(r => new ReservationResponseDTO
+                    .Select(r => new ReservationAndDetailResponseDTO
                     {
                         ReservationCode = r.ReservationCode,
                         OrderTypeCode = r.OrderTypeCode,
@@ -550,28 +594,47 @@ namespace Chrome.Services.ReservationService
                         StatusName = r.Status!.StatusName
                     })
                     .FirstOrDefaultAsync();
-
                 if (reservation == null)
                 {
-                    return new ServiceResponse<ReservationResponseDTO>(false, "Không tìm thấy reservation theo TransferCode");
+                    return new ServiceResponse<ReservationAndDetailResponseDTO>(false, "Không tìm thấy reservation theo mã chuyển kho");
                 }
 
-                return new ServiceResponse<ReservationResponseDTO>(true, "Lấy reservation theo TransferCode thành công", reservation);
+                var reservationDetail = _reservationDetailRepository.GetAllReservationDetailsAsync(reservation!.ReservationCode);
+
+                if (reservationDetail == null)
+                {
+                    return new ServiceResponse<ReservationAndDetailResponseDTO>(false, "Không tìm thấy chi tiết giữ hàng");
+                }
+
+                reservation.reservationDetailResponseDTOs = await reservationDetail.Select(x => new ReservationDetailResponseDTO
+                {
+                    ReservationCode = x.ReservationCode,
+                    ProductCode = x.ProductCode,
+                    ProductName = x.ProductCodeNavigation!.ProductName,
+                    Lotno = x.Lotno,
+                    LocationCode = x.LocationCode,
+                    LocationName = x.LocationCodeNavigation!.LocationName,
+                    QuantityReserved = x.QuantityReserved
+                }).ToListAsync();
+
+               
+
+                return new ServiceResponse<ReservationAndDetailResponseDTO>(true, "Lấy reservation theo TransferCode thành công", reservation);
             }
             catch (Exception ex)
             {
-                return new ServiceResponse<ReservationResponseDTO>(false, $"Lỗi khi lấy reservation theo TransferCode: {ex.Message}");
+                return new ServiceResponse<ReservationAndDetailResponseDTO>(false, $"Lỗi khi lấy reservation theo TransferCode: {ex.Message}");
             }
         }
 
-        public async Task<ServiceResponse<ReservationResponseDTO>> GetReservationsByManufacturingCodeAsync(string manufacturingCode)
+        public async Task<ServiceResponse<ReservationAndDetailResponseDTO>> GetReservationsByManufacturingCodeAsync(string manufacturingCode)
         {
             try
             {
                 var reservation = await _context.Reservations
                     .Where(r => r.OrderTypeCode == "MO" || r.OrderTypeCode!.StartsWith("MO"))
                     .Where(r => r.OrderId == manufacturingCode)
-                    .Select(r => new ReservationResponseDTO
+                    .Select(r => new ReservationAndDetailResponseDTO
                     {
                         ReservationCode = r.ReservationCode,
                         OrderTypeCode = r.OrderTypeCode,
@@ -584,17 +647,36 @@ namespace Chrome.Services.ReservationService
                         StatusName = r.Status!.StatusName
                     })
                     .FirstOrDefaultAsync();
-
                 if (reservation == null)
                 {
-                    return new ServiceResponse<ReservationResponseDTO>(false, "Không tìm thấy reservation theo lệnh sản xuất");
+                    return new ServiceResponse<ReservationAndDetailResponseDTO>(false, "Không tìm thấy reservation theo lệnh sản xuất");
                 }
 
-                return new ServiceResponse<ReservationResponseDTO>(true, "Lấy reservation theo lệnh sản xuất thành công", reservation);
+                var reservationDetail = _reservationDetailRepository.GetAllReservationDetailsAsync(reservation!.ReservationCode);
+
+                if (reservationDetail == null)
+                {
+                    return new ServiceResponse<ReservationAndDetailResponseDTO>(false, "Không tìm thấy chi tiết giữ hàng");
+                }
+
+                reservation.reservationDetailResponseDTOs = await reservationDetail.Select(x => new ReservationDetailResponseDTO
+                {
+                    ReservationCode = x.ReservationCode,
+                    ProductCode = x.ProductCode,
+                    ProductName = x.ProductCodeNavigation!.ProductName,
+                    Lotno = x.Lotno,
+                    LocationCode = x.LocationCode,
+                    LocationName = x.LocationCodeNavigation!.LocationName,
+                    QuantityReserved = x.QuantityReserved
+                }).ToListAsync();
+
+               
+
+                return new ServiceResponse<ReservationAndDetailResponseDTO>(true, "Lấy reservation theo lệnh sản xuất thành công", reservation);
             }
             catch (Exception ex)
             {
-                return new ServiceResponse<ReservationResponseDTO>(false, $"Lỗi khi lấy reservation theo lệnh sản xuất: {ex.Message}");
+                return new ServiceResponse<ReservationAndDetailResponseDTO>(false, $"Lỗi khi lấy reservation theo lệnh sản xuất: {ex.Message}");
             }
         }
     }

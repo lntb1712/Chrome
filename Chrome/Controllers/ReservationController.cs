@@ -182,7 +182,7 @@ namespace Chrome.Controllers
         {
             try
             {
-                var response = await _reservationService.GetReservationsByStockOutCodeAsync(transferCode);
+                var response = await _reservationService.GetReservationsByTransferCodeAsync(transferCode);
                 if (!response.Success)
                 {
                     return NotFound(new
@@ -203,7 +203,7 @@ namespace Chrome.Controllers
         {
             try
             {
-                var response = await _reservationService.GetReservationsByStockOutCodeAsync(movementCode);
+                var response = await _reservationService.GetReservationsByMovementCodeAsync(movementCode);
                 if (!response.Success)
                 {
                     return NotFound(new

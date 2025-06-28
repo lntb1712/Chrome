@@ -1,7 +1,9 @@
 ﻿using Chrome.DTO;
+using Chrome.DTO.PickListDetailDTO;
 using Chrome.DTO.PickListDTO;
 using Chrome.DTO.StatusMasterDTO;
 using Chrome.Models;
+using Chrome.Repositories.PickListDetailRepository;
 using Chrome.Repositories.PickListRepository;
 using Chrome.Services.ReservationService;
 using Microsoft.EntityFrameworkCore;
@@ -15,11 +17,13 @@ namespace Chrome.Services.PickListService
     public class PickListService : IPickListService
     {
         private readonly IPickListRepository _pickListRepository;
+        private readonly IPickListDetailRepository _pickListDetailRepository;
         private readonly ChromeContext _context;
 
-        public PickListService(IPickListRepository pickListRepository, ChromeContext context)
+        public PickListService(IPickListRepository pickListRepository,IPickListDetailRepository pickListDetailRepository, ChromeContext context)
         {
             _pickListRepository = pickListRepository ?? throw new ArgumentNullException(nameof(pickListRepository));
+            _pickListDetailRepository = pickListDetailRepository ?? throw new ArgumentNullException(nameof(pickListDetailRepository));
             _context = context ?? throw new ArgumentNullException(nameof(context));
         }
 
@@ -218,7 +222,7 @@ namespace Chrome.Services.PickListService
                     {
                         PickNo = pickList.PickNo,
                         ProductCode = reservationDetail.ProductCode!,
-                        LotNo = reservationDetail.Lotno,
+                        LotNo = reservationDetail.Lotno!,
                         Demand = (float)reservationDetail.QuantityReserved!, // Lấy QuantityReserved làm Demand
                         Quantity = 0, // Mặc định Quantity là 0 theo bảng
                         LocationCode = reservationDetail.LocationCode
@@ -353,22 +357,27 @@ namespace Chrome.Services.PickListService
             }
         }
 
-        public async Task<ServiceResponse<PickListResponseDTO>> GetPickListByStockOutCodeAsync(string stockOutCode)
+        public async Task<ServiceResponse<PickAndDetailResponseDTO>> GetPickListContainCodeAsync(string orderCode)
         {
             try
             {
-                if (string.IsNullOrEmpty(stockOutCode))
+                if (string.IsNullOrEmpty(orderCode))
                 {
-                    return new ServiceResponse<PickListResponseDTO>(false, "Mã phiếu xuất không được để trống");
+                    return new ServiceResponse<PickAndDetailResponseDTO>(false, "Mã lệnh không được để trống");
                 }
 
-                var pickList = await _pickListRepository.GetPickListContainCode(stockOutCode);
+                var pickList = await _pickListRepository.GetPickListContainCode(orderCode);
                 if (pickList == null)
                 {
-                    return new ServiceResponse<PickListResponseDTO>(false, "Pick list không tồn tại");
+                    return new ServiceResponse<PickAndDetailResponseDTO>(false, "Pick list không tồn tại");
+                }
+                var pickListDetail =  _pickListDetailRepository.GetPickListDetailsByPickNoAsync(pickList.PickNo);
+                if (pickListDetail == null)
+                {
+                    return new ServiceResponse<PickAndDetailResponseDTO>(false, "Chi tiết phiếu lấy không tồn tại");
                 }
 
-                var response = new PickListResponseDTO
+                var response = new PickAndDetailResponseDTO
                 {
                     PickNo = pickList.PickNo,
                     ReservationCode = pickList.ReservationCode,
@@ -376,14 +385,25 @@ namespace Chrome.Services.PickListService
                     WarehouseName = pickList.WarehouseCodeNavigation!.WarehouseName,
                     PickDate = pickList.PickDate!.Value.ToString("dd/MM/yyyy"),
                     StatusId = pickList.StatusId,
-                    StatusName = pickList.Status!.StatusName
+                    StatusName = pickList.Status!.StatusName,
+                    pickListDetailResponseDTOs = await pickListDetail.Select(pd => new PickListDetailResponseDTO
+                    {
+                        ProductCode = pd.ProductCode,
+                        ProductName = pd.ProductCodeNavigation!.ProductName,
+                        LotNo = pd.LotNo,
+                        Demand = pd.Demand,
+                        Quantity = pd.Quantity,
+                        LocationCode = pd.LocationCode,
+                        LocationName = pd.LocationCodeNavigation!.LocationName
+                    }).ToListAsync()
+
                 };
 
-                return new ServiceResponse<PickListResponseDTO>(true, "Lấy  pick list thành công", response);
+                return new ServiceResponse<PickAndDetailResponseDTO>(true, "Lấy  pick list thành công", response);
             }
             catch (Exception ex)
             {
-                return new ServiceResponse<PickListResponseDTO>(false, $"Lỗi khi lấy  pick list: {ex.Message}");
+                return new ServiceResponse<PickAndDetailResponseDTO>(false, $"Lỗi khi lấy  pick list: {ex.Message}");
             }
         }
     }
