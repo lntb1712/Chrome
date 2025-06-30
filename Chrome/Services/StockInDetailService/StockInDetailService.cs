@@ -149,7 +149,7 @@ namespace Chrome.Services.StockInDetailService
         }
 
 
-        public async Task<ServiceResponse<bool>> ConfirmStockIn(string stockInCode)
+        public async Task<ServiceResponse<bool>> CreatePutAway(string stockInCode)
         {
             if (string.IsNullOrEmpty(stockInCode))
             {
@@ -248,24 +248,26 @@ namespace Chrome.Services.StockInDetailService
 
                         // Create Putaway
                         var putAwayCode = $"PUT_{stockIn.StockInCode}";
-                        var putAwayRequest = new PutAwayRequestDTO
+                        var putAway = await _putAwayService.GetPutAwayByCodeAsync(putAwayCode);
+                        if (putAway.Data == null)
                         {
-                            PutAwayCode = putAwayCode,
-                            OrderTypeCode = stockIn.OrderTypeCode,
-                            LocationCode = locationCode,
-                            Responsible = stockIn.Responsible,
-                            StatusId = 1,
-                            PutAwayDate = DateTime.Now.ToString("dd/MM/yyyy"),
-                            PutAwayDescription = $"Cất hàng cho lệnh chuyển kho {stockIn.StockInCode}"
-                        };
-                        var putAwayResponse = await _putAwayService.AddPutAway(putAwayRequest, transaction);
-                        if (!putAwayResponse.Success)
-                        {
-                            await transaction.RollbackAsync();
-                            return new ServiceResponse<bool>(false, $"Lỗi khi tạo putaway: {putAwayResponse.Message}");
+                            var putAwayRequest = new PutAwayRequestDTO
+                            {
+                                PutAwayCode = putAwayCode,
+                                OrderTypeCode = stockIn.OrderTypeCode,
+                                LocationCode = locationCode,
+                                Responsible = stockIn.Responsible,
+                                StatusId = 1,
+                                PutAwayDate = DateTime.Now.ToString("dd/MM/yyyy"),
+                                PutAwayDescription = $"Cất hàng cho lệnh nhập kho{stockIn.StockInCode}"
+                            };
+                            var putAwayResponse = await _putAwayService.AddPutAway(putAwayRequest, transaction);
+                            if (!putAwayResponse.Success)
+                            {
+                                await transaction.RollbackAsync();
+                                return new ServiceResponse<bool>(false, $"Lỗi khi tạo putaway: {putAwayResponse.Message}");
+                            }
                         }
-
-
 
                         var putAwayDetail = new PutAwayDetail
                         {
@@ -275,19 +277,28 @@ namespace Chrome.Services.StockInDetailService
                             Demand = stockInDetail.Demand,
                             Quantity = 0,
                         };
-                        await _context.PutAwayDetails.AddAsync(putAwayDetail);
+                        var existingPutAway = await _context.PutAwayDetails.FirstOrDefaultAsync(x => x.PutAwayCode == putAwayDetail.PutAwayCode && x.ProductCode == putAwayDetail.ProductCode);
 
 
-
+                        if (existingPutAway == null)
+                        {
+                            await _context.PutAwayDetails.AddAsync(putAwayDetail);
+                        }
+                        else
+                        {
+                            existingPutAway.Demand = stockInDetail.Demand;
+                            existingPutAway.LotNo = stockInDetail.LotNo;
+                        }
+                       
                     }
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
-                    return new ServiceResponse<bool>(true, "Thêm chi tiết chuyển kho, reservation, picklist và putaway thành công");
+                    return new ServiceResponse<bool>(true, "Thêm chi tiết nhập kho,putaway thành công");
                 }
                 catch (DbUpdateException dbEx)
                 {
                     await transaction.RollbackAsync();
-                    return new ServiceResponse<bool>(false, $"Lỗi database khi thêm chi tiết chuyển kho: {dbEx.Message}");
+                    return new ServiceResponse<bool>(false, $"Lỗi database khi thêm chi tiết nhập kho: {dbEx.Message}");
                 }
                 catch (Exception ex)
                 {
@@ -550,6 +561,104 @@ namespace Chrome.Services.StockInDetailService
                     await transaction.RollbackAsync();
                     return new ServiceResponse<bool>(false, $"Lỗi khi cập nhật số lượng sản phẩm nhập kho: {ex.Message}");
                 }
+            }
+        }
+
+        public async Task<ServiceResponse<bool>> ConfirmStockIn(string stockInCode)
+        {
+            // Validate input
+            if (string.IsNullOrEmpty(stockInCode))
+            {
+                return new ServiceResponse<bool>(false, "Mã nhập kho không được để trống");
+            }
+
+            // Decode stockInCode
+            string decodedStockInCode = Uri.UnescapeDataString(stockInCode);
+
+            // Get stock in details
+            var stockInDetails = await _stockInDetailRepository
+                .GetAllStockInDetails(decodedStockInCode)
+                .ToListAsync();
+
+            if (!stockInDetails.Any())
+            {
+                return new ServiceResponse<bool>(false, "Không có sản phẩm để cập nhật tồn kho");
+            }
+
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                // Update stock quantities
+                foreach (var detail in stockInDetails)
+                {
+                    var existingDetail = await _stockInDetailRepository
+                        .GetStockInDetailWithCode(decodedStockInCode, detail.ProductCode);
+
+                    if (existingDetail == null)
+                    {
+                        await transaction.RollbackAsync();
+                        return new ServiceResponse<bool>(false, "Không tìm thấy sản phẩm để nhập kho");
+                    }
+
+                    existingDetail.Demand = detail.Quantity;
+                    var putAwayDetail = await _context.PutAwayDetails.FirstOrDefaultAsync(x => x.PutAwayCode.Contains(stockInCode) && x.ProductCode == existingDetail.ProductCode);
+                    if(putAwayDetail==null)
+                    {
+                        return new ServiceResponse<bool>(false, "Không tìm thấy chi tiết cất hàng");
+                    }    
+                    putAwayDetail.Demand = putAwayDetail.Quantity;
+                    _context.PutAwayDetails.Update(putAwayDetail);
+                    await _stockInDetailRepository.UpdateAsync(existingDetail, saveChanges: false);
+                }
+
+                // Update stock in header status
+                var allDetails = await _context.StockInDetails
+                    .Where(x => x.StockInCode == decodedStockInCode)
+                    .ToListAsync();
+
+                bool isCompleted = allDetails.All(x => x.Quantity >= x.Demand);
+
+                var stockInHeader = await _context.StockIns
+                    .FirstOrDefaultAsync(x => x.StockInCode == decodedStockInCode);
+
+                if (stockInHeader != null)
+                {
+                    stockInHeader.StatusId = isCompleted ? 3 : 2; // 3: Completed, 2: Processing
+                    _context.StockIns.Update(stockInHeader);
+                }
+
+                // Save changes and commit
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                return new ServiceResponse<bool>(true,
+                    isCompleted
+                        ? "Cập nhật số lượng và hoàn tất phiếu nhập kho thành công"
+                        : "Cập nhật số lượng và đặt trạng thái đang xử lý thành công");
+            }
+            catch (DbUpdateException dbEx)
+            {
+                await transaction.RollbackAsync();
+                string errorMessage = dbEx.InnerException?.Message.ToLower() ?? "";
+
+                if (errorMessage.Contains("unique") ||
+                    errorMessage.Contains("duplicate") ||
+                    errorMessage.Contains("primary key"))
+                {
+                    return new ServiceResponse<bool>(false, "Dữ liệu đã tồn tại");
+                }
+
+                if (errorMessage.Contains("foreign key"))
+                {
+                    return new ServiceResponse<bool>(false, "Dữ liệu tham chiếu không đúng");
+                }
+
+                return new ServiceResponse<bool>(false, $"Lỗi database: {dbEx.Message}");
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                return new ServiceResponse<bool>(false, $"Lỗi khi cập nhật số lượng sản phẩm nhập kho: {ex.Message}");
             }
         }
     }

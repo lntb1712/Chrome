@@ -42,6 +42,28 @@ namespace Chrome.Controllers
             }
         }
 
+        [HttpGet("GetAllStockInWithResponsible")]
+        public async Task<IActionResult> GetAllStockInWithResponsible([FromQuery] string[] warehouseCodes,[FromQuery]string responsible, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+        {
+            try
+            {
+                var response = await _stockInService.GetAllStockInWithResponsible(warehouseCodes,responsible, page, pageSize);
+                if (!response.Success)
+                {
+                    return NotFound(new
+                    {
+                        Success = false,
+                        Message = response.Message
+                    });
+                }
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, $"Lỗi: {ex.Message}");
+            }
+        }
+
         [HttpGet("GetAllStockInsWithStatus")]
         public async Task<IActionResult> GetAllStockInsWithStatus([FromQuery] string[] warehouseCodes, [FromQuery] int statusId, [FromQuery] int page=1, [FromQuery] int pageSize=10)
         {
@@ -70,6 +92,27 @@ namespace Chrome.Controllers
             try
             {
                 var response = await _stockInService.SearchStockInAsync(warehouseCodes, textToSearch, page, pageSize);
+                if (!response.Success)
+                {
+                    return NotFound(new
+                    {
+                        Success = false,
+                        Message = response.Message
+                    });
+                }
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, $"Lỗi: {ex.Message}");
+            }
+        }
+        [HttpGet("SearchStockInWithResponsible")]
+        public async Task<IActionResult> SearchStockInWithResponsible([FromQuery] string[] warehouseCodes,[FromQuery]string responsible, [FromQuery] string textToSearch, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+        {
+            try
+            {
+                var response = await _stockInService.SearchStockInWithResponsible(warehouseCodes,responsible, textToSearch, page, pageSize);
                 if (!response.Success)
                 {
                     return NotFound(new

@@ -1,5 +1,6 @@
 ﻿using Chrome.DTO;
 using Chrome.DTO.AccountManagementDTO;
+using Chrome.DTO.GroupFunctionDTO;
 using Chrome.Models;
 using Chrome.Repositories.AccountRepository;
 using Microsoft.EntityFrameworkCore;
@@ -101,22 +102,28 @@ namespace Chrome.Services.AccountManagementService
             return new ServiceResponse<PagedResponse<AccountManagementResponseDTO>>(true, "Lấy danh sách người dùng thành công", pagedResponse);
         }
 
-        public async Task<ServiceResponse<AccountManagementResponseDTO>> GetUserInformation(string userName)
+        public async Task<ServiceResponse<UserInformationResponseDTO>> GetUserInformation(string userName)
         {
             var account = await _accountRepository.GetAccountWithUserName(userName);
             if (account == null)
             {
-                return new ServiceResponse<AccountManagementResponseDTO>(false, "Không tìm thấy tài khoản hợp lệ");
+                return new ServiceResponse<UserInformationResponseDTO>(false, "Không tìm thấy tài khoản hợp lệ");
             }
-            var accountResponse = new AccountManagementResponseDTO
+            var accountResponse = new UserInformationResponseDTO
             {
                 UserName = account.UserName,
                 Password = account.Password!,
                 FullName = account.FullName!,
                 GroupID = account.GroupId!,
                 GroupName = account.Group!.GroupName!,
+                ApplicableLocations = account.Group.GroupFunctions.Select(x => new ApplicableLocationResponseDTO
+                {
+                    ApplicableLocation = x.ApplicableLocation,
+                    IsSelected = true
+                }).DistinctBy(x=>x.ApplicableLocation).ToList()
+
             };
-            return new ServiceResponse<AccountManagementResponseDTO>(true, "Lấy thông tin người dùng thành công", accountResponse);
+            return new ServiceResponse<UserInformationResponseDTO>(true, "Lấy thông tin người dùng thành công", accountResponse);
         }
 
         public async Task<ServiceResponse<bool>> AddAccountManagement(AccountManagementRequestDTO accountRequest)

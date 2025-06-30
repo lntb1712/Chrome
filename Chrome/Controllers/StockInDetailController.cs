@@ -180,6 +180,28 @@ namespace Chrome.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, $"Lỗi: {ex.Message}");
             }
         }
+        [HttpPost("CreatePutAway")]
+        public async Task<IActionResult> CreatePutAway([FromRoute] string stockInCode)
+        {
+            try
+            {
+                string decodedStockInCode = Uri.UnescapeDataString(stockInCode);
+                var response = await _stockInDetailService.CreatePutAway(decodedStockInCode);
+                if (!response.Success)
+                {
+                    return Conflict(new
+                    {
+                        Success = false,
+                        Message = response.Message,
+                    });
+                }
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, $"Lỗi: {ex.Message}");
+            }
+        }
 
         [HttpPost("CheckAndUpdateBackOrderStatus")]
         public async Task<IActionResult> CheckAndUpdateBackOrderStatus([FromRoute]string stockInCode)

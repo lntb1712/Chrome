@@ -27,6 +27,20 @@ namespace Chrome.Repositories.StockInRepository
             return lstStockIn;
         }
 
+        public IQueryable<StockIn> GetAllStockInWithResponsible(string[] warehouseCodes, string responsible)
+        {
+            var lstStockIn = _context.StockIns
+                                          .Include(x => x.OrderTypeCodeNavigation)
+                                          .Include(x => x.WarehouseCodeNavigation)
+                                          .Include(x => x.SupplierCodeNavigation)
+                                          .Include(x => x.ResponsibleNavigation)
+                                          .Include(x => x.StockInDetails)
+                                          .Include(x => x.Status)
+                                          .Where(x => warehouseCodes.Contains(x.WarehouseCode) && x.Responsible == responsible);
+
+            return lstStockIn;
+        }
+
         public  IQueryable<StockIn> GetAllStockInWithStatus(string[] warehouseCodes, int statusId)
         {
             var lstStockIn = _context.StockIns
@@ -75,6 +89,28 @@ namespace Chrome.Repositories.StockInRepository
                                      || x.SupplierCodeNavigation!.SupplierName!.Contains(textToSearch)
                                      || x.Responsible!.Contains(textToSearch)
                                      || x.ResponsibleNavigation!.FullName!.Contains(textToSearch)));
+            return lstStockIn;
+        }
+
+        public IQueryable<StockIn> SearchStockInWithResponsible(string[] warehouseCodes, string responsible, string textToSearch)
+        {
+            var lstStockIn = _context.StockIns
+                                      .Include(x => x.OrderTypeCodeNavigation)
+                                      .Include(x => x.WarehouseCodeNavigation)
+                                      .Include(x => x.SupplierCodeNavigation)
+                                      .Include(x => x.ResponsibleNavigation)
+                                      .Include(x => x.StockInDetails)
+                                      .Include(x => x.Status)
+                                      .Where(x => warehouseCodes.Contains(x.WarehouseCode) && x.Responsible == responsible
+                                      && (x.StockInCode.Contains(textToSearch)
+                                      || x.WarehouseCode!.Contains(textToSearch)
+                                      || x.WarehouseCodeNavigation!.WarehouseName!.Contains(textToSearch)
+                                      || x.OrderTypeCode!.Contains(textToSearch)
+                                      || x.OrderTypeCodeNavigation!.OrderTypeName!.Contains(textToSearch)
+                                      || x.SupplierCode!.Contains(textToSearch)
+                                      || x.SupplierCodeNavigation!.SupplierName!.Contains(textToSearch)
+                                      || x.Responsible!.Contains(textToSearch)
+                                      || x.ResponsibleNavigation!.FullName!.Contains(textToSearch)));
             return lstStockIn;
         }
     }

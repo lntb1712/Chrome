@@ -197,6 +197,20 @@ namespace Chrome.Services.PutAwayDetailService
                         transferDetail!.QuantityOutBounded = putAwayDetail.Quantity;
                         _context.TransferDetails.Update(transferDetail);
                     }
+                    if (putAway.OrderTypeCode!.StartsWith("SI"))
+                    { 
+
+                        var stockInDetail = await _context.StockInDetails
+                                                          .FirstOrDefaultAsync(x => x.StockInCode ==orderCode  && x.ProductCode == putAwayDetail.ProductCode);
+
+                        if (stockInDetail == null)
+                        {
+                            return new ServiceResponse<bool>(false, $"Không tìm thấy chi tiết Lệnh nhập kho với mã {orderCode}");
+                        }
+
+                        stockInDetail!.Quantity = putAwayDetail.Quantity;
+                        _context.StockInDetails.Update(stockInDetail);
+                    }
 
 
 
@@ -214,6 +228,23 @@ namespace Chrome.Services.PutAwayDetailService
                     }
                     putAway.StatusId = 2;
                     _context.PutAways.Update(putAway);
+
+                    string putAwayCode = existingDetail.PutAwayCode;
+
+                    string orderCode = putAwayCode.StartsWith("PUT_") ? putAwayCode.Substring(4) : putAwayCode;
+                    if (putAway.OrderTypeCode!.StartsWith("SI"))
+                    {
+                        // Tìm movement dựa trên movementCode
+                        var stockIn = await _context.StockIns
+                            .FirstOrDefaultAsync(m => m.StockInCode == orderCode);
+
+                        if (stockIn == null)
+                        {
+                            return new ServiceResponse<bool>(false, $"Không tìm thấy lệnh nhập kho với mã {orderCode}.");
+                        }
+                        stockIn.StatusId = 2;
+                        _context.StockIns.Update(stockIn);
+                    }
 
                 }
                 //Cập nhật trạng thái hoàn thành cho putaway
@@ -244,8 +275,21 @@ namespace Chrome.Services.PutAwayDetailService
                         }
                         movement.StatusId = 3;
                         _context.Movements.Update(movement);
+                    }else
+                    if (putAway.OrderTypeCode!.StartsWith("SI"))
+                    {
+                        // Tìm movement dựa trên movementCode
+                        var stockIn = await _context.StockIns
+                            .FirstOrDefaultAsync(m => m.StockInCode == orderCode);
+
+                        if (stockIn == null)
+                        {
+                            return new ServiceResponse<bool>(false, $"Không tìm thấy lệnh nhập kho với mã {orderCode}.");
+                        }
+                        stockIn.StatusId = 3;
+                        _context.StockIns.Update(stockIn);
                     }
-                    else if(putAway.OrderTypeCode!.StartsWith("TF"))
+                    else if (putAway.OrderTypeCode!.StartsWith("TF"))
                     {
                         int lastUnderscoreIndex = orderCode.LastIndexOf('_');
                         string transferCode = lastUnderscoreIndex != -1 ? orderCode.Substring(0, lastUnderscoreIndex) : orderCode;

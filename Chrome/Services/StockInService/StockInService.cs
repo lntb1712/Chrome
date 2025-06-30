@@ -211,6 +211,39 @@ namespace Chrome.Services.StockInService
             return new ServiceResponse<PagedResponse<StockInResponseDTO>>(true, "Lấy danh sách lệnh nhập kho thành công", pagedResponse);
         }
 
+        public async Task<ServiceResponse<PagedResponse<StockInResponseDTO>>> GetAllStockInWithResponsible(string[] warehouseCodes, string responsible, int page, int pageSize)
+        {
+            if (warehouseCodes.Length == 0 || page < 1 || pageSize < 1)
+            {
+                return new ServiceResponse<PagedResponse<StockInResponseDTO>>(false, "Dữu liệu nhận vào không hợp lệ");
+            }
+            var query = _stockInRepository.GetAllStockInWithResponsible(warehouseCodes,responsible);
+            var result = await query
+                         .Select(x => new StockInResponseDTO
+                         {
+                             StockInCode = x.StockInCode,
+                             OrderTypeCode = x.OrderTypeCode,
+                             OrderTypeName = x.OrderTypeCodeNavigation!.OrderTypeName,
+                             WarehouseCode = x.WarehouseCode,
+                             WarehouseName = x.WarehouseCodeNavigation!.WarehouseName,
+                             SupplierCode = x.SupplierCode,
+                             SupplierName = x.SupplierCodeNavigation!.SupplierName,
+                             Responsible = x.Responsible,
+                             FullNameResponsible = x.ResponsibleNavigation!.FullName,
+                             StatusId = x.StatusId,
+                             StatusName = x.Status!.StatusName,
+                             OrderDeadline = x.OrderDeadline!.Value.ToString("dd/MM/yyyy"),
+                             StockInDescription = x.StockInDescription,
+                         })
+                         .OrderBy(x => x.StockInCode)
+                         .Skip((page - 1) * pageSize)
+                         .Take(pageSize)
+                         .ToListAsync();
+            var totalItems = await query.CountAsync();
+            var pagedResponse = new PagedResponse<StockInResponseDTO>(result, page, pageSize, totalItems);
+            return new ServiceResponse<PagedResponse<StockInResponseDTO>>(true, "Lấy danh sách lệnh nhập kho thành công", pagedResponse);
+        }
+
         public async Task<ServiceResponse<List<OrderTypeResponseDTO>>> GetListOrderType(string prefix)
         {
             if(string.IsNullOrEmpty(prefix))
@@ -291,6 +324,39 @@ namespace Chrome.Services.StockInService
                 return new ServiceResponse<PagedResponse<StockInResponseDTO>>(false, "Dữu liệu nhận vào không hợp lệ");
             }
             var query = _stockInRepository.SearchStockInAsync(warehouseCodes,textToSearch);
+            var result = await query
+                         .Select(x => new StockInResponseDTO
+                         {
+                             StockInCode = x.StockInCode,
+                             OrderTypeCode = x.OrderTypeCode,
+                             OrderTypeName = x.OrderTypeCodeNavigation!.OrderTypeName,
+                             WarehouseCode = x.WarehouseCode,
+                             WarehouseName = x.WarehouseCodeNavigation!.WarehouseName,
+                             SupplierCode = x.SupplierCode,
+                             SupplierName = x.SupplierCodeNavigation!.SupplierName,
+                             Responsible = x.Responsible,
+                             FullNameResponsible = x.ResponsibleNavigation!.FullName,
+                             StatusId = x.StatusId,
+                             StatusName = x.Status!.StatusName,
+                             OrderDeadline = x.OrderDeadline!.Value.ToString("dd/MM/yyyy"),
+                             StockInDescription = x.StockInDescription,
+                         })
+                         .OrderBy(x => x.StockInCode)
+                         .Skip((page - 1) * pageSize)
+                         .Take(pageSize)
+                         .ToListAsync();
+            var totalItems = await query.CountAsync();
+            var pagedResponse = new PagedResponse<StockInResponseDTO>(result, page, pageSize, totalItems);
+            return new ServiceResponse<PagedResponse<StockInResponseDTO>>(true, "Lấy danh sách lệnh nhập kho thành công", pagedResponse);
+        }
+
+        public async Task<ServiceResponse<PagedResponse<StockInResponseDTO>>> SearchStockInWithResponsible(string[] warehouseCodes,string responsible, string textToSearch, int page, int pageSize)
+        {
+            if (warehouseCodes.Length == 0 || page < 1 || pageSize < 1)
+            {
+                return new ServiceResponse<PagedResponse<StockInResponseDTO>>(false, "Dữu liệu nhận vào không hợp lệ");
+            }
+            var query = _stockInRepository.SearchStockInWithResponsible(warehouseCodes,responsible, textToSearch);
             var result = await query
                          .Select(x => new StockInResponseDTO
                          {
