@@ -45,6 +45,8 @@ namespace Chrome.Services.PickListService
                         ReservationCode = p.ReservationCode,
                         WarehouseCode = p.WarehouseCode,
                         WarehouseName = p.WarehouseCodeNavigation!.WarehouseName,
+                        Responsible = p.Responsible,
+                        FullNameResponsible = p.ResponsibleNavigation!.FullName,
                         PickDate = p.PickDate!.Value.ToString("dd/MM/yyyy"),
                         StatusId = p.StatusId,
                         StatusName = p.Status!.StatusName
@@ -78,6 +80,8 @@ namespace Chrome.Services.PickListService
                         ReservationCode = p.ReservationCode,
                         WarehouseCode = p.WarehouseCode,
                         WarehouseName = p.WarehouseCodeNavigation!.WarehouseName,
+                        Responsible = p.Responsible,
+                        FullNameResponsible = p.ResponsibleNavigation!.FullName,
                         PickDate = p.PickDate!.Value.ToString("dd/MM/yyyy"),
                         StatusId = p.StatusId,
                         StatusName = p.Status!.StatusName
@@ -147,6 +151,8 @@ namespace Chrome.Services.PickListService
                     ReservationCode = pickList.ReservationCode,
                     WarehouseCode = pickList.WarehouseCode,
                     WarehouseName = pickList.WarehouseCodeNavigation!.WarehouseName,
+                    Responsible= pickList.Responsible,
+                    FullNameResponsible = pickList.ResponsibleNavigation!.FullName,
                     PickDate = pickList.PickDate!.Value.ToString("dd/MM/yyyy"),
                     StatusId = pickList.StatusId,
                     StatusName = pickList.Status!.StatusName
@@ -199,6 +205,7 @@ namespace Chrome.Services.PickListService
                     PickNo = pickList.PickNo,
                     ReservationCode = pickList.ReservationCode,
                     WarehouseCode = pickList.WarehouseCode,
+                    Responsible = pickList.Responsible,
                     PickDate = DateTime.Now,
                     StatusId = 1 // Giả định trạng thái mặc định là 1 (Chưa hoàn thành)
                 };
@@ -383,6 +390,8 @@ namespace Chrome.Services.PickListService
                     ReservationCode = pickList.ReservationCode,
                     WarehouseCode = pickList.WarehouseCode,
                     WarehouseName = pickList.WarehouseCodeNavigation!.WarehouseName,
+                    Responsible = pickList.Responsible,
+                    FullNameResponsible = pickList.ResponsibleNavigation!.FullName,
                     PickDate = pickList.PickDate!.Value.ToString("dd/MM/yyyy"),
                     StatusId = pickList.StatusId,
                     StatusName = pickList.Status!.StatusName,
@@ -422,8 +431,45 @@ namespace Chrome.Services.PickListService
 
                 var query =  _pickListRepository.GetAllPickListAsync(warehouseCodes);
                                                      
-                var totalItems = await query.CountAsync();
+                var totalItems = await query.Where(x => x.Responsible == responsible).CountAsync();
+                var pickLists = await query.Where(x => x.Responsible == responsible)
+                    .Select(p => new PickListResponseDTO
+                    {
+                        PickNo = p.PickNo,
+                        ReservationCode = p.ReservationCode,
+                        WarehouseCode = p.WarehouseCode,
+                        WarehouseName = p.WarehouseCodeNavigation!.WarehouseName,
+                        Responsible = p.Responsible,
+                        FullNameResponsible = p.ResponsibleNavigation!.FullName,
+                        PickDate = p.PickDate!.Value.ToString("dd/MM/yyyy"),
+                        StatusId = p.StatusId,
+                        StatusName = p.Status!.StatusName
+                    })
+                    .OrderBy(x => x.StatusId)
+                    .ToListAsync();
+
+                var pagedResponse = new PagedResponse<PickListResponseDTO>(pickLists, page, pageSize, totalItems);
+                return new ServiceResponse<PagedResponse<PickListResponseDTO>>(true, "Lấy danh sách pick list thành công", pagedResponse);
+            }
+            catch (Exception ex)
+            {
+                return new ServiceResponse<PagedResponse<PickListResponseDTO>>(false, $"Lỗi khi lấy danh sách pick list: {ex.Message}");
+            }
+        }
+
+        public async Task<ServiceResponse<PagedResponse<PickListResponseDTO>>> SearchPickListsAsyncWithResponsible(string[] warehouseCodes, string responsible, string textToSearch, int page = 1, int pageSize = 10)
+        {
+            try
+            {
+                if (page < 1) page = 1;
+                if (pageSize < 1) pageSize = 10;
+
+                var query = _pickListRepository.SearchPickListAsync(warehouseCodes, textToSearch);
+                var totalItems = await query.Where(x => x.Responsible == responsible).CountAsync();
                 var pickLists = await query
+                    .Where(x=>x.Responsible==responsible)
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
                     .Select(p => new PickListResponseDTO
                     {
                         PickNo = p.PickNo,
@@ -434,14 +480,15 @@ namespace Chrome.Services.PickListService
                         StatusId = p.StatusId,
                         StatusName = p.Status!.StatusName
                     })
+                    .OrderBy(x=>x.StatusId)
                     .ToListAsync();
 
                 var pagedResponse = new PagedResponse<PickListResponseDTO>(pickLists, page, pageSize, totalItems);
-                return new ServiceResponse<PagedResponse<PickListResponseDTO>>(true, "Lấy danh sách pick list thành công", pagedResponse);
+                return new ServiceResponse<PagedResponse<PickListResponseDTO>>(true, "Tìm kiếm pick list thành công", pagedResponse);
             }
             catch (Exception ex)
             {
-                return new ServiceResponse<PagedResponse<PickListResponseDTO>>(false, $"Lỗi khi lấy danh sách pick list: {ex.Message}");
+                return new ServiceResponse<PagedResponse<PickListResponseDTO>>(false, $"Lỗi khi tìm kiếm pick list: {ex.Message}");
             }
         }
     }

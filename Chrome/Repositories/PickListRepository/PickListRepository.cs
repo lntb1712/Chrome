@@ -22,6 +22,7 @@ namespace Chrome.Repositories.PickListRepository
                                       .Include(x => x.ReservationCodeNavigation)
                                       .Include(x => x.WarehouseCodeNavigation)
                                       .Include(x => x.Status)
+                                      .Include(x=>x.ResponsibleNavigation)
                                       .Where(x => warehouseCodes.Contains(x.WarehouseCode));
 
             return lstPickList;
@@ -33,6 +34,7 @@ namespace Chrome.Repositories.PickListRepository
                                       .Include(x => x.ReservationCodeNavigation)
                                       .Include(x => x.WarehouseCodeNavigation)
                                       .Include(x => x.Status)
+                                      .Include(x => x.ResponsibleNavigation)
                                       .Where(x => warehouseCodes.Contains(x.WarehouseCode) && x.StatusId == statusId);
 
             return lstPickList;
@@ -50,6 +52,7 @@ namespace Chrome.Repositories.PickListRepository
                                          .Include(x => x.WarehouseCodeNavigation)
                                          .Include(x=>x.PickListDetails)
                                          .Include(x => x.Status)
+                                         .Include(x => x.ResponsibleNavigation)
                                          .FirstOrDefaultAsync(x => x.PickNo.Contains(orderCode));
 
             return pickList!;
@@ -66,6 +69,7 @@ namespace Chrome.Repositories.PickListRepository
                                          .Include(x => x.ReservationCodeNavigation)
                                          .Include(x => x.WarehouseCodeNavigation)
                                          .Include(x => x.Status)
+                                         .Include(x => x.ResponsibleNavigation)
                                          .FirstOrDefaultAsync(x => x.PickNo == pickNo);
 
             return pickList!;
@@ -77,6 +81,7 @@ namespace Chrome.Repositories.PickListRepository
                                       .Include(x => x.ReservationCodeNavigation)
                                       .Include(x => x.WarehouseCodeNavigation)
                                       .Include(x => x.Status)
+                                      .Include(x => x.ResponsibleNavigation)
                                       .Where(x => warehouseCodes.Contains(x.WarehouseCode)
                                           && (x.PickNo.Contains(textToSearch)
                                               || x.WarehouseCode!.Contains(textToSearch)

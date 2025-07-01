@@ -240,6 +240,7 @@ namespace Chrome.Services.TransferDetailService
                     PickNo = pickListCode,
                     ReservationCode = reservationCode,
                     WarehouseCode = fromWarehouseCode,
+                    Responsible = transfer.FromResponsible,
                     PickDate = DateTime.Now.ToString("dd/MM/yyyy"),
                     StatusId = 1
                 };

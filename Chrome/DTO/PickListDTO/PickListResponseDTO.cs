@@ -8,6 +8,8 @@
 
         public string? WarehouseCode { get; set; }
         public string? WarehouseName { get; set; }
+        public string? Responsible { get; set; }
+        public string? FullNameResponsible { get; set; }
 
         public string? PickDate { get; set; }
 

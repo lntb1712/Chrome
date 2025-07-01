@@ -12,6 +12,7 @@ namespace Chrome.Services.PickListService
         Task<ServiceResponse<PagedResponse<PickListResponseDTO>>> GetAllPickListsAsyncWithResponsible(string[] warehouseCodes,string responsible, int page = 1, int pageSize = 10);
         Task<ServiceResponse<PagedResponse<PickListResponseDTO>>> GetAllPickListsWithStatusAsync(string[] warehouseCodes, int statusId, int page = 1, int pageSize = 10);
         Task<ServiceResponse<PagedResponse<PickListResponseDTO>>> SearchPickListsAsync(string[] warehouseCodes, string textToSearch, int page = 1, int pageSize = 10);
+        Task<ServiceResponse<PagedResponse<PickListResponseDTO>>> SearchPickListsAsyncWithResponsible(string[] warehouseCodes,string responsible, string textToSearch, int page = 1, int pageSize = 10);
         Task<ServiceResponse<PickListResponseDTO>> GetPickListByCodeAsync(string pickNo);
         Task<ServiceResponse<bool>> AddPickList(PickListRequestDTO pickList, IDbContextTransaction transaction = null!);
         Task<ServiceResponse<bool>> DeletePickList(string pickNo);

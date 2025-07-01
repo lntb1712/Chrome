@@ -10,9 +10,9 @@ namespace Chrome.DTO.PickListDTO
 
         public string? WarehouseCode { get; set; }
         public string? WarehouseName { get; set; }
-
+        public string? Responsible { get; set; }
+        public string? FullNameResponsible { get; set; }
         public string? PickDate { get; set; }
-
         public int? StatusId { get; set; }
         public string? StatusName { get; set; }
         public List<PickListDetailResponseDTO> pickListDetailResponseDTOs { get; set; } = new List<PickListDetailResponseDTO>();

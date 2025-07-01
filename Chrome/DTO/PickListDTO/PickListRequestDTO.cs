@@ -7,6 +7,7 @@
         public string? ReservationCode { get; set; }
 
         public string? WarehouseCode { get; set; }
+        public string? Responsible { get; set; }
 
         public string? PickDate { get; set; }
 

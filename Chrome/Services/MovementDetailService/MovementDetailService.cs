@@ -231,6 +231,7 @@ namespace Chrome.Services.MovementDetailService
                     PickNo = pickListCode,
                     ReservationCode = reservationCode,
                     WarehouseCode = warehouseCode,
+                    Responsible = movement.Responsible,
                     PickDate = DateTime.Now.ToString("dd/MM/yyyy"),
                     StatusId = 1
                 };
