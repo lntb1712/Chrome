@@ -20,14 +20,12 @@ namespace Chrome.Repositories.PickListDetailRepository
         {
             var query = _context.PickListDetails
                                 .Include(pd => pd.PickNoNavigation)
-                                .ThenInclude(p => p.WarehouseCodeNavigation)
-                                .Include(pd => pd.ProductCodeNavigation)
-                                .Include(pd => pd.LocationCodeNavigation)
+                                .ThenInclude(p => p!.WarehouseCodeNavigation)
                                 .AsQueryable();
 
             if (warehouseCodes != null && warehouseCodes.Length > 0)
             {
-                query = query.Where(pd => warehouseCodes.Contains(pd.PickNoNavigation.WarehouseCode));
+                query = query.Where(pd => warehouseCodes.Contains(pd.PickNoNavigation!.WarehouseCode));
             }
 
             return query;
@@ -42,9 +40,7 @@ namespace Chrome.Repositories.PickListDetailRepository
 
             var query = _context.PickListDetails
                                 .Include(pd => pd.PickNoNavigation)
-                                .ThenInclude(p => p.WarehouseCodeNavigation)
-                                .Include(pd => pd.ProductCodeNavigation)
-                                .Include(pd => pd.LocationCodeNavigation)
+                                .ThenInclude(p => p!.WarehouseCodeNavigation)
                                 .Where(pd => pd.PickNo == pickNo);
 
             return query;
@@ -54,25 +50,22 @@ namespace Chrome.Repositories.PickListDetailRepository
         {
             var query = _context.PickListDetails
                                 .Include(pd => pd.PickNoNavigation)
-                                .ThenInclude(p => p.WarehouseCodeNavigation)
-                                .Include(pd => pd.ProductCodeNavigation)
-                                .Include(pd => pd.LocationCodeNavigation)
+                                .ThenInclude(p => p!.WarehouseCodeNavigation)
                                 .AsQueryable();
 
             if (warehouseCodes != null && warehouseCodes.Length > 0)
             {
-                query = query.Where(pd => warehouseCodes.Contains(pd.PickNoNavigation.WarehouseCode));
+                query = query.Where(pd => warehouseCodes.Contains(pd.PickNoNavigation!.WarehouseCode));
             }
 
             if (!string.IsNullOrEmpty(textToSearch))
             {
                 query = query.Where(pd => pd.PickNo==pickNo &&(pd.PickNo.Contains(textToSearch)
-                                      || pd.ProductCode.Contains(textToSearch)
+                                      || pd.ProductCode!.Contains(textToSearch)
                                       || pd.LotNo!.Contains(textToSearch)
                                       || pd.LocationCode!.Contains(textToSearch)
-                                      || pd.PickNoNavigation.PickNo.Contains(textToSearch)
-                                      || pd.ProductCodeNavigation.ProductName!.Contains(textToSearch)
-                                      || pd.LocationCodeNavigation!.LocationName!.Contains(textToSearch)));
+                                      || pd.PickNoNavigation!.PickNo.Contains(textToSearch)
+                                     ));
             }
 
             return query;

@@ -421,9 +421,12 @@ namespace Chrome.Services.PutAwayService
                     PutAwayDescription = putAway.PutAwayDescription,
                     putAwayDetailResponseDTOs = await putAwayDetail.Select(pd => new PutAwayDetailResponseDTO
                     {
-                        PutAwayCode = pd.PutAwayCode,
-                        ProductCode = pd.ProductCode,
-                        ProductName = pd.ProductCodeNavigation!.ProductName!,
+                        PutAwayCode = pd.PutAwayCode!,
+                        ProductCode = pd.ProductCode!,
+                        ProductName = _context.ProductMasters
+                            .Where(x => x.ProductCode == pd.ProductCode)
+                            .Select(x => x.ProductName)
+                            .FirstOrDefault()!,
                         LotNo = pd.LotNo,
                         Demand = pd.Demand,
                         Quantity = pd.Quantity
@@ -436,6 +439,84 @@ namespace Chrome.Services.PutAwayService
             catch (Exception ex)
             {
                 return new ServiceResponse<PutAwayAndDetailResponseDTO>(false, $"Lỗi khi lấy chi tiết put away: {ex.Message}");
+            }
+        }
+
+        public async Task<ServiceResponse<PagedResponse<PutAwayResponseDTO>>> GetAllPutAwaysAsyncWithResponsible(string[] warehouseCodes, string responsible, int page = 1, int pageSize = 10)
+        {
+            try
+            {
+                if (page < 1) page = 1;
+                if (pageSize < 1) pageSize = 10;
+
+                var query = _putAwayRepository.GetAllPutAwayAsync(warehouseCodes);
+                var totalItems = await query.Where(x => x.Responsible == responsible).CountAsync();
+                var putAways = await query
+                    .Where(x=>x.Responsible==responsible)
+                    .OrderBy(x=>x.StatusId)
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
+                    .Select(p => new PutAwayResponseDTO
+                    {
+                        PutAwayCode = p.PutAwayCode,
+                        OrderTypeCode = p.OrderTypeCode,
+                        OrderTypeName = p.OrderTypeCodeNavigation != null ? p.OrderTypeCodeNavigation.OrderTypeName : null,
+                        LocationCode = p.LocationCode,
+                        LocationName = p.LocationCodeNavigation != null ? p.LocationCodeNavigation.LocationName : null,
+                        Responsible = p.Responsible,
+                        FullNameResponsible = p.ResponsibleNavigation != null ? p.ResponsibleNavigation.FullName : null,
+                        StatusId = p.StatusId,
+                        StatusName = p.Status != null ? p.Status.StatusName : null,
+                        PutAwayDate = p.PutAwayDate != null ? p.PutAwayDate.Value.ToString("dd/MM/yyyy") : null,
+                        PutAwayDescription = p.PutAwayDescription
+                    })
+                    .ToListAsync();
+
+                var pagedResponse = new PagedResponse<PutAwayResponseDTO>(putAways, page, pageSize, totalItems);
+                return new ServiceResponse<PagedResponse<PutAwayResponseDTO>>(true, "Lấy danh sách put away thành công", pagedResponse);
+            }
+            catch (Exception ex)
+            {
+                return new ServiceResponse<PagedResponse<PutAwayResponseDTO>>(false, $"Lỗi khi lấy danh sách put away: {ex.Message}");
+            }
+        }
+
+        public async Task<ServiceResponse<PagedResponse<PutAwayResponseDTO>>> SearchPutAwaysAsyncWithResponsible(string[] warehouseCodes, string responsible, string textToSearch, int page = 1, int pageSize = 10)
+        {
+            try
+            {
+                if (page < 1) page = 1;
+                if (pageSize < 1) pageSize = 10;
+
+                var query = _putAwayRepository.SearchPutAwayAsync(warehouseCodes, textToSearch);
+                var totalItems = await query.Where(x => x.Responsible == responsible).CountAsync();
+                var putAways = await query
+                    .Where(x=>x.Responsible==responsible)
+                    .OrderBy(x => x.StatusId)
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
+                    .Select(p => new PutAwayResponseDTO
+                    {
+                        PutAwayCode = p.PutAwayCode,
+                        OrderTypeCode = p.OrderTypeCode,
+                        OrderTypeName = p.OrderTypeCodeNavigation != null ? p.OrderTypeCodeNavigation.OrderTypeName : null,
+                        LocationCode = p.LocationCode,
+                        LocationName = p.LocationCodeNavigation != null ? p.LocationCodeNavigation.LocationName : null,
+                        Responsible = p.Responsible,
+                        FullNameResponsible = p.ResponsibleNavigation != null ? p.ResponsibleNavigation.FullName : null,
+                        StatusId = p.StatusId,
+                        StatusName = p.Status != null ? p.Status.StatusName : null,
+                        PutAwayDate = p.PutAwayDate != null ? p.PutAwayDate.Value.ToString("dd/MM/yyyy") : null,
+                        PutAwayDescription = p.PutAwayDescription
+                    })
+                    .ToListAsync();
+
+                var pagedResponse = new PagedResponse<PutAwayResponseDTO>(putAways, page, pageSize, totalItems);
+                return new ServiceResponse<PagedResponse<PutAwayResponseDTO>>(true, "Tìm kiếm put away thành công", pagedResponse);
+            }
+            catch (Exception ex)
+            {
+                return new ServiceResponse<PagedResponse<PutAwayResponseDTO>>(false, $"Lỗi khi tìm kiếm put away: {ex.Message}");
             }
         }
     }

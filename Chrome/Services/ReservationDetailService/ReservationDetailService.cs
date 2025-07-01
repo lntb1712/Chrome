@@ -32,10 +32,16 @@ namespace Chrome.Services.ReservationDetailService
                     {
                         ReservationCode = x.ReservationCode,
                         ProductCode = x.ProductCode,
-                        ProductName = x.ProductCodeNavigation!.ProductName,
-                        Lotno = x.Lotno,
+                        ProductName = _context.ProductMasters
+                            .Where(pd => pd.ProductCode == x.ProductCode)
+                            .Select(x => x.ProductName)
+                            .FirstOrDefault()!,
+                        Lotno = x.LotNo,
                         LocationCode = x.LocationCode,
-                        LocationName = x.LocationCodeNavigation!.LocationName,
+                        LocationName = _context.LocationMasters
+                            .Where(pd => pd.LocationCode == x.LocationCode)
+                            .Select(x => x.LocationName)
+                            .FirstOrDefault()!,
                         QuantityReserved = x.QuantityReserved
                     })
                     .Skip((page - 1) * pageSize)
@@ -63,10 +69,16 @@ namespace Chrome.Services.ReservationDetailService
                 {
                     ReservationCode = detail.ReservationCode,
                     ProductCode = detail.ProductCode,
-                    ProductName = detail.ProductCodeNavigation!.ProductName,
-                    Lotno = detail.Lotno,
+                    ProductName = _context.ProductMasters
+                            .Where(pd => pd.ProductCode == detail.ProductCode)
+                            .Select(x => x.ProductName)
+                            .FirstOrDefault()!,
+                    Lotno = detail.LotNo,
                     LocationCode = detail.LocationCode,
-                    LocationName = detail.LocationCodeNavigation!.LocationName,
+                    LocationName = _context.LocationMasters
+                            .Where(pd => pd.LocationCode == detail.LocationCode)
+                            .Select(x => x.LocationName)
+                            .FirstOrDefault()!,
                     QuantityReserved = detail.QuantityReserved
                 };
                 return new ServiceResponse<ReservationDetailResponseDTO>(true, "Lấy chi tiết reservation thành công", response);
@@ -91,10 +103,16 @@ namespace Chrome.Services.ReservationDetailService
                     {
                         ReservationCode = x.ReservationCode,
                         ProductCode = x.ProductCode,
-                        ProductName = x.ProductCodeNavigation!.ProductName,
-                        Lotno = x.Lotno,
+                        ProductName = _context.ProductMasters
+                            .Where(pd => pd.ProductCode == x.ProductCode)
+                            .Select(x => x.ProductName)
+                            .FirstOrDefault()!,
+                        Lotno = x.LotNo,
                         LocationCode = x.LocationCode,
-                        LocationName = x.LocationCodeNavigation!.LocationName,
+                        LocationName = _context.LocationMasters
+                            .Where(pd => pd.LocationCode == x.LocationCode)
+                            .Select(x => x.LocationName)
+                            .FirstOrDefault()!,
                         QuantityReserved = x.QuantityReserved
                     })
                     .Skip((page - 1) * pageSize)

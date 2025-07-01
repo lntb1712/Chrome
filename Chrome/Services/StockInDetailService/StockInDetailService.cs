@@ -80,7 +80,7 @@ namespace Chrome.Services.StockInDetailService
                 StockInCode = stockInDetail.StockInCode,
                 ProductCode = stockInDetail.ProductCode,
                 Demand = stockInDetail.Demand,
-                LotNo = "RCV-" + stockIn.OrderDeadline!.Value.ToString("yyyyMMdd") + "-" + stockIn.SupplierCode + "-" + stockInDetail.ProductCode,
+                LotNo = "RCV-" + stockInDetail.StockInCode + "-" + stockInDetail.ProductCode,
                 Quantity = 0,
             };
             using (var transaction = await _context.Database.BeginTransactionAsync())
@@ -146,166 +146,6 @@ namespace Chrome.Services.StockInDetailService
                 return new ServiceResponse<bool>(true, "Phiếu nhập kho đã được hoàn tất");
             }
             return new ServiceResponse<bool>(true, "Chưa đủ số lượng để hoàn tất phiếu nhập kho");
-        }
-
-
-        public async Task<ServiceResponse<bool>> CreatePutAway(string stockInCode)
-        {
-            if (string.IsNullOrEmpty(stockInCode))
-            {
-                return new ServiceResponse<bool>(false, "Mã nhập kho không được để trống");
-            }
-
-            // Giải mã stockInCode
-            string decodedStockInCode = Uri.UnescapeDataString(stockInCode);
-
-            var lstStockInDetails = await _stockInDetailRepository.GetAllStockInDetails(decodedStockInCode).ToListAsync();
-            if (lstStockInDetails.Count == 0)
-            {
-                return new ServiceResponse<bool>(false, "Không có sản phẩm để cập nhật tồn kho");
-            }
-            var stockIn = await _stockInRepository.GetStockInWithCode(stockInCode);
-            using (var transaction = await _context.Database.BeginTransactionAsync())
-            {
-                try
-                {
-                    foreach (var stockInDetail in lstStockInDetails)
-                    {
-                        // Preload PutAwayRules
-                        var putAwayRulesPaged = await _putAwayRulesRepository.GetAllPutAwayRules(1, int.MaxValue);
-                        // Handle multiple rules for the same ProductCode by selecting all applicable rules
-                        var putAwayRulesList = putAwayRulesPaged
-                            .Where(x => x.ProductCode == stockInDetail.ProductCode && x.LocationCodeNavigation!.WarehouseCode == stockIn.WarehouseCode)
-                            .ToList();
-
-                        // Load ProductMasters and LocationMasters
-                        var productMasters = (await _productMasterRepository.GetAllProduct(1, int.MaxValue))
-                            .GroupBy(p => p.ProductCode!)
-                            .ToDictionary(g => g.Key, g => g.First()); // Take the first ProductMaster if duplicates exist
-                        var locationMasters = await _context.LocationMasters
-                            .Where(l => l.WarehouseCode == stockIn.WarehouseCode)
-                            .ToDictionaryAsync(l => l.LocationCode!, l => l);
-                        var storageProducts = await _context.StorageProducts
-                            .ToDictionaryAsync(sp => sp.StorageProductId!, sp => sp);
-                        string locationCode;
-                        if (putAwayRulesList.Any())
-                        {
-                            var checkQuantityForLocation = _inventoryRepository.GetInventoryByProductCodeAsync(stockInDetail.ProductCode, stockIn.WarehouseCode!);
-                            var inventoryQuantities = await checkQuantityForLocation
-                                .GroupBy(i => i.LocationCode)
-                                .Select(g => new { LocationCode = g.Key, TotalQuantity = g.Sum(i => i.Quantity ?? 0) })
-                                .ToListAsync();
-
-                            var rule = putAwayRulesList
-                                .OrderBy(r => inventoryQuantities.FirstOrDefault(q => q.LocationCode == r.LocationCode)?.TotalQuantity ?? int.MaxValue)
-                                .First();
-                            locationCode = rule.LocationCode!;
-                        }
-                        else
-                        {
-                            locationCode = $"{stockIn.WarehouseCode}/VIRTUAL_LOC/{stockInDetail.ProductCode}";
-                            // StorageProduct
-                            var storageProductId = $"SP_{stockInDetail.ProductCode}";
-                            if (!storageProducts.TryGetValue(storageProductId, out var storageProduct))
-                            {
-                                // Get BaseQuantity from ProductMaster to calculate MaxQuantity
-                                var baseQuantity = productMasters.ContainsKey(stockInDetail.ProductCode) ? (productMasters[stockInDetail.ProductCode].BaseQuantity ?? 1) : 1;
-                                var maxQuantityInBaseUOM = stockInDetail.Demand * baseQuantity;
-
-                                storageProduct = new StorageProduct
-                                {
-                                    StorageProductId = storageProductId,
-                                    StorageProductName = $"Định mức ảo cho {stockInDetail.ProductCode}",
-                                    ProductCode = stockInDetail.ProductCode,
-                                    MaxQuantity = maxQuantityInBaseUOM // Store in base UOM
-                                };
-                                _context.StorageProducts.Add(storageProduct);
-                                storageProducts.Add(storageProductId, storageProduct);
-                            }
-                            else
-                            {
-                                // Update MaxQuantity
-                                var baseQuantity = productMasters.ContainsKey(stockInDetail.ProductCode) ? (productMasters[stockInDetail.ProductCode].BaseQuantity ?? 1) : 1;
-                                storageProduct.MaxQuantity += stockInDetail.Demand * baseQuantity;
-                                _context.StorageProducts.Update(storageProduct);
-                            }
-
-                            // Virtual Location
-                            if (!locationMasters.ContainsKey(locationCode))
-                            {
-                                var newLocation = new LocationMaster
-                                {
-                                    LocationCode = locationCode,
-                                    LocationName = $"Vùng ảo cho {stockInDetail.ProductCode}",
-                                    WarehouseCode = stockIn.WarehouseCode,
-                                    StorageProductId = storageProductId
-                                };
-                                _context.LocationMasters.Add(newLocation);
-                                locationMasters.Add(locationCode, newLocation);
-                                await _context.SaveChangesAsync(); // lưu location
-                            }
-                        }
-
-                        // Create Putaway
-                        var putAwayCode = $"PUT_{stockIn.StockInCode}";
-                        var putAway = await _putAwayService.GetPutAwayByCodeAsync(putAwayCode);
-                        if (putAway.Data == null)
-                        {
-                            var putAwayRequest = new PutAwayRequestDTO
-                            {
-                                PutAwayCode = putAwayCode,
-                                OrderTypeCode = stockIn.OrderTypeCode,
-                                LocationCode = locationCode,
-                                Responsible = stockIn.Responsible,
-                                StatusId = 1,
-                                PutAwayDate = DateTime.Now.ToString("dd/MM/yyyy"),
-                                PutAwayDescription = $"Cất hàng cho lệnh nhập kho{stockIn.StockInCode}"
-                            };
-                            var putAwayResponse = await _putAwayService.AddPutAway(putAwayRequest, transaction);
-                            if (!putAwayResponse.Success)
-                            {
-                                await transaction.RollbackAsync();
-                                return new ServiceResponse<bool>(false, $"Lỗi khi tạo putaway: {putAwayResponse.Message}");
-                            }
-                        }
-
-                        var putAwayDetail = new PutAwayDetail
-                        {
-                            PutAwayCode = putAwayCode,
-                            ProductCode = stockInDetail.ProductCode,
-                            LotNo = stockInDetail.LotNo,
-                            Demand = stockInDetail.Demand,
-                            Quantity = 0,
-                        };
-                        var existingPutAway = await _context.PutAwayDetails.FirstOrDefaultAsync(x => x.PutAwayCode == putAwayDetail.PutAwayCode && x.ProductCode == putAwayDetail.ProductCode);
-
-
-                        if (existingPutAway == null)
-                        {
-                            await _context.PutAwayDetails.AddAsync(putAwayDetail);
-                        }
-                        else
-                        {
-                            existingPutAway.Demand = stockInDetail.Demand;
-                            existingPutAway.LotNo = stockInDetail.LotNo;
-                        }
-                       
-                    }
-                    await _context.SaveChangesAsync();
-                    await transaction.CommitAsync();
-                    return new ServiceResponse<bool>(true, "Thêm chi tiết nhập kho,putaway thành công");
-                }
-                catch (DbUpdateException dbEx)
-                {
-                    await transaction.RollbackAsync();
-                    return new ServiceResponse<bool>(false, $"Lỗi database khi thêm chi tiết nhập kho: {dbEx.Message}");
-                }
-                catch (Exception ex)
-                {
-                    await transaction.RollbackAsync();
-                    return new ServiceResponse<bool>(false, $"Lỗi khi thêm chi tiết chuyển kho: {ex.Message}");
-                }
-            }
         }
 
         public async Task<ServiceResponse<bool>> CreateBackOrder(string stockInCode, string backOrderDescription)
@@ -509,9 +349,138 @@ namespace Chrome.Services.StockInDetailService
                 try
                 {
                     // Cập nhật số lượng
-                    existingStockInDetail.Quantity = stockInDetail.Quantity;
+                    existingStockInDetail.Quantity += stockInDetail.Quantity;
                     await _stockInDetailRepository.UpdateAsync(existingStockInDetail, saveChanges: false);
 
+                    //Create PutAway When change quantity
+                    if (existingStockInDetail.Quantity > 0 && existingStockInDetail.Quantity <= existingStockInDetail.Demand)
+                    {
+                        var stockIn = await _stockInRepository.GetStockInWithCode(existingStockInDetail.StockInCode);
+                        var stockInDetailResponse = await _stockInDetailRepository.GetStockInDetailWithCode(stockIn.StockInCode, stockInDetail.ProductCode);
+
+                        // Preload PutAwayRules
+                        var putAwayRulesPaged = await _putAwayRulesRepository.GetAllPutAwayRules(1, int.MaxValue);
+
+                        // Handle multiple rules for the same ProductCode by selecting all applicable rules
+                        var putAwayRulesList = putAwayRulesPaged
+                            .Where(x => x.ProductCode == stockInDetail.ProductCode && x.LocationCodeNavigation!.WarehouseCode == stockIn.WarehouseCode)
+                            .ToList();
+
+                        // Load ProductMasters and LocationMasters
+                        var productMasters = (await _productMasterRepository.GetAllProduct(1, int.MaxValue))
+                            .GroupBy(p => p.ProductCode!)
+                            .ToDictionary(g => g.Key, g => g.First()); // Take the first ProductMaster if duplicates exist
+                        var locationMasters = await _context.LocationMasters
+                            .Where(l => l.WarehouseCode == stockIn.WarehouseCode)
+                            .ToDictionaryAsync(l => l.LocationCode!, l => l);
+                        var storageProducts = await _context.StorageProducts
+                            .ToDictionaryAsync(sp => sp.StorageProductId!, sp => sp);
+                        string locationCode;
+                        if (putAwayRulesList.Any())
+                        {
+                            var checkQuantityForLocation = _inventoryRepository.GetInventoryByProductCodeAsync(stockInDetail.ProductCode, stockIn.WarehouseCode!);
+                            var inventoryQuantities = await checkQuantityForLocation
+                                .GroupBy(i => i.LocationCode)
+                                .Select(g => new { LocationCode = g.Key, TotalQuantity = g.Sum(i => i.Quantity ?? 0) })
+                                .ToListAsync();
+
+                            var rule = putAwayRulesList
+                                .OrderBy(r => inventoryQuantities.FirstOrDefault(q => q.LocationCode == r.LocationCode)?.TotalQuantity ?? int.MaxValue)
+                                .First();
+                            locationCode = rule.LocationCode!;
+                        }
+                        else
+                        {
+                            locationCode = $"{stockIn.WarehouseCode}/VIRTUAL_LOC/{stockInDetail.ProductCode}";
+                            // StorageProduct
+                            var storageProductId = $"SP_{stockInDetail.ProductCode}";
+                            if (!storageProducts.TryGetValue(storageProductId, out var storageProduct))
+                            {
+                                // Get BaseQuantity from ProductMaster to calculate MaxQuantity
+                                var baseQuantity = productMasters.ContainsKey(stockInDetail.ProductCode) ? (productMasters[stockInDetail.ProductCode].BaseQuantity ?? 1) : 1;
+                                var maxQuantityInBaseUOM = stockInDetail.Demand * baseQuantity;
+
+                                storageProduct = new StorageProduct
+                                {
+                                    StorageProductId = storageProductId,
+                                    StorageProductName = $"Định mức ảo cho {stockInDetail.ProductCode}",
+                                    ProductCode = stockInDetail.ProductCode,
+                                    MaxQuantity = maxQuantityInBaseUOM // Store in base UOM
+                                };
+                                _context.StorageProducts.Add(storageProduct);
+                                storageProducts.Add(storageProductId, storageProduct);
+                            }
+                            else
+                            {
+                                // Update MaxQuantity
+                                var baseQuantity = productMasters.ContainsKey(stockInDetail.ProductCode) ? (productMasters[stockInDetail.ProductCode].BaseQuantity ?? 1) : 1;
+                                storageProduct.MaxQuantity += stockInDetail.Demand * baseQuantity;
+                                _context.StorageProducts.Update(storageProduct);
+                            }
+
+                            // Virtual Location
+                            if (!locationMasters.ContainsKey(locationCode))
+                            {
+                                var newLocation = new LocationMaster
+                                {
+                                    LocationCode = locationCode,
+                                    LocationName = $"Vùng ảo cho {stockInDetail.ProductCode}",
+                                    WarehouseCode = stockIn.WarehouseCode,
+                                    StorageProductId = storageProductId
+                                };
+                                _context.LocationMasters.Add(newLocation);
+                                locationMasters.Add(locationCode, newLocation);
+                                await _context.SaveChangesAsync(); // lưu location
+                            }
+                        }
+
+                        // Create Putaway
+                        var putAwayCode = $"PUT_{stockIn.StockInCode}";
+                        var putAway = await _putAwayService.GetPutAwayByCodeAsync(putAwayCode);
+                        if (putAway.Data == null)
+                        {
+                            var putAwayRequest = new PutAwayRequestDTO
+                            {
+                                PutAwayCode = putAwayCode,
+                                OrderTypeCode = stockIn.OrderTypeCode,
+                                LocationCode = locationCode,
+                                Responsible = stockIn.Responsible,
+                                StatusId = 1,
+                                PutAwayDate = DateTime.Now.ToString("dd/MM/yyyy"),
+                                PutAwayDescription = $"Cất hàng cho lệnh nhập kho{stockIn.StockInCode}"
+                            };
+                            var putAwayResponse = await _putAwayService.AddPutAway(putAwayRequest, transaction);
+                            if (!putAwayResponse.Success)
+                            {
+                                await transaction.RollbackAsync();
+                                return new ServiceResponse<bool>(false, $"Lỗi khi tạo putaway: {putAwayResponse.Message}");
+                            }
+                        }
+
+                        var putAwayDetail = new PutAwayDetail
+                        {
+                            PutAwayCode = putAwayCode,
+                            ProductCode = stockInDetail.ProductCode,
+                            LotNo = stockInDetailResponse.LotNo,
+                            Demand = existingStockInDetail.Quantity,
+                            Quantity = 0,
+                        };
+                        var existingPutAway = await _context.PutAwayDetails.FirstOrDefaultAsync(x => x.PutAwayCode == putAwayDetail.PutAwayCode && x.ProductCode == putAwayDetail.ProductCode);
+
+
+                        if (existingPutAway == null)
+                        {
+                            await _context.PutAwayDetails.AddAsync(putAwayDetail);
+                        }
+                        else
+                        {
+                            existingPutAway.Demand = existingStockInDetail.Quantity;
+                            existingPutAway.LotNo = stockInDetailResponse.LotNo;
+                        }
+                        await _context.SaveChangesAsync();
+                    }
+
+                
                     // Kiểm tra trạng thái hoàn tất của phiếu nhập kho
                     var allStockInDetails = await _context.StockInDetails
                         .Where(x => x.StockInCode == decodedStockInCode)

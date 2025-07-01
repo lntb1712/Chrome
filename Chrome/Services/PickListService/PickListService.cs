@@ -222,7 +222,7 @@ namespace Chrome.Services.PickListService
                     {
                         PickNo = pickList.PickNo,
                         ProductCode = reservationDetail.ProductCode!,
-                        LotNo = reservationDetail.Lotno!,
+                        LotNo = reservationDetail.LotNo!,
                         Demand = (float)reservationDetail.QuantityReserved!, // Lấy QuantityReserved làm Demand
                         Quantity = 0, // Mặc định Quantity là 0 theo bảng
                         LocationCode = reservationDetail.LocationCode
@@ -388,13 +388,19 @@ namespace Chrome.Services.PickListService
                     StatusName = pickList.Status!.StatusName,
                     pickListDetailResponseDTOs = await pickListDetail.Select(pd => new PickListDetailResponseDTO
                     {
-                        ProductCode = pd.ProductCode,
-                        ProductName = pd.ProductCodeNavigation!.ProductName,
+                        ProductCode = pd.ProductCode!,
+                        ProductName = _context.ProductMasters
+                            .Where(x => x.ProductCode == pd.ProductCode)
+                            .Select(x => x.ProductName)
+                            .FirstOrDefault(), // Fix: Extract ProductName as string
                         LotNo = pd.LotNo,
                         Demand = pd.Demand,
                         Quantity = pd.Quantity,
                         LocationCode = pd.LocationCode,
-                        LocationName = pd.LocationCodeNavigation!.LocationName
+                        LocationName = _context.LocationMasters
+                                               .Where(x => x.LocationCode == pd.LocationCode)
+                                               .Select(x => x.LocationName)
+                                               .FirstOrDefault()
                     }).ToListAsync()
 
                 };
@@ -404,6 +410,38 @@ namespace Chrome.Services.PickListService
             catch (Exception ex)
             {
                 return new ServiceResponse<PickAndDetailResponseDTO>(false, $"Lỗi khi lấy  pick list: {ex.Message}");
+            }
+        }
+
+        public async Task<ServiceResponse<PagedResponse<PickListResponseDTO>>> GetAllPickListsAsyncWithResponsible(string[] warehouseCodes, string responsible, int page = 1, int pageSize = 10)
+        {
+            try
+            {
+                if (page < 1) page = 1;
+                if (pageSize < 1) pageSize = 10;
+
+                var query =  _pickListRepository.GetAllPickListAsync(warehouseCodes);
+                                                     
+                var totalItems = await query.CountAsync();
+                var pickLists = await query
+                    .Select(p => new PickListResponseDTO
+                    {
+                        PickNo = p.PickNo,
+                        ReservationCode = p.ReservationCode,
+                        WarehouseCode = p.WarehouseCode,
+                        WarehouseName = p.WarehouseCodeNavigation!.WarehouseName,
+                        PickDate = p.PickDate!.Value.ToString("dd/MM/yyyy"),
+                        StatusId = p.StatusId,
+                        StatusName = p.Status!.StatusName
+                    })
+                    .ToListAsync();
+
+                var pagedResponse = new PagedResponse<PickListResponseDTO>(pickLists, page, pageSize, totalItems);
+                return new ServiceResponse<PagedResponse<PickListResponseDTO>>(true, "Lấy danh sách pick list thành công", pagedResponse);
+            }
+            catch (Exception ex)
+            {
+                return new ServiceResponse<PagedResponse<PickListResponseDTO>>(false, $"Lỗi khi lấy danh sách pick list: {ex.Message}");
             }
         }
     }

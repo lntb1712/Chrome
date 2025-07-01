@@ -47,6 +47,28 @@ namespace Chrome.Controllers
             }
         }
 
+        [HttpGet("GetAllTransfersWithResponsible")]
+        public async Task<IActionResult> GetAllTransfersWithResponsible([FromQuery] string[] warehouseCodes,[FromQuery]string responsible, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+        {
+            try
+            {
+                var response = await _transferService.GetAllTransfersWithResponsible(warehouseCodes,responsible, page, pageSize);
+                if (!response.Success)
+                {
+                    return NotFound(new
+                    {
+                        Success = false,
+                        Message = response.Message
+                    });
+                }
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, $"Lỗi: {ex.Message}");
+            }
+        }
+
         [HttpGet("GetAllTransfersWithStatus")]
         public async Task<IActionResult> GetAllTransfersWithStatus([FromQuery] string[] warehouseCodes, [FromQuery] int statusId, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
         {
@@ -75,6 +97,27 @@ namespace Chrome.Controllers
             try
             {
                 var response = await _transferService.SearchTransfersAsync(warehouseCodes, textToSearch, page, pageSize);
+                if (!response.Success)
+                {
+                    return NotFound(new
+                    {
+                        Success = false,
+                        Message = response.Message
+                    });
+                }
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, $"Lỗi: {ex.Message}");
+            }
+        }
+        [HttpGet("SearchTransfersAsyncWithResponsible")]
+        public async Task<IActionResult> SearchTransfersAsyncWithResponsible([FromQuery] string[] warehouseCodes,[FromQuery]string  responsible, [FromQuery] string textToSearch, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+        {
+            try
+            {
+                var response = await _transferService.SearchTransfersAsyncWithResponsible(warehouseCodes,responsible, textToSearch, page, pageSize);
                 if (!response.Success)
                 {
                     return NotFound(new

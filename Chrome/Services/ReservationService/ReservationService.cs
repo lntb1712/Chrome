@@ -293,7 +293,7 @@ namespace Chrome.Services.ReservationService
                     var reservedQuantity = await _context.ReservationDetails
                         .Include(rd => rd.ReservationCodeNavigation)
                         .Where(rd => rd.ProductCode == inventory.ProductCode &&
-                                    rd.Lotno == inventory.Lotno &&
+                                    rd.LotNo == inventory.Lotno &&
                                     rd.ReservationCodeNavigation!.StatusId != 3)
                         .SumAsync(rd => (double?)rd.QuantityReserved) ?? 0;
 
@@ -338,7 +338,7 @@ namespace Chrome.Services.ReservationService
                               r => r.ReservationCode,
                               (rd, r) => new { ReservationDetail = rd, Reservation = r })
                         .Where(x => x.ReservationDetail.ProductCode == inventory.ProductCode &&
-                                    x.ReservationDetail.Lotno == inventory.Lotno &&
+                                    x.ReservationDetail.LotNo == inventory.Lotno &&
                                     x.ReservationDetail.LocationCode == inventory.LocationCode &&
                                     x.Reservation.StatusId != 3 &&
                                     x.Reservation.ReservationCode != reservation.ReservationCode)
@@ -353,7 +353,7 @@ namespace Chrome.Services.ReservationService
                     var existingDetail = await _context.ReservationDetails
                         .FirstOrDefaultAsync(rd => rd.ReservationCode == reservation.ReservationCode &&
                                                   rd.ProductCode == orderDetail.ProductCode &&
-                                                  rd.Lotno == inventory.Lotno &&
+                                                  rd.LotNo == inventory.Lotno &&
                                                   rd.LocationCode == inventory.LocationCode);
 
                     if (existingDetail != null)
@@ -367,7 +367,7 @@ namespace Chrome.Services.ReservationService
                         {
                             ReservationCode = reservation.ReservationCode,
                             ProductCode = orderDetail.ProductCode,
-                            Lotno = inventory.Lotno,
+                            LotNo = inventory.Lotno,
                             LocationCode = inventory.LocationCode,
                             QuantityReserved = (float)quantityToReserve
                         };
@@ -505,10 +505,16 @@ namespace Chrome.Services.ReservationService
                 {
                     ReservationCode = x.ReservationCode,
                     ProductCode = x.ProductCode,
-                    ProductName = x.ProductCodeNavigation!.ProductName,
-                    Lotno = x.Lotno,
+                    ProductName = _context.ProductMasters
+                            .Where(pd => pd.ProductCode == x.ProductCode)
+                            .Select(x => x.ProductName)
+                            .FirstOrDefault()!,
+                    Lotno = x.LotNo,
                     LocationCode = x.LocationCode,
-                    LocationName = x.LocationCodeNavigation!.LocationName,
+                    LocationName = _context.LocationMasters
+                            .Where(pd => pd.LocationCode == x.LocationCode)
+                            .Select(x => x.LocationName)
+                            .FirstOrDefault()!,
                     QuantityReserved = x.QuantityReserved
                 }).ToListAsync();
 
@@ -557,10 +563,16 @@ namespace Chrome.Services.ReservationService
                 {
                     ReservationCode = x.ReservationCode,
                     ProductCode = x.ProductCode,
-                    ProductName = x.ProductCodeNavigation!.ProductName,
-                    Lotno = x.Lotno,
+                    ProductName = _context.ProductMasters
+                            .Where(pd => pd.ProductCode == x.ProductCode)
+                            .Select(x => x.ProductName)
+                            .FirstOrDefault()!,
+                    Lotno = x.LotNo,
                     LocationCode = x.LocationCode,
-                    LocationName = x.LocationCodeNavigation!.LocationName,
+                    LocationName = _context.LocationMasters
+                            .Where(pd => pd.LocationCode == x.LocationCode)
+                            .Select(x => x.LocationName)
+                            .FirstOrDefault()!,
                     QuantityReserved = x.QuantityReserved
                 }).ToListAsync();
 
@@ -610,10 +622,16 @@ namespace Chrome.Services.ReservationService
                 {
                     ReservationCode = x.ReservationCode,
                     ProductCode = x.ProductCode,
-                    ProductName = x.ProductCodeNavigation!.ProductName,
-                    Lotno = x.Lotno,
+                    ProductName = _context.ProductMasters
+                            .Where(pd => pd.ProductCode == x.ProductCode)
+                            .Select(x => x.ProductName)
+                            .FirstOrDefault()!,
+                    Lotno = x.LotNo,
                     LocationCode = x.LocationCode,
-                    LocationName = x.LocationCodeNavigation!.LocationName,
+                    LocationName = _context.LocationMasters
+                            .Where(pd => pd.LocationCode == x.LocationCode)
+                            .Select(x => x.LocationName)
+                            .FirstOrDefault()!,
                     QuantityReserved = x.QuantityReserved
                 }).ToListAsync();
 
@@ -663,10 +681,16 @@ namespace Chrome.Services.ReservationService
                 {
                     ReservationCode = x.ReservationCode,
                     ProductCode = x.ProductCode,
-                    ProductName = x.ProductCodeNavigation!.ProductName,
-                    Lotno = x.Lotno,
+                    ProductName = _context.ProductMasters
+                            .Where(pd => pd.ProductCode == x.ProductCode)
+                            .Select(x => x.ProductName)
+                            .FirstOrDefault()!,
+                    Lotno = x.LotNo,
                     LocationCode = x.LocationCode,
-                    LocationName = x.LocationCodeNavigation!.LocationName,
+                    LocationName = _context.LocationMasters
+                            .Where(pd => pd.LocationCode == x.LocationCode)
+                            .Select(x => x.LocationName)
+                            .FirstOrDefault()!,
                     QuantityReserved = x.QuantityReserved
                 }).ToListAsync();
 

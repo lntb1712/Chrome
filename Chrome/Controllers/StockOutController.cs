@@ -42,6 +42,27 @@ namespace Chrome.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, $"Lỗi: {ex.Message}");
             }
         }
+        [HttpGet("GetAllStockOutsWithResponsible")]
+        public async Task<IActionResult> GetAllStockOutsWithResponsible([FromQuery] string[] warehouseCodes,[FromQuery]string responsible, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+        {
+            try
+            {
+                var response = await _stockOutService.GetAllStockOutsWithResponsible(warehouseCodes,responsible, page, pageSize);
+                if (!response.Success)
+                {
+                    return NotFound(new
+                    {
+                        Success = false,
+                        Message = response.Message
+                    });
+                }
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, $"Lỗi: {ex.Message}");
+            }
+        }
 
         [HttpGet("GetAllStockOutsWithStatus")]
         public async Task<IActionResult> GetAllStockOutsWithStatus([FromQuery] string[] warehouseCodes, [FromQuery] int statusId, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
@@ -71,6 +92,27 @@ namespace Chrome.Controllers
             try
             {
                 var response = await _stockOutService.SearchStockOutAsync(warehouseCodes, textToSearch, page, pageSize);
+                if (!response.Success)
+                {
+                    return NotFound(new
+                    {
+                        Success = false,
+                        Message = response.Message
+                    });
+                }
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, $"Lỗi: {ex.Message}");
+            }
+        }
+        [HttpGet("SearchStockOutAsyncWithResponsible")]
+        public async Task<IActionResult> SearchStockOutAsyncWithResponsible([FromQuery] string[] warehouseCodes,[FromQuery]string responsible, [FromQuery] string textToSearch, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+        {
+            try
+            {
+                var response = await _stockOutService.SearchStockOutAsyncWithResponsible(warehouseCodes,responsible, textToSearch, page, pageSize);
                 if (!response.Success)
                 {
                     return NotFound(new

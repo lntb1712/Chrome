@@ -1,8 +1,6 @@
 ﻿using Chrome.Models;
 using Chrome.Repositories.RepositoryBase;
 using Microsoft.EntityFrameworkCore;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace Chrome.Repositories.ReservationDetailRepository
 {
@@ -19,8 +17,6 @@ namespace Chrome.Repositories.ReservationDetailRepository
         {
             return _context.ReservationDetails
                 .Include(x => x.ReservationCodeNavigation)
-                .Include(x => x.ProductCodeNavigation)
-                .Include(x => x.LocationCodeNavigation)
                 .Where(x => x.ReservationCode == reservationCode);
         }
 
@@ -28,8 +24,6 @@ namespace Chrome.Repositories.ReservationDetailRepository
         {
             return await _context.ReservationDetails
                  .Include(x => x.ReservationCodeNavigation)
-                .Include(x => x.ProductCodeNavigation)
-                .Include(x => x.LocationCodeNavigation)
                 .FirstOrDefaultAsync(x => x.Id == id) ?? throw new InvalidOperationException($"ReservationDetail with ID {id} not found.");
         }
 
@@ -37,14 +31,11 @@ namespace Chrome.Repositories.ReservationDetailRepository
         {
             return _context.ReservationDetails
                  .Include(x => x.ReservationCodeNavigation)
-                .Include(x => x.ProductCodeNavigation)
-                .Include(x => x.LocationCodeNavigation)
                 .Where(x => x.ReservationCode == reservationCode
                     && (x.ProductCode!.Contains(textToSearch)
-                        || x.ProductCodeNavigation!.ProductName!.Contains(textToSearch)
-                        || x.Lotno!.Contains(textToSearch)
-                        || x.LocationCode!.Contains(textToSearch)
-                        || x.LocationCodeNavigation!.LocationName!.Contains(textToSearch)));
+
+                        || x.LotNo!.Contains(textToSearch)
+                        || x.LocationCode!.Contains(textToSearch)));
         }
     }
 }

@@ -9,7 +9,7 @@ public partial class PutAwayDetail
 
     public string ProductCode { get; set; } = null!;
 
-    public string? LotNo { get; set; }
+    public string LotNo { get; set; } = null!;
 
     public double? Demand { get; set; }
 

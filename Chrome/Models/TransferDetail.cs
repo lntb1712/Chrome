@@ -11,9 +11,9 @@ public partial class TransferDetail
 
     public double? Demand { get; set; }
 
-    public double? QuantityInBounded { get; set; }
-
     public double? QuantityOutBounded { get; set; }
+
+    public double? QuantityInBounded { get; set; }
 
     public virtual ProductMaster ProductCodeNavigation { get; set; } = null!;
 

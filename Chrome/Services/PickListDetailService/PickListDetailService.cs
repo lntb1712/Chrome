@@ -36,14 +36,20 @@ namespace Chrome.Services.PickListDetailService
                     .Take(pageSize)
                     .Select(pd => new PickListDetailResponseDTO
                     {
-                        PickNo = pd.PickNo,
-                        ProductCode = pd.ProductCode,
-                        ProductName = pd.ProductCodeNavigation!.ProductName,
+                        PickNo = pd.PickNo!,
+                        ProductCode = pd.ProductCode!,
+                        ProductName = _context.ProductMasters
+                            .Where(x => x.ProductCode == pd.ProductCode)
+                            .Select(x => x.ProductName)
+                            .FirstOrDefault(), // Fix: Extract ProductName as string
                         LotNo = pd.LotNo,
                         Demand = pd.Demand,
                         Quantity = pd.Quantity,
                         LocationCode = pd.LocationCode,
-                        LocationName = pd.LocationCodeNavigation!.LocationName
+                        LocationName = _context.LocationMasters
+                                               .Where(x=>x.LocationCode == pd.LocationCode)
+                                               .Select (x => x.LocationName)
+                                               .FirstOrDefault()
                     })
                     .ToListAsync();
 
@@ -75,14 +81,20 @@ namespace Chrome.Services.PickListDetailService
                     .Take(pageSize)
                     .Select(pd => new PickListDetailResponseDTO
                     {
-                        PickNo = pd.PickNo,
-                        ProductCode = pd.ProductCode,
-                        ProductName = pd.ProductCodeNavigation!.ProductName,
+                        PickNo = pd.PickNo!,
+                        ProductCode = pd.ProductCode!,
+                        ProductName = _context.ProductMasters
+                            .Where(x => x.ProductCode == pd.ProductCode)
+                            .Select(x => x.ProductName)
+                            .FirstOrDefault(), // Fix: Extract ProductName as string
                         LotNo = pd.LotNo,
                         Demand = pd.Demand,
                         Quantity = pd.Quantity,
                         LocationCode = pd.LocationCode,
-                        LocationName = pd.LocationCodeNavigation!.LocationName
+                        LocationName = _context.LocationMasters
+                                               .Where(x => x.LocationCode == pd.LocationCode)
+                                               .Select(x => x.LocationName)
+                                               .FirstOrDefault()
                     })
                     .ToListAsync();
 
@@ -109,14 +121,20 @@ namespace Chrome.Services.PickListDetailService
                     .Take(pageSize)
                     .Select(pd => new PickListDetailResponseDTO
                     {
-                        PickNo = pd.PickNo,
-                        ProductCode = pd.ProductCode,
-                        ProductName = pd.ProductCodeNavigation!.ProductName,
+                        PickNo = pd.PickNo!,
+                        ProductCode = pd.ProductCode!,
+                        ProductName = _context.ProductMasters
+                            .Where(x => x.ProductCode == pd.ProductCode)
+                            .Select(x => x.ProductName)
+                            .FirstOrDefault(), // Fix: Extract ProductName as string
                         LotNo = pd.LotNo,
                         Demand = pd.Demand,
                         Quantity = pd.Quantity,
                         LocationCode = pd.LocationCode,
-                        LocationName = pd.LocationCodeNavigation!.LocationName
+                        LocationName = _context.LocationMasters
+                                               .Where(x => x.LocationCode == pd.LocationCode)
+                                               .Select(x => x.LocationName)
+                                               .FirstOrDefault()
                     })
                     .ToListAsync();
 
@@ -156,14 +174,13 @@ namespace Chrome.Services.PickListDetailService
                     var pickList = await _context.PickLists
                         .Include(x => x.ReservationCodeNavigation)
                         .FirstOrDefaultAsync(p => p.PickNo == pickListDetail.PickNo);
-                    if (pickList == null || string.IsNullOrEmpty(pickList.WarehouseCode) || string.IsNullOrEmpty(pickListDetail.LocationCode))
+                    if (pickList == null  || string.IsNullOrEmpty(pickListDetail.LocationCode))
                     {
                         return new ServiceResponse<bool>(false, " PickList hoặc thông tin WarehouseCode/LocationCode không hợp lệ");
                     }
 
                     var inventoryRequest = new InventoryRequestDTO
                     {
-                        WarehouseCode = pickList.WarehouseCode,
                         LocationCode = pickListDetail.LocationCode,
                         LotNo = pickListDetail.LotNo!,
                         ProductCode = pickListDetail.ProductCode,
@@ -258,7 +275,7 @@ namespace Chrome.Services.PickListDetailService
                     reservation.StatusId = 3;
                     _context.Reservations.Update(reservation);
 
-                    string pickNo = existingDetail.PickNo;
+                    string pickNo = existingDetail.PickNo!;
                     if (pickList.ReservationCodeNavigation!.OrderTypeCode!.StartsWith("MV"))
                     {
 

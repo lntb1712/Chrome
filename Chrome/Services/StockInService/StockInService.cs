@@ -235,7 +235,7 @@ namespace Chrome.Services.StockInService
                              OrderDeadline = x.OrderDeadline!.Value.ToString("dd/MM/yyyy"),
                              StockInDescription = x.StockInDescription,
                          })
-                         .OrderBy(x => x.StockInCode)
+                         .OrderBy(x => x.StatusId)
                          .Skip((page - 1) * pageSize)
                          .Take(pageSize)
                          .ToListAsync();
@@ -374,7 +374,7 @@ namespace Chrome.Services.StockInService
                              OrderDeadline = x.OrderDeadline!.Value.ToString("dd/MM/yyyy"),
                              StockInDescription = x.StockInDescription,
                          })
-                         .OrderBy(x => x.StockInCode)
+                         .OrderBy(x => x.StatusId)
                          .Skip((page - 1) * pageSize)
                          .Take(pageSize)
                          .ToListAsync();

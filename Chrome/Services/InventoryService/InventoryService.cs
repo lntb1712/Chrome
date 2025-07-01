@@ -44,7 +44,6 @@ namespace Chrome.Services.InventoryService
 
             var inventory = new Inventory
             {
-                WarehouseCode = inventoryRequestDTO.WarehouseCode,
                 LocationCode = inventoryRequestDTO.LocationCode,
                 ProductCode = inventoryRequestDTO.ProductCode,
                 Lotno = inventoryRequestDTO.LotNo,
@@ -110,7 +109,7 @@ namespace Chrome.Services.InventoryService
                 return new ServiceResponse<bool>(false, "Dữ liệu nhận vào không được để trống");
             }
 
-            var inventory = await _inventoryRepository.GetInventoryWithCode(warehouseCode, locationCode, productCode, lotNo);
+            var inventory = await _inventoryRepository.GetInventoryWithCode(locationCode, productCode, lotNo);
             if (inventory == null)
             {
                 return new ServiceResponse<bool>(false, "Tồn kho không tồn tại");
@@ -120,7 +119,7 @@ namespace Chrome.Services.InventoryService
             {
                 try
                 {
-                    Expression<Func<Inventory, bool>> predicate = x => x.WarehouseCode == warehouseCode && x.LocationCode == locationCode && x.ProductCode == productCode && x.Lotno == lotNo;
+                    Expression<Func<Inventory, bool>> predicate = x => x.LocationCode == locationCode && x.ProductCode == productCode && x.Lotno == lotNo;
                     await _inventoryRepository.DeleteFirstByConditionAsync(predicate);
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
@@ -247,8 +246,8 @@ namespace Chrome.Services.InventoryService
                     CategoryName = g.Key.CategoryName!,
                     Locations = g
                         .GroupBy(x => new {
-                            x.WarehouseCode,
-                            x.WarehouseCodeNavigation.WarehouseName,
+                            x.LocationCodeNavigation.WarehouseCode,
+                            x.LocationCodeNavigation.WarehouseCodeNavigation!.WarehouseName,
                             x.LocationCode,
                             x.LocationCodeNavigation.LocationName,
                             x.ProductCodeNavigation.BaseQuantity,
@@ -257,7 +256,7 @@ namespace Chrome.Services.InventoryService
                         })
                         .Select(lg => new LocationDetailDTO
                         {
-                            WarehouseCode = lg.Key.WarehouseCode,
+                            WarehouseCode = lg.Key.WarehouseCode!,
                             WarehouseName = lg.Key.WarehouseName!,
                             LocationCode = lg.Key.LocationCode,
                             LocationName = lg.Key.LocationName!,
@@ -327,7 +326,6 @@ namespace Chrome.Services.InventoryService
             }
 
             var existingInventory = await _inventoryRepository.GetInventoryWithCode(
-                inventoryRequestDTO.WarehouseCode,
                 inventoryRequestDTO.LocationCode,
                 inventoryRequestDTO.ProductCode,
                 inventoryRequestDTO.LotNo);

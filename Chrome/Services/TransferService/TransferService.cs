@@ -388,5 +388,77 @@ namespace Chrome.Services.TransferService
                 }
             }
         }
+
+        public async Task<ServiceResponse<PagedResponse<TransferResponseDTO>>> GetAllTransfersWithResponsible(string[] warehouseCodes, string responsible, int page, int pageSize)
+        {
+            if (warehouseCodes.Length == 0 || page < 1 || pageSize < 1)
+            {
+                return new ServiceResponse<PagedResponse<TransferResponseDTO>>(false, "Dữ liệu nhận vào không hợp lệ");
+            }
+            var query = _transferRepository.GetAllTransfersAsync(warehouseCodes);
+            var result = await query
+                .Where(x=>x.FromResponsible==responsible|| x.ToResponsible== responsible)
+                .Select(x => new TransferResponseDTO
+                {
+                    TransferCode = x.TransferCode,
+                    OrderTypeCode = x.OrderTypeCode,
+                    OrderTypeName = x.OrderTypeCodeNavigation!.OrderTypeName,
+                    FromWarehouseCode = x.FromWarehouseCode,
+                    FromWarehouseName = x.FromWarehouseCodeNavigation!.WarehouseName,
+                    ToWarehouseCode = x.ToWarehouseCode,
+                    ToWarehouseName = x.ToWarehouseCodeNavigation!.WarehouseName,
+                    FromResponsible = x.FromResponsible,
+                    FullNameFromResponsible = x.FromResponsibleNavigation!.FullName,
+                    ToResponsible = x.ToResponsible,
+                    FullNameToResponsible = x.ToResponsibleNavigation!.FullName,
+                    StatusId = x.StatusId,
+                    StatusName = x.Status!.StatusName,
+                    TransferDate = x.TransferDate!.Value.ToString("dd/MM/yyyy"),
+                    TransferDescription = x.TransferDescription
+                })
+                .OrderBy(x => x.StatusId)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+            var totalItems = await query.Where(x => x.FromResponsible == responsible || x.ToResponsible == responsible).CountAsync();
+            var pagedResponse = new PagedResponse<TransferResponseDTO>(result, page, pageSize, totalItems);
+            return new ServiceResponse<PagedResponse<TransferResponseDTO>>(true, "Lấy danh sách lệnh chuyển kho thành công", pagedResponse);
+        }
+
+        public async Task<ServiceResponse<PagedResponse<TransferResponseDTO>>> SearchTransfersAsyncWithResponsible(string[] warehouseCodes, string responsible, string textToSearch, int page, int pageSize)
+        {
+            if (warehouseCodes.Length == 0 || page < 1 || pageSize < 1)
+            {
+                return new ServiceResponse<PagedResponse<TransferResponseDTO>>(false, "Dữ liệu nhận vào không hợp lệ");
+            }
+            var query = _transferRepository.SearchTransfersAsync(warehouseCodes, textToSearch);
+            var result = await query
+                .Where(x => x.FromResponsible == responsible || x.ToResponsible == responsible)
+                .Select(x => new TransferResponseDTO
+                {
+                    TransferCode = x.TransferCode,
+                    OrderTypeCode = x.OrderTypeCode,
+                    OrderTypeName = x.OrderTypeCodeNavigation!.OrderTypeName,
+                    FromWarehouseCode = x.FromWarehouseCode,
+                    FromWarehouseName = x.FromWarehouseCodeNavigation!.WarehouseName,
+                    ToWarehouseCode = x.ToWarehouseCode,
+                    ToWarehouseName = x.ToWarehouseCodeNavigation!.WarehouseName,
+                    FromResponsible = x.FromResponsible,
+                    FullNameFromResponsible = x.FromResponsibleNavigation!.FullName,
+                    ToResponsible = x.ToResponsible,
+                    FullNameToResponsible = x.ToResponsibleNavigation!.FullName,
+                    StatusId = x.StatusId,
+                    StatusName = x.Status!.StatusName,
+                    TransferDate = x.TransferDate!.Value.ToString("dd/MM/yyyy"),
+                    TransferDescription = x.TransferDescription
+                })
+                .OrderBy(x => x.StatusId)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+            var totalItems = await query.Where(x => x.FromResponsible == responsible || x.ToResponsible == responsible).CountAsync();
+            var pagedResponse = new PagedResponse<TransferResponseDTO>(result, page, pageSize, totalItems);
+            return new ServiceResponse<PagedResponse<TransferResponseDTO>>(true, "Lấy danh sách lệnh chuyển kho thành công", pagedResponse);
+        }
     }
 }

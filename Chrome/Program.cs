@@ -63,6 +63,7 @@ using Chrome.Services.ProductSupplierSerivce;
 using Chrome.Services.PutAwayDetailService;
 using Chrome.Services.PutAwayRulesService;
 using Chrome.Services.PutAwayService;
+using Chrome.Services.QRGeneratorService;
 using Chrome.Services.ReservationDetailService;
 using Chrome.Services.ReservationService;
 using Chrome.Services.StockInDetailService;
@@ -173,6 +174,7 @@ builder.Services.AddScoped<IStockTakeService, StockTakeService>();
 builder.Services.AddScoped<IStockTakeDetailService, StockTakeDetailService>();
 builder.Services.AddScoped<IManufacturingOrderService, ManufacturingOrderService>();
 builder.Services.AddScoped<IManufacturingOrderDetailService, ManufacturingOrderDetailService>();
+builder.Services.AddScoped<IQRGeneratorService, QRGeneratorService>();
 
 // Đăng ký IHttpContextAccessor để thực hiện sử dụng HttpCookie
 builder.Services.AddHttpContextAccessor();

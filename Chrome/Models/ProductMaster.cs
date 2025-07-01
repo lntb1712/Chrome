@@ -39,15 +39,11 @@ public partial class ProductMaster
 
     public virtual ICollection<MovementDetail> MovementDetails { get; set; } = new List<MovementDetail>();
 
-    public virtual ICollection<PickListDetail> PickListDetails { get; set; } = new List<PickListDetail>();
-
     public virtual ICollection<ProductSupplier> ProductSuppliers { get; set; } = new List<ProductSupplier>();
 
     public virtual ICollection<PutAwayDetail> PutAwayDetails { get; set; } = new List<PutAwayDetail>();
 
     public virtual ICollection<PutAwayRule> PutAwayRules { get; set; } = new List<PutAwayRule>();
-
-    public virtual ICollection<ReservationDetail> ReservationDetails { get; set; } = new List<ReservationDetail>();
 
     public virtual ICollection<StockInDetail> StockInDetails { get; set; } = new List<StockInDetail>();
 

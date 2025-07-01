@@ -10,8 +10,10 @@ namespace Chrome.Services.TransferService
     public interface ITransferService
     {
         Task<ServiceResponse<PagedResponse<TransferResponseDTO>>> GetAllTransfers(string[] warehouseCodes, int page, int pageSize);
+        Task<ServiceResponse<PagedResponse<TransferResponseDTO>>> GetAllTransfersWithResponsible(string[] warehouseCodes,string responsible, int page, int pageSize);
         Task<ServiceResponse<PagedResponse<TransferResponseDTO>>> GetAllTransfersWithStatus(string[] warehouseCodes, int statusId, int page, int pageSize);
         Task<ServiceResponse<PagedResponse<TransferResponseDTO>>> SearchTransfersAsync(string[] warehouseCodes, string textToSearch, int page, int pageSize);
+        Task<ServiceResponse<PagedResponse<TransferResponseDTO>>> SearchTransfersAsyncWithResponsible(string[] warehouseCodes,string responsible, string textToSearch, int page, int pageSize);
         Task<ServiceResponse<bool>> AddTransfer(TransferRequestDTO transfer);
         Task<ServiceResponse<bool>> DeleteTransferAsync(string transferCode);
         Task<ServiceResponse<bool>> UpdateTransfer(TransferRequestDTO transfer);

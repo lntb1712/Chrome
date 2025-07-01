@@ -11,15 +11,11 @@ public partial class ReservationDetail
 
     public string? ProductCode { get; set; }
 
-    public string? Lotno { get; set; }
+    public string? LotNo { get; set; }
 
     public string? LocationCode { get; set; }
 
     public double? QuantityReserved { get; set; }
-
-    public virtual LocationMaster? LocationCodeNavigation { get; set; }
-
-    public virtual ProductMaster? ProductCodeNavigation { get; set; }
 
     public virtual Reservation? ReservationCodeNavigation { get; set; }
 }

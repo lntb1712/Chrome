@@ -1,5 +1,6 @@
 ﻿using Chrome.DTO;
 using Chrome.DTO.PutAwayDetailDTO;
+using Chrome.Models;
 
 namespace Chrome.Services.PutAwayDetailService
 {

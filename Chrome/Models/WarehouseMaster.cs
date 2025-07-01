@@ -15,8 +15,6 @@ public partial class WarehouseMaster
 
     public virtual ICollection<GroupFunction> GroupFunctions { get; set; } = new List<GroupFunction>();
 
-    public virtual ICollection<Inventory> Inventories { get; set; } = new List<Inventory>();
-
     public virtual ICollection<LocationMaster> LocationMasters { get; set; } = new List<LocationMaster>();
 
     public virtual ICollection<ManufacturingOrder> ManufacturingOrders { get; set; } = new List<ManufacturingOrder>();

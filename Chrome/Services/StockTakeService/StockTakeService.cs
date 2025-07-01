@@ -460,7 +460,6 @@ namespace Chrome.Services.StockTakeService
                 var query =  _StockTakeDetailRepository.GetStockTakeDetailsByStockTakeCodeAsync(stockTake.StocktakeCode);
                 var lstDetail = query.Select(x => new Inventory
                 {
-                    WarehouseCode = existingStockTake.WarehouseCode!,
                     LocationCode =x.LocationCode,
                     Lotno =x.Lotno,
                     ProductCode =x.ProductCode,

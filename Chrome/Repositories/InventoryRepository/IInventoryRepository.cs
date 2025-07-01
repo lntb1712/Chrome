@@ -5,7 +5,7 @@ namespace Chrome.Repositories.InventoryRepository
 {
     public interface IInventoryRepository:IRepositoryBase<Inventory>
     {
-        Task<Inventory> GetInventoryWithCode(string warehouseCode, string locationCode, string productCode, string lotNo);
+        Task<Inventory> GetInventoryWithCode(string locationCode, string productCode, string lotNo);
         IQueryable<Inventory> GetInventories(string[] warehouseCodes);
         IQueryable<Inventory> GetInventoriesByCategoryIds(string[] warehouseCodes, string[] categoryIds);
         IQueryable<Inventory> SearchProductInventories(string[] warehouseCodes, string textToSearch);

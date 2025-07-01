@@ -9,6 +9,7 @@ namespace Chrome.Services.PickListService
     public interface IPickListService
     {
         Task<ServiceResponse<PagedResponse<PickListResponseDTO>>> GetAllPickListsAsync(string[] warehouseCodes, int page = 1, int pageSize = 10);
+        Task<ServiceResponse<PagedResponse<PickListResponseDTO>>> GetAllPickListsAsyncWithResponsible(string[] warehouseCodes,string responsible, int page = 1, int pageSize = 10);
         Task<ServiceResponse<PagedResponse<PickListResponseDTO>>> GetAllPickListsWithStatusAsync(string[] warehouseCodes, int statusId, int page = 1, int pageSize = 10);
         Task<ServiceResponse<PagedResponse<PickListResponseDTO>>> SearchPickListsAsync(string[] warehouseCodes, string textToSearch, int page = 1, int pageSize = 10);
         Task<ServiceResponse<PickListResponseDTO>> GetPickListByCodeAsync(string pickNo);

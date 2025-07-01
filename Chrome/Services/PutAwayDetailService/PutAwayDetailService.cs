@@ -1,10 +1,12 @@
-﻿using Chrome.DTO;
+﻿using Azure;
+using Chrome.DTO;
 using Chrome.DTO.InventoryDTO;
 using Chrome.DTO.PutAwayDetailDTO;
 using Chrome.Models;
 using Chrome.Repositories.InventoryRepository;
 using Chrome.Repositories.PutAwayDetailRepository;
 using Chrome.Services.InventoryService;
+using DocumentFormat.OpenXml.Wordprocessing;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Linq;
@@ -163,13 +165,12 @@ namespace Chrome.Services.PutAwayDetailService
                     }
                     var inventoryRequest = new InventoryRequestDTO
                     {
-                        WarehouseCode = putAway.LocationCodeNavigation.WarehouseCode,
                         LocationCode = putAway.LocationCode,
                         LotNo = putAwayDetail.LotNo!,
                         ProductCode = putAwayDetail.ProductCode,
                         Quantity = quantityDiff,
                     };
-                    var existingInventory = await _inventoryRepository.GetInventoryWithCode(putAway.LocationCodeNavigation.WarehouseCode, putAway.LocationCode, putAwayDetail.ProductCode, putAwayDetail.LotNo!);
+                    var existingInventory = await _inventoryRepository.GetInventoryWithCode( putAway.LocationCode, putAwayDetail.ProductCode, putAwayDetail.LotNo!);
                     if(existingInventory==null)
                     {
                         await _inventoryService.AddInventory(inventoryRequest, saveChanges: false);
@@ -197,20 +198,7 @@ namespace Chrome.Services.PutAwayDetailService
                         transferDetail!.QuantityOutBounded = putAwayDetail.Quantity;
                         _context.TransferDetails.Update(transferDetail);
                     }
-                    if (putAway.OrderTypeCode!.StartsWith("SI"))
-                    { 
-
-                        var stockInDetail = await _context.StockInDetails
-                                                          .FirstOrDefaultAsync(x => x.StockInCode ==orderCode  && x.ProductCode == putAwayDetail.ProductCode);
-
-                        if (stockInDetail == null)
-                        {
-                            return new ServiceResponse<bool>(false, $"Không tìm thấy chi tiết Lệnh nhập kho với mã {orderCode}");
-                        }
-
-                        stockInDetail!.Quantity = putAwayDetail.Quantity;
-                        _context.StockInDetails.Update(stockInDetail);
-                    }
+                   
 
 
 
@@ -232,19 +220,7 @@ namespace Chrome.Services.PutAwayDetailService
                     string putAwayCode = existingDetail.PutAwayCode;
 
                     string orderCode = putAwayCode.StartsWith("PUT_") ? putAwayCode.Substring(4) : putAwayCode;
-                    if (putAway.OrderTypeCode!.StartsWith("SI"))
-                    {
-                        // Tìm movement dựa trên movementCode
-                        var stockIn = await _context.StockIns
-                            .FirstOrDefaultAsync(m => m.StockInCode == orderCode);
-
-                        if (stockIn == null)
-                        {
-                            return new ServiceResponse<bool>(false, $"Không tìm thấy lệnh nhập kho với mã {orderCode}.");
-                        }
-                        stockIn.StatusId = 2;
-                        _context.StockIns.Update(stockIn);
-                    }
+                    
 
                 }
                 //Cập nhật trạng thái hoàn thành cho putaway
@@ -275,19 +251,6 @@ namespace Chrome.Services.PutAwayDetailService
                         }
                         movement.StatusId = 3;
                         _context.Movements.Update(movement);
-                    }else
-                    if (putAway.OrderTypeCode!.StartsWith("SI"))
-                    {
-                        // Tìm movement dựa trên movementCode
-                        var stockIn = await _context.StockIns
-                            .FirstOrDefaultAsync(m => m.StockInCode == orderCode);
-
-                        if (stockIn == null)
-                        {
-                            return new ServiceResponse<bool>(false, $"Không tìm thấy lệnh nhập kho với mã {orderCode}.");
-                        }
-                        stockIn.StatusId = 3;
-                        _context.StockIns.Update(stockIn);
                     }
                     else if (putAway.OrderTypeCode!.StartsWith("TF"))
                     {
@@ -356,5 +319,7 @@ namespace Chrome.Services.PutAwayDetailService
                 return new ServiceResponse<bool>(false, $"Lỗi khi xóa chi tiết putaway: {ex.Message}");
             }
         }
+
+        
     }
 }

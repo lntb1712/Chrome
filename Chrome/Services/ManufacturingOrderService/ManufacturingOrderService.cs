@@ -112,7 +112,7 @@ namespace Chrome.Services.ManufacturingOrderService
                         var reservedQuantity = await _context.ReservationDetails
                             .Include(rd => rd.ReservationCodeNavigation)
                             .Where(rd => rd.ProductCode == inventory.ProductCode &&
-                                        rd.Lotno == inventory.Lotno &&
+                                        rd.LotNo == inventory.Lotno &&
                                         rd.ReservationCodeNavigation!.StatusId != 3)
                             .SumAsync(rd => (double?)rd.QuantityReserved) ?? 0;
 
@@ -812,7 +812,7 @@ namespace Chrome.Services.ManufacturingOrderService
                     {
                         PutAwayCode = putAwayCode,
                         ProductCode = manufacturing.ProductCode!,
-                        LotNo = manufacturing.Lotno,
+                        LotNo = manufacturing.Lotno!,
                         Demand = manufacturing.QuantityProduced,
                         Quantity = 0,
                     };

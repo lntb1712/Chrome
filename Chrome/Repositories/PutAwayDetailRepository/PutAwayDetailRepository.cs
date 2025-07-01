@@ -21,7 +21,6 @@ namespace Chrome.Repositories.PutAwayDetailRepository
                                  .Include(pd => pd.PutAwayCodeNavigation)
                                .ThenInclude(p => p.LocationCodeNavigation)
                                .ThenInclude(p => p!.WarehouseCodeNavigation)
-                               .Include(pd => pd.ProductCodeNavigation)
                                .AsQueryable();
 
             if (warehouseCodes != null && warehouseCodes.Length > 0)
@@ -43,11 +42,11 @@ namespace Chrome.Repositories.PutAwayDetailRepository
                                .Include(pd => pd.PutAwayCodeNavigation)
                                .ThenInclude(p => p.LocationCodeNavigation)
                                .ThenInclude(p=>p!.WarehouseCodeNavigation)
-                               .Include(pd => pd.ProductCodeNavigation)
                                .Where(pd => pd.PutAwayCode == putawayNo);
 
             return query;
         }
+
 
         public IQueryable<PutAwayDetail> SearchPutAwayDetailsAsync(string[] warehouseCodes, string putawayNo, string textToSearch)
         {
@@ -55,7 +54,6 @@ namespace Chrome.Repositories.PutAwayDetailRepository
                                  .Include(pd => pd.PutAwayCodeNavigation)
                                .ThenInclude(p => p.LocationCodeNavigation)
                                .ThenInclude(p => p!.WarehouseCodeNavigation)
-                               .Include(pd => pd.ProductCodeNavigation)
                                .AsQueryable();
 
             if (warehouseCodes != null && warehouseCodes.Length > 0)
@@ -72,7 +70,6 @@ namespace Chrome.Repositories.PutAwayDetailRepository
                     || pd.Demand.ToString()!.Contains(textToSearch)
                     || pd.Quantity.ToString()!.Contains(textToSearch)
                     || pd.PutAwayCodeNavigation.PutAwayCode!.Contains(textToSearch)
-                    || pd.ProductCodeNavigation.ProductName!.Contains(textToSearch)
                     || pd.PutAwayCodeNavigation.LocationCodeNavigation!.LocationName!.Contains(textToSearch)));
             }
 

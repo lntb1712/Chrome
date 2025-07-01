@@ -40,6 +40,27 @@ namespace Chrome.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, $"Lỗi: {ex.Message}");
             }
         }
+        [HttpGet("GetAllPutAwaysAsyncWithResponsible")]
+        public async Task<IActionResult> GetAllPutAwaysAsyncWithResponsible([FromQuery] string[] warehouseCodes,[FromQuery]string responsible, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+        {
+            try
+            {
+                var response = await _putAwayService.GetAllPutAwaysAsyncWithResponsible(warehouseCodes,responsible, page, pageSize);
+                if (!response.Success)
+                {
+                    return NotFound(new
+                    {
+                        Success = false,
+                        Message = response.Message
+                    });
+                }
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, $"Lỗi: {ex.Message}");
+            }
+        }
 
         [HttpGet("GetAllPutAwaysWithStatus")]
         public async Task<IActionResult> GetAllPutAwaysWithStatus([FromQuery] string[] warehouseCodes, [FromQuery] int statusId, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
@@ -69,6 +90,27 @@ namespace Chrome.Controllers
             try
             {
                 var response = await _putAwayService.SearchPutAwaysAsync(warehouseCodes, textToSearch, page, pageSize);
+                if (!response.Success)
+                {
+                    return NotFound(new
+                    {
+                        Success = false,
+                        Message = response.Message
+                    });
+                }
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, $"Lỗi: {ex.Message}");
+            }
+        }
+        [HttpGet("SearchPutAwaysAsyncWithResponsible")]
+        public async Task<IActionResult> SearchPutAwaysAsyncWithResponsible([FromQuery] string[] warehouseCodes,[FromQuery]string responsible, [FromQuery] string textToSearch, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+        {
+            try
+            {
+                var response = await _putAwayService.SearchPutAwaysAsyncWithResponsible(warehouseCodes,responsible, textToSearch, page, pageSize);
                 if (!response.Success)
                 {
                     return NotFound(new

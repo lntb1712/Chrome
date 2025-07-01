@@ -2,7 +2,6 @@
 {
     public class InventoryRequestDTO
     {
-        public string WarehouseCode { get; set; } = null!;
 
         public string LocationCode { get; set; } = null!;
 

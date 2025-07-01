@@ -12,8 +12,10 @@ namespace Chrome.Services.StockOutService
     public interface IStockOutService
     {
         Task<ServiceResponse<PagedResponse<StockOutResponseDTO>>> GetAllStockOuts(string[] warehouseCodes, int page, int pageSize);
+        Task<ServiceResponse<PagedResponse<StockOutResponseDTO>>> GetAllStockOutsWithResponsible(string[] warehouseCodes,string responsible, int page, int pageSize);
         Task<ServiceResponse<PagedResponse<StockOutResponseDTO>>> GetAllStockOutsWithStatus(string[] warehouseCodes, int statusId, int page, int pageSize);
         Task<ServiceResponse<PagedResponse<StockOutResponseDTO>>> SearchStockOutAsync(string[] warehouseCodes, string textToSearch, int page, int pageSize);
+        Task<ServiceResponse<PagedResponse<StockOutResponseDTO>>> SearchStockOutAsyncWithResponsible(string[] warehouseCodes,string responsible, string textToSearch, int page, int pageSize);
         Task<ServiceResponse<bool>> AddStockOut(StockOutRequestDTO stockOut);
         Task<ServiceResponse<bool>> DeleteStockOutAsync(string stockOutCode);
         Task<ServiceResponse<bool>> UpdateStockOut(StockOutRequestDTO stockOut);

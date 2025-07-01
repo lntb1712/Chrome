@@ -266,8 +266,8 @@ namespace Chrome.Services.MovementDetailService
                     var putAwayDetail = new PutAwayDetail
                     {
                         PutAwayCode = putAwayCode,
-                        ProductCode = pickDetail.ProductCode,
-                        LotNo = pickDetail.LotNo,
+                        ProductCode = pickDetail.ProductCode!,
+                        LotNo = pickDetail.LotNo!,
                         Demand = pickDetail.Demand,
                         Quantity = 0,
                     };
