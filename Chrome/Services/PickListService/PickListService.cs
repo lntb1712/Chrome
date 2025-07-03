@@ -397,6 +397,7 @@ namespace Chrome.Services.PickListService
                     StatusName = pickList.Status!.StatusName,
                     pickListDetailResponseDTOs = await pickListDetail.Select(pd => new PickListDetailResponseDTO
                     {
+                        PickNo = pd.PickNo!,
                         ProductCode = pd.ProductCode!,
                         ProductName = _context.ProductMasters
                             .Where(x => x.ProductCode == pd.ProductCode)

@@ -13,8 +13,10 @@ namespace Chrome.Services.MovementService
     public interface IMovementService
     {
         Task<ServiceResponse<PagedResponse<MovementResponseDTO>>> GetAllMovements(string[] warehouseCodes, int page, int pageSize);
+        Task<ServiceResponse<PagedResponse<MovementResponseDTO>>> GetAllMovementsWithResponsible(string[] warehouseCodes,string responsible, int page, int pageSize);
         Task<ServiceResponse<PagedResponse<MovementResponseDTO>>> GetAllMovementsWithStatus(string[] warehouseCodes, int statusId, int page, int pageSize);
         Task<ServiceResponse<PagedResponse<MovementResponseDTO>>> SearchMovementAsync(string[] warehouseCodes, string textToSearch, int page, int pageSize);
+        Task<ServiceResponse<PagedResponse<MovementResponseDTO>>> SearchMovementAsyncWithResponsible(string[] warehouseCodes,string responsible, string textToSearch, int page, int pageSize);
         Task<ServiceResponse<bool>> AddMovement(MovementRequestDTO movement);
         Task<ServiceResponse<bool>> DeleteMovementAsync(string movementCode);
         Task<ServiceResponse<bool>> UpdateMovement(MovementRequestDTO movement);

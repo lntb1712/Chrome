@@ -472,5 +472,76 @@ namespace Chrome.Services.MovementService
                 }
             }
         }
+
+        public async Task<ServiceResponse<PagedResponse<MovementResponseDTO>>> GetAllMovementsWithResponsible(string[] warehouseCodes, string responsible, int page, int pageSize)
+        {
+            if (warehouseCodes.Length == 0 || page < 1 || pageSize < 1)
+            {
+                return new ServiceResponse<PagedResponse<MovementResponseDTO>>(false, "Dữ liệu nhận vào không hợp lệ");
+            }
+            var query = _movementRepository.GetAllMovementAsync(warehouseCodes);
+            var result = await query
+                .Where(x=>x.Responsible==responsible)
+                .Select(x => new MovementResponseDTO
+                {
+                    MovementCode = x.MovementCode,
+                    OrderTypeCode = x.OrderTypeCode,
+                    OrderTypeName = x.OrderTypeCodeNavigation!.OrderTypeName,
+                    WarehouseCode = x.WarehouseCode,
+                    WarehouseName = x.WarehouseCodeNavigation!.WarehouseName,
+                    FromLocation = x.FromLocation,
+                    FromLocationName = x.FromLocationNavigation!.LocationName,
+                    ToLocation = x.ToLocation,
+                    ToLocationName = x.ToLocationNavigation!.LocationName,
+                    Responsible = x.Responsible,
+                    FullNameResponible = x.ResponsibleNavigation!.FullName,
+                    StatusId = x.StatusId,
+                    StatusName = x.Status!.StatusName,
+                    MovementDate = x.MovementDate!.Value.ToString("dd/MM/yyyy"),
+                    MovementDescription = x.MovementDescription
+                })
+                .OrderBy(x => x.StatusId)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+            var totalItems = await query.Where(x => x.Responsible == responsible).CountAsync();
+            var pagedResponse = new PagedResponse<MovementResponseDTO>(result, page, pageSize, totalItems);
+            return new ServiceResponse<PagedResponse<MovementResponseDTO>>(true, "Lấy danh sách lệnh chuyển kệ thành công", pagedResponse);
+        }
+
+        public async Task<ServiceResponse<PagedResponse<MovementResponseDTO>>> SearchMovementAsyncWithResponsible(string[] warehouseCodes, string responsible, string textToSearch, int page, int pageSize)
+        {
+            if (warehouseCodes.Length == 0 || page < 1 || pageSize < 1)
+            {
+                return new ServiceResponse<PagedResponse<MovementResponseDTO>>(false, "Dữ liệu nhận vào không hợp lệ");
+            }
+            var query = _movementRepository.SearchMovementAsync(warehouseCodes, textToSearch);
+            var result = await query.Where(x => x.Responsible == responsible)
+                .Select(x => new MovementResponseDTO
+                {
+                    MovementCode = x.MovementCode,
+                    OrderTypeCode = x.OrderTypeCode,
+                    OrderTypeName = x.OrderTypeCodeNavigation!.OrderTypeName,
+                    WarehouseCode = x.WarehouseCode,
+                    WarehouseName = x.WarehouseCodeNavigation!.WarehouseName,
+                    FromLocation = x.FromLocation,
+                    FromLocationName = x.FromLocationNavigation!.LocationName,
+                    ToLocation = x.ToLocation,
+                    ToLocationName = x.ToLocationNavigation!.LocationName,
+                    Responsible = x.Responsible,
+                    FullNameResponible = x.ResponsibleNavigation!.FullName,
+                    StatusId = x.StatusId,
+                    StatusName = x.Status!.StatusName,
+                    MovementDate = x.MovementDate!.Value.ToString("dd/MM/yyyy"),
+                    MovementDescription = x.MovementDescription
+                })
+                .OrderBy(x => x.StatusId)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+            var totalItems = await query.Where(x => x.Responsible == responsible).CountAsync();
+            var pagedResponse = new PagedResponse<MovementResponseDTO>(result, page, pageSize, totalItems);
+            return new ServiceResponse<PagedResponse<MovementResponseDTO>>(true, "Lấy danh sách lệnh chuyển kệ thành công", pagedResponse);
+        }
     }
 }
