@@ -372,7 +372,7 @@ namespace Chrome.Services.StockTakeService
 
                 var accounts = await _accountRepository.GetAllAccount(1, int.MaxValue);
                 var responsibleList = accounts
-                    .Where(x => !x.GroupId!.StartsWith("ADMIN") && !x.GroupId.StartsWith("QLKHO") /* && x.WarehouseCode == warehouseCode */)
+                    .Where(x => !x.GroupId!.StartsWith("ADMIN") && !x.GroupId.StartsWith("QLKHO") && x.Group!.GroupFunctions.Select(x => x.ApplicableLocation).FirstOrDefault() == warehouseCode)
                     .Select(x => new AccountManagementResponseDTO
                     {
                         UserName = x.UserName,
