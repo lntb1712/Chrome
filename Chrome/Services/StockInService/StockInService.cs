@@ -169,7 +169,7 @@ namespace Chrome.Services.StockInService
                              OrderDeadline = x.OrderDeadline!.Value.ToString("dd/MM/yyyy"),
                              StockInDescription = x.StockInDescription,
                          })
-                         .OrderBy(x=>x.StockInCode)
+                         .OrderBy(x=>x.StatusId)
                          .Skip((page-1) * pageSize) 
                          .Take(pageSize)
                          .ToListAsync();
@@ -262,7 +262,7 @@ namespace Chrome.Services.StockInService
         public async Task<ServiceResponse<List<AccountManagementResponseDTO>>> GetListResponsibleAsync(string warehouseCode)
         {
             var lstResponsible = await _accountRepository.GetAllAccount(1, int.MaxValue);
-            var lstResponsibleForSI = lstResponsible.Where(x => !x.GroupId!.StartsWith("ADMIN") && !x.GroupId.StartsWith("QLKHO") && x.Group!.GroupFunctions.Select(x => x.ApplicableLocation).FirstOrDefault() == warehouseCode)
+            var lstResponsibleForSI = lstResponsible.Where(x => !x.GroupId!.StartsWith("ADMIN") && !x.GroupId.StartsWith("QLKHO") && !x.GroupId.StartsWith("QLSX") && x.Group!.GroupFunctions.Select(x => x.ApplicableLocation).FirstOrDefault() == warehouseCode)
                                                     .Select(x => new AccountManagementResponseDTO
                                                     {
                                                         UserName = x.UserName,
@@ -372,7 +372,7 @@ namespace Chrome.Services.StockInService
                              OrderDeadline = x.OrderDeadline!.Value.ToString("dd/MM/yyyy"),
                              StockInDescription = x.StockInDescription,
                          })
-                         .OrderBy(x => x.StockInCode)
+                         .OrderBy(x => x.StatusId)
                          .Skip((page - 1) * pageSize)
                          .Take(pageSize)
                          .ToListAsync();

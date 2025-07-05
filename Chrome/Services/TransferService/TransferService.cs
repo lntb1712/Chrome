@@ -167,7 +167,7 @@ namespace Chrome.Services.TransferService
                     TransferDate = x.TransferDate!.Value.ToString("dd/MM/yyyy"),
                     TransferDescription = x.TransferDescription
                 })
-                .OrderBy(x => x.TransferCode)
+                .OrderBy(x => x.StatusId)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
@@ -221,7 +221,7 @@ namespace Chrome.Services.TransferService
             {
                 var lstResponsible = await _accountRepository.GetAllAccount(1, int.MaxValue);
                 var lstResponsibleForTransfer = lstResponsible
-                    .Where(x => !x.GroupId!.StartsWith("ADMIN") && !x.GroupId.StartsWith("QLKHO") && x.Group!.GroupFunctions.Select(x => x.ApplicableLocation).FirstOrDefault() == warehouseCode)
+                    .Where(x => !x.GroupId!.StartsWith("ADMIN") && !x.GroupId.StartsWith("QLKHO") && !x.GroupId.StartsWith("QLSX") && x.Group!.GroupFunctions.Select(x => x.ApplicableLocation).FirstOrDefault() == warehouseCode)
                     .Select(x => new AccountManagementResponseDTO
                     {
                         UserName = x.UserName,
@@ -337,7 +337,7 @@ namespace Chrome.Services.TransferService
                     TransferDate = x.TransferDate!.Value.ToString("dd/MM/yyyy"),
                     TransferDescription = x.TransferDescription
                 })
-                .OrderBy(x => x.TransferCode)
+                .OrderBy(x => x.StatusId)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();

@@ -16,6 +16,7 @@ using Chrome.Repositories.AccountRepository;
 using Chrome.Repositories.BOMComponentRepository;
 using Chrome.Repositories.BOMMasterRepository;
 using Chrome.Repositories.InventoryRepository;
+using Chrome.Repositories.ManufacturingOrderDetailRepository;
 using Chrome.Repositories.ManufacturingOrderRepository;
 using Chrome.Repositories.OrderTypeRepository;
 using Chrome.Repositories.ProductMasterRepository;
@@ -33,6 +34,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Threading.Tasks;
 
 namespace Chrome.Services.ManufacturingOrderService
@@ -40,6 +42,7 @@ namespace Chrome.Services.ManufacturingOrderService
     public class ManufacturingOrderService : IManufacturingOrderService
     {
         private readonly IManufacturingOrderRepository _manufacturingOrderRepository;
+        private readonly IManufacturingOrderDetailRepository _manufacturingOrderDetailRepository;
         private readonly IOrderTypeRepository _orderTypeRepository;
         private readonly IAccountRepository _accountRepository;
         private readonly IStatusMasterRepository _statusMasterRepository;
@@ -56,6 +59,7 @@ namespace Chrome.Services.ManufacturingOrderService
 
         public ManufacturingOrderService(
             IManufacturingOrderRepository manufacturingOrderRepository,
+            IManufacturingOrderDetailRepository manufacturingOrderDetailRepository,
             IOrderTypeRepository orderTypeRepository,
             IAccountRepository accountRepository,
             IStatusMasterRepository statusMasterRepository,
@@ -71,6 +75,7 @@ namespace Chrome.Services.ManufacturingOrderService
             ChromeContext context)
         {
             _manufacturingOrderRepository = manufacturingOrderRepository;
+            _manufacturingOrderDetailRepository = manufacturingOrderDetailRepository;
             _orderTypeRepository = orderTypeRepository;
             _accountRepository = accountRepository;
             _statusMasterRepository = statusMasterRepository;
@@ -91,7 +96,7 @@ namespace Chrome.Services.ManufacturingOrderService
             {
                 // Lấy phiên bản BOM hoạt động
                 var lstBomVersion = await _bomMasterRepository.GetListVersionByBomCode(manufacturingOrder.Bomcode);
-                var bomVersionActived = lstBomVersion.FirstOrDefault(x => x.IsActive==true);
+                var bomVersionActived = lstBomVersion.FirstOrDefault(x => x.IsActive == true);
                 if (bomVersionActived == null)
                     return new ServiceResponse<List<ProductShortageDTO>>(false, $"Không tìm thấy phiên bản BOM hoạt động cho mã {manufacturingOrder.Bomcode}.");
 
@@ -191,7 +196,7 @@ namespace Chrome.Services.ManufacturingOrderService
 
             // 4. Lấy phiên bản BOM đang hoạt động
             var lstBomVersion = await _bomMasterRepository.GetListVersionByBomCode(manufacturingOrder.Bomcode);
-            var bomVersionActived = lstBomVersion.FirstOrDefault(x => x.IsActive==true);
+            var bomVersionActived = lstBomVersion.FirstOrDefault(x => x.IsActive == true);
             if (bomVersionActived == null)
                 return new ServiceResponse<bool>(false, $"Không tìm thấy phiên bản BOM hoạt động cho mã {manufacturingOrder.Bomcode}.");
 
@@ -357,7 +362,7 @@ namespace Chrome.Services.ManufacturingOrderService
                         Quantity = x.Quantity,
                         QuantityProduced = x.QuantityProduced
                     })
-                    .OrderBy(x => x.ManufacturingOrderCode)
+                    .OrderBy(x => x.StatusId)
                     .Skip((page - 1) * pageSize)
                     .Take(pageSize)
                     .ToListAsync();
@@ -498,7 +503,7 @@ namespace Chrome.Services.ManufacturingOrderService
                         Quantity = x.Quantity,
                         QuantityProduced = x.QuantityProduced
                     })
-                    .OrderBy(x => x.ManufacturingOrderCode)
+                    .OrderBy(x => x.StatusId)
                     .Skip((page - 1) * pageSize)
                     .Take(pageSize)
                     .ToListAsync();
@@ -534,18 +539,18 @@ namespace Chrome.Services.ManufacturingOrderService
                 try
                 {
                     existingOrder.QuantityProduced = manufacturingOrder.QuantityProduced;
-                    if(existingOrder.QuantityProduced>0 && existingOrder.QuantityProduced<existingOrder.Quantity)
+                    if (existingOrder.QuantityProduced > 0 && existingOrder.QuantityProduced < existingOrder.Quantity)
                     {
                         existingOrder.StatusId = 2;
                     }
                     var manufacturingDetails = await _context.ManufacturingOrderDetails.Where(x => x.ManufacturingOrderCode == existingOrder.ManufacturingOrderCode).ToListAsync();
-                    foreach(var detail in manufacturingDetails )
+                    foreach (var detail in manufacturingDetails)
                     {
                         var percent = (float)manufacturingOrder.QuantityProduced! / manufacturingOrder.Quantity;
 
-                        detail.ConsumedQuantity=Math.Round((double)( percent*detail.ToConsumeQuantity)!,3);
-                    }    
-                    
+                        detail.ConsumedQuantity = Math.Round((double)(percent * detail.ToConsumeQuantity)!, 3);
+                    }
+
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
                     return new ServiceResponse<bool>(true, "Cập nhật lệnh sản xuất thành công");
@@ -588,11 +593,28 @@ namespace Chrome.Services.ManufacturingOrderService
                 return new ServiceResponse<bool>(false, "Lệnh sản xuất không tồn tại");
             }
 
+            if (manufacturingOrder.StatusId >= 2)
+            {
+                return new ServiceResponse<bool>(false, "Lệnh sản xuất đang thực hiện không thể xóa");
+            }
+
+            var manufacturingOrderDetail = await _manufacturingOrderDetailRepository.GetManufacturingOrderDetail(manufacturingCode).ToListAsync();
+            if (manufacturingOrderDetail == null)
+            {
+                return new ServiceResponse<bool>(false, "Không tìm thấy chi tiết lệnh sản xuất");
+            }
             using (var transaction = await _context.Database.BeginTransactionAsync())
             {
                 try
                 {
-                    await _manufacturingOrderRepository.DeleteAsync(manufacturingOrder, saveChanges: false);
+                    foreach (var item in manufacturingOrderDetail)
+                    {
+                        Expression<Func<ManufacturingOrderDetail, bool>> expression = x => x.ManufacturingOrderCode == item.ManufacturingOrderCode && x.ComponentCode == item.ComponentCode;
+                        await _manufacturingOrderDetailRepository.DeleteFirstByConditionAsync(expression, saveChanges: false);
+                    }
+                   
+                    await _manufacturingOrderRepository.DeleteAsync(manufacturingCode, saveChanges: false);
+                    
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
                     return new ServiceResponse<bool>(true, "Xóa lệnh sản xuất thành công");
@@ -648,7 +670,7 @@ namespace Chrome.Services.ManufacturingOrderService
             {
                 var lstResponsible = await _accountRepository.GetAllAccount(1, int.MaxValue);
                 var lstResponsibleResponse = lstResponsible
-                    .Where(x => !x.GroupId!.StartsWith("ADMIN") && !x.GroupId.StartsWith("QLKHO") && x.Group!.GroupFunctions.Select(x=>x.ApplicableLocation).FirstOrDefault()==warehouseCode)
+                    .Where(x => !x.GroupId!.StartsWith("ADMIN") && !x.GroupId.StartsWith("QLKHO") && !x.GroupId.StartsWith("QLSX") && x.Group!.GroupFunctions.Select(x => x.ApplicableLocation).FirstOrDefault() == warehouseCode)
                     .Select(x => new AccountManagementResponseDTO
                     {
                         UserName = x.UserName,
@@ -866,10 +888,10 @@ namespace Chrome.Services.ManufacturingOrderService
                     manufacturing.Quantity = manufacturing.QuantityProduced;
 
                     var manufacturingDetail = await _context.ManufacturingOrderDetails.Where(x => x.ManufacturingOrderCode == manufacturingCode).ToListAsync();
-                    foreach(var detail in manufacturingDetail)
+                    foreach (var detail in manufacturingDetail)
                     {
                         detail.ToConsumeQuantity = detail.ConsumedQuantity;
-                    }    
+                    }
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
 
@@ -1054,7 +1076,7 @@ namespace Chrome.Services.ManufacturingOrderService
             {
                 var query = _manufacturingOrderRepository.GetAllManufacturingOrder(warehouseCodes);
                 var result = await query
-                    .Where(x=>x.Responsible==responsible)
+                    .Where(x => x.Responsible == responsible)
                     .Select(x => new ManufacturingOrderResponseDTO
                     {
                         ManufacturingOrderCode = x.ManufacturingOrderCode,
@@ -1081,7 +1103,7 @@ namespace Chrome.Services.ManufacturingOrderService
                     .Take(pageSize)
                     .ToListAsync();
 
-                var totalItems = await query.Where(x=>x.Responsible==responsible).CountAsync();
+                var totalItems = await query.Where(x => x.Responsible == responsible).CountAsync();
                 var pagedResponse = new PagedResponse<ManufacturingOrderResponseDTO>(result, page, pageSize, totalItems);
 
                 return new ServiceResponse<PagedResponse<ManufacturingOrderResponseDTO>>(true, "Lấy danh sách lệnh sản xuất thành công", pagedResponse);
@@ -1103,7 +1125,7 @@ namespace Chrome.Services.ManufacturingOrderService
             {
                 var query = _manufacturingOrderRepository.SearchManufacturingAsync(warehouseCodes, textToSearch);
                 var result = await query
-                    .Where(x=>x.Responsible == responsible)
+                    .Where(x => x.Responsible == responsible)
                     .Select(x => new ManufacturingOrderResponseDTO
                     {
                         ManufacturingOrderCode = x.ManufacturingOrderCode,

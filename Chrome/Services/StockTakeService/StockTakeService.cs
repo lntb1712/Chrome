@@ -69,6 +69,7 @@ namespace Chrome.Services.StockTakeService
                         StatusId = st.StatusId,
                         StatusName = st.Status!.StatusName
                     })
+                    .OrderBy(x=>x.StatusId)
                     .ToListAsync();
 
                 var pagedResponse = new PagedResponse<StockTakeResponseDTO>(StockTakes, page, pageSize, totalItems);
@@ -142,6 +143,7 @@ namespace Chrome.Services.StockTakeService
                         StatusId = st.StatusId,
                         StatusName = st.Status!.StatusName
                     })
+                    .OrderBy(x=>x.StatusId)
                     .ToListAsync();
 
                 var pagedResponse = new PagedResponse<StockTakeResponseDTO>(StockTakes, page, pageSize, totalItems);
@@ -372,7 +374,7 @@ namespace Chrome.Services.StockTakeService
 
                 var accounts = await _accountRepository.GetAllAccount(1, int.MaxValue);
                 var responsibleList = accounts
-                    .Where(x => !x.GroupId!.StartsWith("ADMIN") && !x.GroupId.StartsWith("QLKHO") && x.Group!.GroupFunctions.Select(x => x.ApplicableLocation).FirstOrDefault() == warehouseCode)
+                    .Where(x => !x.GroupId!.StartsWith("ADMIN") && !x.GroupId.StartsWith("QLKHO") && !x.GroupId.StartsWith("QLSX") && x.Group!.GroupFunctions.Select(x => x.ApplicableLocation).FirstOrDefault() == warehouseCode)
                     .Select(x => new AccountManagementResponseDTO
                     {
                         UserName = x.UserName,

@@ -182,7 +182,7 @@ namespace Chrome.Services.MovementService
                     MovementDate = x.MovementDate!.Value.ToString("dd/MM/yyyy"),
                     MovementDescription = x.MovementDescription
                 })
-                .OrderBy(x => x.MovementCode)
+                .OrderBy(x => x.StatusId)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
@@ -306,7 +306,7 @@ namespace Chrome.Services.MovementService
         {
             var lstResponsible = await _accountRepository.GetAllAccount(1, int.MaxValue);
             var lstResponsibleForMovement = lstResponsible
-                .Where(x => !x.GroupId!.StartsWith("ADMIN") && !x.GroupId.StartsWith("QLKHO") &&x.Group!.GroupFunctions.Select(x=>x.ApplicableLocation).FirstOrDefault()==warehouseCode)
+                .Where(x => !x.GroupId!.StartsWith("ADMIN") && !x.GroupId.StartsWith("QLKHO") && !x.GroupId.StartsWith("QLSX") && x.Group!.GroupFunctions.Select(x=>x.ApplicableLocation).FirstOrDefault()==warehouseCode)
                 .Select(x => new AccountManagementResponseDTO
                 {
                     UserName = x.UserName,
@@ -421,7 +421,7 @@ namespace Chrome.Services.MovementService
                     MovementDate = x.MovementDate!.Value.ToString("dd/MM/yyyy"),
                     MovementDescription = x.MovementDescription
                 })
-                .OrderBy(x => x.MovementCode)
+                .OrderBy(x => x.StatusId)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
