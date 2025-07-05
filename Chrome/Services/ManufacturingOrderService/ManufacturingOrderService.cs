@@ -642,13 +642,13 @@ namespace Chrome.Services.ManufacturingOrderService
             }
         }
 
-        public async Task<ServiceResponse<List<AccountManagementResponseDTO>>> GetListResponsibleAsync()
+        public async Task<ServiceResponse<List<AccountManagementResponseDTO>>> GetListResponsibleAsync(string warehouseCode)
         {
             try
             {
                 var lstResponsible = await _accountRepository.GetAllAccount(1, int.MaxValue);
                 var lstResponsibleResponse = lstResponsible
-                    .Where(x => !x.GroupId!.StartsWith("ADMIN") && !x.GroupId.StartsWith("QLKHO"))
+                    .Where(x => !x.GroupId!.StartsWith("ADMIN") && !x.GroupId.StartsWith("QLKHO") && x.Group!.GroupFunctions.Select(x=>x.ApplicableLocation).FirstOrDefault()==warehouseCode)
                     .Select(x => new AccountManagementResponseDTO
                     {
                         UserName = x.UserName,

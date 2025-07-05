@@ -26,7 +26,7 @@ namespace Chrome.Services.ManufacturingOrderService
         Task<ServiceResponse<bool>> CreateBackOrder(string manufacturingCode);
         Task<ServiceResponse<bool>> CheckAndUpdateBackOrderStatus(string manufacturingCode);
         Task<ServiceResponse<List<OrderTypeResponseDTO>>> GetListOrderTypeAsync(string prefix);
-        Task<ServiceResponse<List<AccountManagementResponseDTO>>> GetListResponsibleAsync();
+        Task<ServiceResponse<List<AccountManagementResponseDTO>>> GetListResponsibleAsync(string warehouseCode);
         Task<ServiceResponse<List<StatusMasterResponseDTO>>> GetListStatusMasterAsync();
         Task<ServiceResponse<List<ProductMasterResponseDTO>>> GetListProductMasterIsFGAndSFG();
         Task<ServiceResponse<List<WarehouseMasterResponseDTO>>> GetListWarehousePermissionAsync(string[] warehouseCodes);

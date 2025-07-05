@@ -257,11 +257,11 @@ namespace Chrome.Controllers
         }
 
         [HttpGet("GetListResponsible")]
-        public async Task<IActionResult> GetListResponsible()
+        public async Task<IActionResult> GetListResponsible([FromQuery] string warehouseCode)
         {
             try
             {
-                var response = await _manufacturingOrderService.GetListResponsibleAsync();
+                var response = await _manufacturingOrderService.GetListResponsibleAsync(warehouseCode);
                 if (!response.Success)
                 {
                     return BadRequest(new { Success = false, Message = response.Message });
