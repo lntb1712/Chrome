@@ -58,5 +58,22 @@ namespace Chrome.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, new { Success = false, Message = $"Lỗi: {ex.Message}" });
             }
         }
+        [HttpGet("GetForecastManufacturingOrderDetail")]
+        public async Task<IActionResult> GetForecastManufacturingOrderDetail([FromQuery] string manufacturingOrderCode, [FromQuery] string productCode)
+        {
+            try
+            {
+                var response = await _manufacturingOrderDetailService.GetForecastManufacturingOrderDetail(manufacturingOrderCode, productCode);
+                if (!response.Success)
+                {
+                    return NotFound(new { Success = false, Message = response.Message });
+                }
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new { Success = false, Message = $"Lỗi: {ex.Message}" });
+            }
+        }
     }
 }

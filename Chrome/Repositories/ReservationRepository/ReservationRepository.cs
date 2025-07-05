@@ -18,6 +18,7 @@ namespace Chrome.Repositories.ReservationRepository
         public IQueryable<Reservation> GetAllReservationsAsync(string[] warehouseCodes)
         {
             var reservations = _context.Reservations
+                .Include(x=>x.ReservationDetails)
                 .Include(x => x.OrderTypeCodeNavigation)
                 .Include(x => x.WarehouseCodeNavigation)
                 .Include(x => x.Status)

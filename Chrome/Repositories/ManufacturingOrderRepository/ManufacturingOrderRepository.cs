@@ -15,6 +15,7 @@ namespace Chrome.Repositories.ManufacturingOrderRepository
         public IQueryable<ManufacturingOrder> GetAllManufacturingOrder(string[] warehouseCodes)
         {
             var lstManufact = _context.ManufacturingOrders
+                                      .Include(x=>x.ManufacturingOrderDetails)
                                       .Include(x => x.OrderTypeCodeNavigation)
                                       .Include(x => x.WarehouseCodeNavigation)
                                       .Include(x => x.ProductCodeNavigation)

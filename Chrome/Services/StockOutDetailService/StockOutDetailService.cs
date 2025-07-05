@@ -2,7 +2,10 @@
 using Chrome.DTO.ProductMasterDTO;
 using Chrome.DTO.StockOutDetailDTO;
 using Chrome.Models;
+using Chrome.Repositories.InventoryRepository;
+using Chrome.Repositories.ManufacturingOrderRepository;
 using Chrome.Repositories.ProductMasterRepository;
+using Chrome.Repositories.ReservationRepository;
 using Chrome.Repositories.StockOutDetailRepository;
 using Chrome.Repositories.StockOutRepository;
 using Microsoft.EntityFrameworkCore;
@@ -15,17 +18,26 @@ namespace Chrome.Services.StockOutDetailService
         private readonly IStockOutDetailRepository _stockOutDetailRepository;
         private readonly IStockOutRepository _stockOutRepository;
         private readonly IProductMasterRepository _productMasterRepository;
+        private readonly IInventoryRepository _inventoryRepository;
+        private readonly IReservationRepository _reservationRepository;
+        private readonly IManufacturingOrderRepository _manufacturingOrderRepository;
         private readonly ChromeContext _context;
 
         public StockOutDetailService(
             IStockOutDetailRepository stockOutDetailRepository,
             IStockOutRepository stockOutRepository,
             IProductMasterRepository productMasterRepository,
+            IInventoryRepository inventoryRepository,
+            IReservationRepository reservationRepository,
+            IManufacturingOrderRepository manufacturingOrderRepository,
             ChromeContext context)
         {
             _stockOutDetailRepository = stockOutDetailRepository;
             _stockOutRepository = stockOutRepository;
             _productMasterRepository = productMasterRepository;
+            _inventoryRepository = inventoryRepository;
+            _reservationRepository = reservationRepository;
+            _manufacturingOrderRepository = manufacturingOrderRepository;
             _context = context;
         }
 
@@ -291,6 +303,63 @@ namespace Chrome.Services.StockOutDetailService
             var pagedResponse = new PagedResponse<StockOutDetailResponseDTO>(lstStockOutDetails, page, pageSize, totalItems);
             return new ServiceResponse<PagedResponse<StockOutDetailResponseDTO>>(true, "Lấy danh sách xuất kho thành công", pagedResponse);
         }
+
+        public async Task<ServiceResponse<ForecastStockOutDetailDTO>> GetForecastStockOutDetail(string stockOutCode, string productCode)
+        {
+            if (string.IsNullOrEmpty(stockOutCode) || string.IsNullOrEmpty(productCode))
+            {
+                return new ServiceResponse<ForecastStockOutDetailDTO>(false, "Mã phiếu xuất và sản phẩm chọn không được để trống");
+            }
+
+            try
+            {
+                // Lấy thông tin phiếu xuất
+                var stockOut = await _stockOutRepository.GetStockOutWithCode(stockOutCode);
+                if (stockOut == null)
+                {
+                    return new ServiceResponse<ForecastStockOutDetailDTO>(false, "Không tìm thấy phiếu xuất kho");
+                }
+
+                // Lấy tồn kho hiện tại của sản phẩm tại kho đó
+                var inventoryList = await _inventoryRepository.GetInventoryByProductCodeAsync(productCode, stockOut.WarehouseCode!).ToListAsync();
+                var quantityOnHand = inventoryList.Sum(x => x.Quantity);
+
+                // Lấy tổng số lượng reservation đang giữ cho sản phẩm đó tại kho
+                var reservations = await _reservationRepository.GetAllReservationsAsync(new string[] { stockOut.WarehouseCode! }).Where(x => x.StatusId != 3 && !x.ReservationCode.StartsWith("MV")).ToListAsync();
+                var quantityReserved = reservations
+                    .SelectMany(r => r.ReservationDetails)
+                    .Where(d => d.ProductCode == productCode)
+                    .Sum(d => d.QuantityReserved);
+
+                // Lấy tổng số lượng inbound (từ manufacturing order có deadline <= ngày xuất hàng)
+                var manufacturingOrders = await _manufacturingOrderRepository.GetAllManufacturingOrder(new string[] { stockOut.WarehouseCode! }).ToListAsync();
+                var quantityInBound = manufacturingOrders
+                    .Where(x => x.ProductCode == productCode && x.Deadline <= stockOut.StockOutDate)
+                    .Sum(x => x.Quantity);
+
+                // Tính khả dụng (ATP)
+                var availableQty = quantityOnHand - quantityReserved + quantityInBound;
+
+                // Build kết quả trả về
+                var result = new ForecastStockOutDetailDTO
+                {
+                    StockOutCode = stockOutCode,
+                    ProductCode = productCode,
+                    QuantityOnHand = quantityOnHand,
+                    QuantityToOutBound = quantityReserved,
+                    QuantityToInBound = quantityInBound,
+                    AvailableQty = availableQty
+                };
+
+                return new ServiceResponse<ForecastStockOutDetailDTO>(true, "Lấy thông tin tồn kho thành công", result);
+            }
+            catch (Exception ex)
+            {
+                return new ServiceResponse<ForecastStockOutDetailDTO>(false, ex.Message);
+            }
+        }
+
+
 
         public async Task<ServiceResponse<List<ProductMasterResponseDTO>>> GetListProductToSO()
         {
