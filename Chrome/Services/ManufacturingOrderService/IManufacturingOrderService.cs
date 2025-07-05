@@ -14,9 +14,11 @@ namespace Chrome.Services.ManufacturingOrderService
     public interface IManufacturingOrderService
     {
         Task<ServiceResponse<PagedResponse<ManufacturingOrderResponseDTO>>> GetAllManufacturingOrdersAsync(string[] warehouseCodes, int page, int pageSize);
+        Task<ServiceResponse<PagedResponse<ManufacturingOrderResponseDTO>>> GetAllManufacturingOrdersAsyncWithResponsible(string[] warehouseCodes,string responsible, int page, int pageSize);
         Task<ServiceResponse<PagedResponse<ManufacturingOrderResponseDTO>>> GetAllManufacturingOrdersWithStatusAsync(string[] warehouseCodes, int statusId, int page, int pageSize);
         Task<ServiceResponse<ManufacturingOrderResponseDTO>> GetManufacturingOrderByCodeAsync(string manufacturingCode);
         Task<ServiceResponse<PagedResponse<ManufacturingOrderResponseDTO>>> SearchManufacturingOrdersAsync(string[] warehouseCodes, string textToSearch, int page, int pageSize);
+        Task<ServiceResponse<PagedResponse<ManufacturingOrderResponseDTO>>> SearchManufacturingOrdersAsyncWithResponsible(string[] warehouseCodes,string responsible, string textToSearch, int page, int pageSize);
         Task<ServiceResponse<bool>> AddManufacturingOrderAsync(ManufacturingOrderRequestDTO manufacturingOrder);
         Task<ServiceResponse<bool>> UpdateManufacturingOrderAsync(ManufacturingOrderRequestDTO manufacturingOrder);
         Task<ServiceResponse<bool>> DeleteManufacturingOrderAsync(string manufacturingCode);
@@ -29,6 +31,6 @@ namespace Chrome.Services.ManufacturingOrderService
         Task<ServiceResponse<List<ProductMasterResponseDTO>>> GetListProductMasterIsFGAndSFG();
         Task<ServiceResponse<List<WarehouseMasterResponseDTO>>> GetListWarehousePermissionAsync(string[] warehouseCodes);
         Task<ServiceResponse<BOMMasterResponseDTO>> GetListBomMasterAsync(string productCode);
-        Task<ServiceResponse<List<ProductShortageDTO>>> CheckInventoryShortageForManufacturingOrderAsync(string manufacturingOrderCode, string warehouseCode);
+        Task<ServiceResponse<List<ProductShortageDTO>>> CheckInventoryShortageForManufacturingOrderAsync(ManufacturingOrderRequestDTO manufacturingOrder);
     }
 }

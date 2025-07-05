@@ -58,6 +58,24 @@ namespace Chrome.Controllers
             }
         }
 
+        [HttpGet("GetAllManufacturingOrdersAsyncWithResponsible")]
+        public async Task<IActionResult> GetAllManufacturingOrdersAsyncWithResponsible([FromQuery] string[] warehouseCodes,[FromQuery]string responsible, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+        {
+            try
+            {
+                var response = await _manufacturingOrderService.GetAllManufacturingOrdersAsyncWithResponsible(warehouseCodes,responsible, page, pageSize);
+                if (!response.Success)
+                {
+                    return BadRequest(new { Success = false, Message = response.Message });
+                }
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new { Success = false, Message = $"Lỗi: {ex.Message}" });
+            }
+        }
+
         [HttpGet("GetAllManufacturingOrdersWithStatus")]
         public async Task<IActionResult> GetAllManufacturingOrdersWithStatus([FromQuery] string[] warehouseCodes, [FromQuery] int statusId, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
         {
@@ -100,6 +118,24 @@ namespace Chrome.Controllers
             try
             {
                 var response = await _manufacturingOrderService.SearchManufacturingOrdersAsync(warehouseCodes, textToSearch, page, pageSize);
+                if (!response.Success)
+                {
+                    return BadRequest(new { Success = false, Message = response.Message });
+                }
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new { Success = false, Message = $"Lỗi: {ex.Message}" });
+            }
+        }
+
+        [HttpGet("SearchManufacturingOrdersAsyncWithResponsible")]
+        public async Task<IActionResult> SearchManufacturingOrdersAsyncWithResponsible([FromQuery] string[] warehouseCodes,[FromQuery] string responsible, [FromQuery] string textToSearch, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+        {
+            try
+            {
+                var response = await _manufacturingOrderService.SearchManufacturingOrdersAsyncWithResponsible(warehouseCodes,responsible, textToSearch, page, pageSize);
                 if (!response.Success)
                 {
                     return BadRequest(new { Success = false, Message = response.Message });
@@ -309,26 +345,6 @@ namespace Chrome.Controllers
             }
         }
 
-        [HttpGet("CheckInventoryShortageForManufacturingOrderAsync")]
-        public async Task<IActionResult> CheckInventoryShortageForManufacturingOrderAsync([FromQuery] string manufacturingOrderCode, [FromQuery] string warehouseCode)
-        {
-            try
-            {
-                var response = await _manufacturingOrderService.CheckInventoryShortageForManufacturingOrderAsync(manufacturingOrderCode, warehouseCode);
-                if (!response.Success)
-                {
-                    return NotFound(new
-                    {
-                        Success = true,
-                        Message = response.Message
-                    });
-                }
-                return Ok(response);
-            }
-            catch(Exception ex)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, $"Lỗi : {ex.Message}");
-            }
-        }
+        
     }
 }

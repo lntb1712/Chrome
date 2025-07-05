@@ -38,6 +38,27 @@ public class StockTakeController : ControllerBase
             return StatusCode(StatusCodes.Status500InternalServerError, $"Lỗi: {ex.Message}");
         }
     }
+    [HttpGet("GetAllStockTakesAsyncWithResponsible")]
+    public async Task<IActionResult> GetAllStockTakesAsyncWithResponsible([FromQuery] string[] warehouseCodes,[FromQuery]string responsible, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+    {
+        try
+        {
+            var response = await _StockTakeService.GetAllStockTakesAsyncWithResponsible(warehouseCodes,responsible, page, pageSize);
+            if (!response.Success)
+            {
+                return NotFound(new
+                {
+                    Success = false,
+                    Message = response.Message
+                });
+            }
+            return Ok(response);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, $"Lỗi: {ex.Message}");
+        }
+    }
 
     [HttpGet("GetStockTakesByStatus")]
     public async Task<IActionResult> GetStockTakesByStatus([FromQuery] string[] warehouseCodes, [FromQuery] int statusId, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
@@ -67,6 +88,27 @@ public class StockTakeController : ControllerBase
         try
         {
             var response = await _StockTakeService.SearchStockTakesAsync(warehouseCodes, textToSearch, page, pageSize);
+            if (!response.Success)
+            {
+                return NotFound(new
+                {
+                    Success = false,
+                    Message = response.Message
+                });
+            }
+            return Ok(response);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, $"Lỗi: {ex.Message}");
+        }
+    }
+    [HttpGet("SearchStockTakesAsyncWithResponsible")]
+    public async Task<IActionResult> SearchStockTakesAsyncWithResponsible([FromQuery] string[] warehouseCodes,[FromQuery]string responsible ,[FromQuery] string textToSearch, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+    {
+        try
+        {
+            var response = await _StockTakeService.SearchStockTakesAsyncWithResponsible(warehouseCodes,responsible, textToSearch, page, pageSize);
             if (!response.Success)
             {
                 return NotFound(new

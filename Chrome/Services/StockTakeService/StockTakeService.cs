@@ -494,5 +494,79 @@ namespace Chrome.Services.StockTakeService
                 return new ServiceResponse<bool>(false, $"Lỗi khi cập nhật kiểm kho: {ex.Message}");
             }
         }
+
+        public async Task<ServiceResponse<PagedResponse<StockTakeResponseDTO>>> GetAllStockTakesAsyncWithResponsible(string[] warehouseCodes, string responsible, int page = 1, int pageSize = 10)
+        {
+            try
+            {
+                if (warehouseCodes.Length == 0 || page < 1 || pageSize < 1)
+                {
+                    return new ServiceResponse<PagedResponse<StockTakeResponseDTO>>(false, "Dữ liệu nhận vào không hợp lệ");
+                }
+
+                var query = _StockTakeRepository.GetAllStockTakesAsync(warehouseCodes);
+                var totalItems = await query.Where(x => x.Responsible == responsible).CountAsync();
+                var StockTakes = await query
+                    .Where(x=>x.Responsible==responsible)
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
+                    .Select(st => new StockTakeResponseDTO
+                    {
+                        StocktakeCode = st.StocktakeCode,
+                        StocktakeDate = st.StocktakeDate!.Value.ToString("dd/MM/yyyy"),
+                        WarehouseCode = st.WarehouseCode,
+                        WarehouseName = st.WarehouseCodeNavigation!.WarehouseName,
+                        Responsible = st.Responsible,
+                        FullNameResponsible = st.ResponsibleNavigation!.FullName,
+                        StatusId = st.StatusId,
+                        StatusName = st.Status!.StatusName
+                    })
+                    .ToListAsync();
+
+                var pagedResponse = new PagedResponse<StockTakeResponseDTO>(StockTakes, page, pageSize, totalItems);
+                return new ServiceResponse<PagedResponse<StockTakeResponseDTO>>(true, "Lấy danh sách kiểm kho thành công", pagedResponse);
+            }
+            catch (Exception ex)
+            {
+                return new ServiceResponse<PagedResponse<StockTakeResponseDTO>>(false, $"Lỗi khi lấy danh sách kiểm kho: {ex.Message}");
+            }
+        }
+
+        public async Task<ServiceResponse<PagedResponse<StockTakeResponseDTO>>> SearchStockTakesAsyncWithResponsible(string[] warehouseCodes, string responsible, string textToSearch, int page = 1, int pageSize = 10)
+        {
+            try
+            {
+                if (warehouseCodes.Length == 0 || page < 1 || pageSize < 1)
+                {
+                    return new ServiceResponse<PagedResponse<StockTakeResponseDTO>>(false, "Dữ liệu nhận vào không hợp lệ");
+                }
+
+                var query = _StockTakeRepository.SearchStockTakesAsync(warehouseCodes, textToSearch);
+                var totalItems = await query.Where(x => x.Responsible == responsible).CountAsync();
+                var StockTakes = await query
+                    .Where(x => x.Responsible == responsible)
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
+                    .Select(st => new StockTakeResponseDTO
+                    {
+                        StocktakeCode = st.StocktakeCode,
+                        StocktakeDate = st.StocktakeDate!.Value.ToString("dd/MM/yyyy"),
+                        WarehouseCode = st.WarehouseCode,
+                        WarehouseName = st.WarehouseCodeNavigation!.WarehouseName,
+                        Responsible = st.Responsible,
+                        FullNameResponsible = st.ResponsibleNavigation!.FullName,
+                        StatusId = st.StatusId,
+                        StatusName = st.Status!.StatusName
+                    })
+                    .ToListAsync();
+
+                var pagedResponse = new PagedResponse<StockTakeResponseDTO>(StockTakes, page, pageSize, totalItems);
+                return new ServiceResponse<PagedResponse<StockTakeResponseDTO>>(true, "Tìm kiếm kiểm kho thành công", pagedResponse);
+            }
+            catch (Exception ex)
+            {
+                return new ServiceResponse<PagedResponse<StockTakeResponseDTO>>(false, $"Lỗi khi tìm kiếm kiểm kho: {ex.Message}");
+            }
+        }
     }
 }

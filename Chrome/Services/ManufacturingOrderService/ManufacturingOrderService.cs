@@ -5,8 +5,10 @@ using Chrome.DTO.BOMMasterDTO;
 using Chrome.DTO.ManufacturingOrderDTO;
 using Chrome.DTO.OrderDetailBaseDTO;
 using Chrome.DTO.OrderTypeDTO;
+using Chrome.DTO.PickListDTO;
 using Chrome.DTO.ProductMasterDTO;
 using Chrome.DTO.PutAwayDTO;
+using Chrome.DTO.ReservationDTO;
 using Chrome.DTO.StatusMasterDTO;
 using Chrome.DTO.WarehouseMasterDTO;
 using Chrome.Models;
@@ -21,7 +23,9 @@ using Chrome.Repositories.PutAwayRulesRepository;
 using Chrome.Repositories.StatusMasterRepository;
 using Chrome.Repositories.WarehouseMasterRepository;
 using Chrome.Services.ManufacturingOrderService;
+using Chrome.Services.PickListService;
 using Chrome.Services.PutAwayService;
+using Chrome.Services.ReservationService;
 using DocumentFormat.OpenXml.Office2016.Drawing.ChartDrawing;
 using DocumentFormat.OpenXml.Wordprocessing;
 using Microsoft.EntityFrameworkCore;
@@ -46,6 +50,8 @@ namespace Chrome.Services.ManufacturingOrderService
         private readonly IPutAwayService _putAwayService;
         private readonly IProductMasterRepository _productMasterRepository;
         private readonly IInventoryRepository _inventoryRepository;
+        private readonly IReservationService _reservationService;
+        private readonly IPickListService _pickListService;
         private readonly ChromeContext _context;
 
         public ManufacturingOrderService(
@@ -60,6 +66,8 @@ namespace Chrome.Services.ManufacturingOrderService
             IPutAwayService putAwayService,
             IProductMasterRepository productMasterRepository,
             IInventoryRepository inventoryRepository,
+            IReservationService reservationService,
+            IPickListService pickListService,
             ChromeContext context)
         {
             _manufacturingOrderRepository = manufacturingOrderRepository;
@@ -73,50 +81,50 @@ namespace Chrome.Services.ManufacturingOrderService
             _putAwayService = putAwayService;
             _productMasterRepository = productMasterRepository;
             _inventoryRepository = inventoryRepository;
+            _reservationService = reservationService;
+            _pickListService = pickListService;
             _context = context;
         }
-        public async Task<ServiceResponse<List<ProductShortageDTO>>> CheckInventoryShortageForManufacturingOrderAsync(string manufacturingOrderCode, string warehouseCode)
+        public async Task<ServiceResponse<List<ProductShortageDTO>>> CheckInventoryShortageForManufacturingOrderAsync(ManufacturingOrderRequestDTO manufacturingOrder)
         {
             try
             {
-                // Get order details for the manufacturing order
-                var orderDetails = await _context.ManufacturingOrderDetails
-                    .Where(od => od.ManufacturingOrderCode == manufacturingOrderCode)
-                    .Select(od => new OrderDetailBaseDTO
-                    {
-                        ProductCode = od.ComponentCode,
-                        Quantity = od.ToConsumeQuantity ?? 0
-                    })
-                    .ToListAsync();
+                // Lấy phiên bản BOM hoạt động
+                var lstBomVersion = await _bomMasterRepository.GetListVersionByBomCode(manufacturingOrder.Bomcode);
+                var bomVersionActived = lstBomVersion.FirstOrDefault(x => x.IsActive==true);
+                if (bomVersionActived == null)
+                    return new ServiceResponse<List<ProductShortageDTO>>(false, $"Không tìm thấy phiên bản BOM hoạt động cho mã {manufacturingOrder.Bomcode}.");
 
-                if (!orderDetails.Any())
-                {
-                    return new ServiceResponse<List<ProductShortageDTO>>(false, $"Không tìm thấy chi tiết BOM cho mã lệnh sản xuất {manufacturingOrderCode}");
-                }
+                // Lấy chi tiết BOM
+                var bomComponents = await _bomComponentRepository.GetAllBOMComponent(manufacturingOrder.Bomcode, bomVersionActived.Bomversion);
+                if (bomComponents == null || !bomComponents.Any())
+                    return new ServiceResponse<List<ProductShortageDTO>>(false, $"Không tìm thấy chi tiết BOM cho mã {manufacturingOrder.Bomcode} và phiên bản {bomVersionActived.Bomversion}.");
 
                 var shortageList = new List<ProductShortageDTO>();
 
-                // Check inventory for each product
-                foreach (var orderDetail in orderDetails)
+                foreach (var component in bomComponents)
                 {
-                    if (orderDetail.Quantity <= 0) continue;
+                    var requiredQuantity = component.ConsumpQuantity * manufacturingOrder.Quantity;
+                    if (requiredQuantity <= 0) continue;
 
-                    var inventoryItems = await _inventoryRepository.GetInventoryByProductCodeAsync(orderDetail.ProductCode!, warehouseCode)
-                        .OrderBy(x => x.ReceiveDate)
+                    // Tồn kho theo FIFO ReceiveDate
+                    var inventories = await _inventoryRepository.GetInventoryByProductCodeAsync(component.ComponentCode, manufacturingOrder.WarehouseCode!)
+                        .OrderBy(i => i.ReceiveDate)
                         .ToListAsync();
 
-                    double remainingQuantity = orderDetail.Quantity;
+                    double remainingQuantity = (double)requiredQuantity!;
 
-                    foreach (var inventory in inventoryItems)
+                    foreach (var inventory in inventories)
                     {
                         var reservedQuantity = await _context.ReservationDetails
                             .Include(rd => rd.ReservationCodeNavigation)
                             .Where(rd => rd.ProductCode == inventory.ProductCode &&
-                                        rd.LotNo == inventory.Lotno &&
-                                        rd.ReservationCodeNavigation!.StatusId != 3)
+                                         rd.LotNo == inventory.Lotno &&
+                                         rd.ReservationCodeNavigation!.StatusId != 3)
                             .SumAsync(rd => (double?)rd.QuantityReserved) ?? 0;
 
-                        double availableQuantity = (inventory.Quantity ?? 0) - reservedQuantity;
+                        var availableQuantity = (inventory.Quantity ?? 0) - reservedQuantity;
+
                         if (availableQuantity > 0)
                         {
                             remainingQuantity -= availableQuantity;
@@ -128,33 +136,34 @@ namespace Chrome.Services.ManufacturingOrderService
                     {
                         shortageList.Add(new ProductShortageDTO
                         {
-                            ProductCode = orderDetail.ProductCode,
+                            ProductCode = component.ComponentCode,
                             ProductName = (await _context.ProductMasters
-                                .Where(p => p.ProductCode == orderDetail.ProductCode)
+                                .Where(p => p.ProductCode == component.ComponentCode)
                                 .Select(p => p.ProductName)
-                                .FirstOrDefaultAsync()) ?? orderDetail.ProductCode,
-                            RequiredQuantity = orderDetail.Quantity,
+                                .FirstOrDefaultAsync()) ?? component.ComponentCode,
+                            RequiredQuantity = (double)requiredQuantity,
                             ShortageQuantity = remainingQuantity,
-                            WarehouseCode = warehouseCode
+                            WarehouseCode = manufacturingOrder.WarehouseCode
                         });
                     }
                 }
 
                 if (!shortageList.Any())
                 {
-                    return new ServiceResponse<List<ProductShortageDTO>>(true, "Đủ偶:Đủ tồn kho cho tất cả sản phẩm trong lệnh sản xuất", shortageList);
+                    return new ServiceResponse<List<ProductShortageDTO>>(true, "Đủ tồn kho cho tất cả thành phần", shortageList);
                 }
 
-                return new ServiceResponse<List<ProductShortageDTO>>(true, "Danh sách sản phẩm thiếu tồn kho", shortageList);
+                return new ServiceResponse<List<ProductShortageDTO>>(true, "Danh sách thành phần thiếu tồn kho", shortageList);
             }
             catch (Exception ex)
             {
-                return new ServiceResponse<List<ProductShortageDTO>>(false, $"Lỗi khi kiểm tra tồn kho: {ex.Message}");
+                return new ServiceResponse<List<ProductShortageDTO>>(false, $"Lỗi kiểm tra tồn kho: {ex.Message}");
             }
         }
+
         public async Task<ServiceResponse<bool>> AddManufacturingOrderAsync(ManufacturingOrderRequestDTO manufacturingOrder)
         {
-            // Kiểm tra dữ liệu đầu vào
+            // 1. Kiểm tra dữ liệu đầu vào
             if (manufacturingOrder == null ||
                 string.IsNullOrEmpty(manufacturingOrder.ManufacturingOrderCode) ||
                 string.IsNullOrEmpty(manufacturingOrder.ProductCode) ||
@@ -167,45 +176,60 @@ namespace Chrome.Services.ManufacturingOrderService
                 return new ServiceResponse<bool>(false, "Dữ liệu nhận vào không hợp lệ");
             }
 
-            // Kiểm tra định dạng ngày tháng
-            string[] formats = {
-                "M/d/yyyy h:mm:ss tt",
-                "MM/dd/yyyy hh:mm:ss tt",
-                "dd/MM/yyyy"
-            };
+            // 2. Kiểm tra định dạng ngày tháng
+            string[] formats = { "M/d/yyyy h:mm:ss tt", "MM/dd/yyyy hh:mm:ss tt", "dd/MM/yyyy" };
 
             if (!DateTime.TryParseExact(manufacturingOrder.ScheduleDate, formats, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime parsedScheduleDate))
-            {
-                return new ServiceResponse<bool>(false, "Ngày bắt đầu sản xuất không đúng định dạng. Vui lòng sử dụng dd/MM/yyyy hoặc M/d/yyyy h:mm:ss tt.");
-            }
+                return new ServiceResponse<bool>(false, "Ngày bắt đầu sản xuất không đúng định dạng.");
 
             if (!DateTime.TryParseExact(manufacturingOrder.Deadline, formats, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime parsedDeadline))
-            {
-                return new ServiceResponse<bool>(false, "Ngày hết hạn sản xuất không đúng định dạng. Vui lòng sử dụng dd/MM/yyyy hoặc M/d/yyyy h:mm:ss tt.");
-            }
+                return new ServiceResponse<bool>(false, "Ngày hết hạn sản xuất không đúng định dạng.");
 
-            // Kiểm tra ngày hợp lệ
+            // 3. Kiểm tra ngày hợp lệ
             if (parsedScheduleDate > parsedDeadline)
-            {
                 return new ServiceResponse<bool>(false, "Ngày bắt đầu sản xuất không thể lớn hơn ngày hết hạn.");
-            }
 
-            // Lấy phiên bản BOM hoạt động
+            // 4. Lấy phiên bản BOM đang hoạt động
             var lstBomVersion = await _bomMasterRepository.GetListVersionByBomCode(manufacturingOrder.Bomcode);
-            var bomVersionActived = lstBomVersion.FirstOrDefault(x => x.IsActive == true);
+            var bomVersionActived = lstBomVersion.FirstOrDefault(x => x.IsActive==true);
             if (bomVersionActived == null)
-            {
-                return new ServiceResponse<bool>(false, $"Không tìm thấy phiên bản BOM hoạt động cho mã BOM {manufacturingOrder.Bomcode}.");
-            }
+                return new ServiceResponse<bool>(false, $"Không tìm thấy phiên bản BOM hoạt động cho mã {manufacturingOrder.Bomcode}.");
 
-            // Lấy danh sách chi tiết BOM (bao gồm cả BOM con)
+            // 5. Lấy danh sách chi tiết BOM
             var bomComponents = await _bomComponentRepository.GetAllBOMComponent(manufacturingOrder.Bomcode, bomVersionActived.Bomversion);
             if (bomComponents == null || !bomComponents.Any())
-            {
                 return new ServiceResponse<bool>(false, $"Không tìm thấy chi tiết BOM cho mã {manufacturingOrder.Bomcode} và phiên bản {bomVersionActived.Bomversion}.");
+
+            // 6. Tạo danh sách ManufacturingOrderDetail từ BOM
+            var manufacturingDetails = new List<ManufacturingOrderDetail>();
+            foreach (var bomComponent in bomComponents)
+            {
+                // Lấy thông tin chi tiết từng component (bao gồm ScrapRate)
+                var componentDetail = await _bomComponentRepository.GetBomComponent(bomComponent.Bomcode, bomComponent.ComponentCode, bomComponent.BomVersion);
+
+                manufacturingDetails.Add(new ManufacturingOrderDetail
+                {
+                    ManufacturingOrderCode = manufacturingOrder.ManufacturingOrderCode,
+                    ComponentCode = bomComponent.ComponentCode,
+                    ToConsumeQuantity = bomComponent.ConsumpQuantity * manufacturingOrder.Quantity,
+                    ConsumedQuantity = 0,
+                    ScraptRate = componentDetail?.ScrapRate ?? 0
+                });
             }
 
-            // Tạo entity ManufacturingOrder
+            // 7. Kiểm tra tồn kho bằng hàm kiểm tra tồn kho tổng hợp đã viết sẵn
+            var shortageCheck = await CheckInventoryShortageForManufacturingOrderAsync(manufacturingOrder);
+            if (!shortageCheck.Success)
+                return new ServiceResponse<bool>(false, $"Lỗi kiểm tra tồn kho: {shortageCheck.Message}");
+
+            // Nếu thiếu tồn kho → thông báo lỗi, không tạo tiếp
+            if (shortageCheck.Data != null && shortageCheck.Data.Any())
+            {
+                var shortageList = string.Join("\n ", shortageCheck.Data.Select(x => $"{x.ProductCode} (thiếu {x.ShortageQuantity})"));
+                return new ServiceResponse<bool>(false, $"Không đủ tồn kho cho các thành phần: \n {shortageList}");
+            }
+
+            // 8. Tạo bản ghi ManufacturingOrder
             var manufacturing = new ManufacturingOrder
             {
                 ManufacturingOrderCode = manufacturingOrder.ManufacturingOrderCode,
@@ -223,38 +247,56 @@ namespace Chrome.Services.ManufacturingOrderService
                 WarehouseCode = manufacturingOrder.WarehouseCode
             };
 
-            // Tạo danh sách ManufacturingOrderDetail
-            var manufacturingDetails = new List<ManufacturingOrderDetail>();
-            foreach (var bomComponent in bomComponents)
-            {
-                // Lấy ScrapRate từ BomComponent (nếu cần)
-                var componentDetail = await _bomComponentRepository.GetBomComponent(
-                    bomComponent.Bomcode, bomComponent.ComponentCode, bomComponent.BomVersion);
-
-                manufacturingDetails.Add(new ManufacturingOrderDetail
-                {
-                    ManufacturingOrderCode = manufacturingOrder.ManufacturingOrderCode,
-                    ComponentCode = bomComponent.ComponentCode,
-                    ToConsumeQuantity = bomComponent.ConsumpQuantity * manufacturingOrder.Quantity, // Nhân với số lượng lệnh sản xuất
-                    ConsumedQuantity = 0, // Ban đầu chưa tiêu thụ
-                    ScraptRate = componentDetail?.ScrapRate ?? 0 // Lấy ScrapRate từ BomComponent hoặc mặc định là 0
-
-                });
-                
-            }
-
-            // Sử dụng transaction
+            // 9. Thêm vào database sử dụng transaction
             using (var transaction = await _context.Database.BeginTransactionAsync())
             {
                 try
                 {
-                    // Thêm ManufacturingOrder
+                    // Thêm lệnh sản xuất
                     await _manufacturingOrderRepository.AddAsync(manufacturing, saveChanges: false);
+                    // Thêm chi tiết lệnh sản xuất
                     await _context.ManufacturingOrderDetails.AddRangeAsync(manufacturingDetails);
-                    
 
+                    // Tạo Reservation
+                    var reservationCode = $"RES_{manufacturing.ManufacturingOrderCode}";
+                    var reservationRequest = new ReservationRequestDTO
+                    {
+                        ReservationCode = reservationCode,
+                        OrderTypeCode = manufacturing.OrderTypeCode,
+                        OrderId = manufacturing.ManufacturingOrderCode,
+                        ReservationDate = DateTime.Now.ToString("dd/MM/yyyy"),
+                        StatusId = 1,
+                        WarehouseCode = manufacturing.WarehouseCode
+                    };
+                    var reservationResponse = await _reservationService.AddOrUpdateReservation(reservationRequest, transaction);
+                    if (!reservationResponse.Success)
+                    {
+                        await transaction.RollbackAsync();
+                        return new ServiceResponse<bool>(false, $"Lỗi khi tạo reservation: {reservationResponse.Message}");
+                    }
+
+                    // Tạo Picklist
+                    var pickListCode = $"PICK_{manufacturing.ManufacturingOrderCode}";
+                    var pickListRequest = new PickListRequestDTO
+                    {
+                        PickNo = pickListCode,
+                        ReservationCode = reservationCode,
+                        WarehouseCode = manufacturing.WarehouseCode,
+                        Responsible = manufacturing.Responsible,
+                        PickDate = DateTime.Now.ToString("dd/MM/yyyy"),
+                        StatusId = 1
+                    };
+                    var pickListResponse = await _pickListService.AddPickList(pickListRequest, transaction);
+                    if (!pickListResponse.Success)
+                    {
+                        await transaction.RollbackAsync();
+                        return new ServiceResponse<bool>(false, $"Lỗi khi tạo picklist: {pickListResponse.Message}");
+                    }
+
+                    // Lưu thay đổi và commit transaction
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
+
                     return new ServiceResponse<bool>(true, "Thêm lệnh sản xuất và chi tiết thành công");
                 }
                 catch (DbUpdateException dbEx)
@@ -281,6 +323,7 @@ namespace Chrome.Services.ManufacturingOrderService
                 }
             }
         }
+
 
         public async Task<ServiceResponse<PagedResponse<ManufacturingOrderResponseDTO>>> GetAllManufacturingOrdersAsync(string[] warehouseCodes, int page, int pageSize)
         {
@@ -1000,5 +1043,102 @@ namespace Chrome.Services.ManufacturingOrderService
             }
         }
 
+        public async Task<ServiceResponse<PagedResponse<ManufacturingOrderResponseDTO>>> GetAllManufacturingOrdersAsyncWithResponsible(string[] warehouseCodes, string responsible, int page, int pageSize)
+        {
+            if (warehouseCodes.Length == 0 || page < 1 || pageSize < 1)
+            {
+                return new ServiceResponse<PagedResponse<ManufacturingOrderResponseDTO>>(false, "Dữ liệu nhận vào không hợp lệ");
+            }
+
+            try
+            {
+                var query = _manufacturingOrderRepository.GetAllManufacturingOrder(warehouseCodes);
+                var result = await query
+                    .Where(x=>x.Responsible==responsible)
+                    .Select(x => new ManufacturingOrderResponseDTO
+                    {
+                        ManufacturingOrderCode = x.ManufacturingOrderCode,
+                        ProductCode = x.ProductCode!,
+                        ProductName = x.ProductCodeNavigation!.ProductName!,
+                        WarehouseCode = x.WarehouseCode,
+                        WarehouseName = x.WarehouseCodeNavigation!.WarehouseName!,
+                        Bomcode = x.Bomcode!,
+                        BomVersion = x.BomVersion!,
+                        OrderTypeCode = x.OrderTypeCode,
+                        OrderTypeName = x.OrderTypeCodeNavigation!.OrderTypeName,
+                        Responsible = x.Responsible,
+                        FullNameResponsible = x.ResponsibleNavigation!.FullName,
+                        StatusId = x.StatusId,
+                        StatusName = x.Status!.StatusName!,
+                        Lotno = x.Lotno,
+                        ScheduleDate = x.ScheduleDate.HasValue ? x.ScheduleDate.Value.ToString("dd/MM/yyyy") : null,
+                        Deadline = x.Deadline.HasValue ? x.Deadline.Value.ToString("dd/MM/yyyy") : null,
+                        Quantity = x.Quantity,
+                        QuantityProduced = x.QuantityProduced
+                    })
+                    .OrderBy(x => x.ManufacturingOrderCode)
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
+                    .ToListAsync();
+
+                var totalItems = await query.Where(x=>x.Responsible==responsible).CountAsync();
+                var pagedResponse = new PagedResponse<ManufacturingOrderResponseDTO>(result, page, pageSize, totalItems);
+
+                return new ServiceResponse<PagedResponse<ManufacturingOrderResponseDTO>>(true, "Lấy danh sách lệnh sản xuất thành công", pagedResponse);
+            }
+            catch (Exception ex)
+            {
+                return new ServiceResponse<PagedResponse<ManufacturingOrderResponseDTO>>(false, $"Lỗi khi lấy danh sách lệnh sản xuất: {ex.Message}");
+            }
+        }
+
+        public async Task<ServiceResponse<PagedResponse<ManufacturingOrderResponseDTO>>> SearchManufacturingOrdersAsyncWithResponsible(string[] warehouseCodes, string responsible, string textToSearch, int page, int pageSize)
+        {
+            if (warehouseCodes.Length == 0 || page < 1 || pageSize < 1 || string.IsNullOrEmpty(textToSearch))
+            {
+                return new ServiceResponse<PagedResponse<ManufacturingOrderResponseDTO>>(false, "Dữ liệu nhận vào không hợp lệ");
+            }
+
+            try
+            {
+                var query = _manufacturingOrderRepository.SearchManufacturingAsync(warehouseCodes, textToSearch);
+                var result = await query
+                    .Where(x=>x.Responsible == responsible)
+                    .Select(x => new ManufacturingOrderResponseDTO
+                    {
+                        ManufacturingOrderCode = x.ManufacturingOrderCode,
+                        ProductCode = x.ProductCode!,
+                        ProductName = x.ProductCodeNavigation!.ProductName!,
+                        WarehouseCode = x.WarehouseCode,
+                        WarehouseName = x.WarehouseCodeNavigation!.WarehouseName!,
+                        Bomcode = x.Bomcode!,
+                        BomVersion = x.BomVersion!,
+                        OrderTypeCode = x.OrderTypeCode,
+                        OrderTypeName = x.OrderTypeCodeNavigation!.OrderTypeName,
+                        Responsible = x.Responsible,
+                        FullNameResponsible = x.ResponsibleNavigation!.FullName,
+                        StatusId = x.StatusId,
+                        StatusName = x.Status!.StatusName!,
+                        Lotno = x.Lotno,
+                        ScheduleDate = x.ScheduleDate.HasValue ? x.ScheduleDate.Value.ToString("dd/MM/yyyy") : null,
+                        Deadline = x.Deadline.HasValue ? x.Deadline.Value.ToString("dd/MM/yyyy") : null,
+                        Quantity = x.Quantity,
+                        QuantityProduced = x.QuantityProduced
+                    })
+                    .OrderBy(x => x.ManufacturingOrderCode)
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
+                    .ToListAsync();
+
+                var totalItems = await query.Where(x => x.Responsible == responsible).CountAsync();
+                var pagedResponse = new PagedResponse<ManufacturingOrderResponseDTO>(result, page, pageSize, totalItems);
+
+                return new ServiceResponse<PagedResponse<ManufacturingOrderResponseDTO>>(true, "Tìm kiếm lệnh sản xuất thành công", pagedResponse);
+            }
+            catch (Exception ex)
+            {
+                return new ServiceResponse<PagedResponse<ManufacturingOrderResponseDTO>>(false, $"Lỗi khi tìm kiếm lệnh sản xuất: {ex.Message}");
+            }
+        }
     }
 }

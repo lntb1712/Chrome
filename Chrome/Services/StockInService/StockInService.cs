@@ -259,10 +259,10 @@ namespace Chrome.Services.StockInService
             return new ServiceResponse<List<OrderTypeResponseDTO>>(true, "Lấy danh sách loại nhập kho thành công", lstOrderTypeList);
         }
 
-        public async Task<ServiceResponse<List<AccountManagementResponseDTO>>> GetListResponsibleAsync()
+        public async Task<ServiceResponse<List<AccountManagementResponseDTO>>> GetListResponsibleAsync(string warehouseCode)
         {
             var lstResponsible = await _accountRepository.GetAllAccount(1, int.MaxValue);
-            var lstResponsibleForSI = lstResponsible.Where(x => !x.GroupId!.StartsWith("ADMIN") && !x.GroupId.StartsWith("QLKHO"))
+            var lstResponsibleForSI = lstResponsible.Where(x => !x.GroupId!.StartsWith("ADMIN") && !x.GroupId.StartsWith("QLKHO") && x.Group!.GroupFunctions.Select(x => x.ApplicableLocation).FirstOrDefault() == warehouseCode)
                                                     .Select(x => new AccountManagementResponseDTO
                                                     {
                                                         UserName = x.UserName,
@@ -315,6 +315,37 @@ namespace Chrome.Services.StockInService
                                               })
                                               .ToList();
             return new ServiceResponse<List<WarehouseMasterResponseDTO>>(true, "Lấy danh sách kho dựa theo quyền thành công", lstWarehouseMapping);
+        }
+
+        public async Task<ServiceResponse<StockInResponseDTO>> GetStockInByCode(string stockInCode)
+        {
+            if(string.IsNullOrEmpty(stockInCode))
+            {
+                return new ServiceResponse<StockInResponseDTO>(false, "Mã phiếu nhập không được để trống");
+            }
+
+            var stockIn = await _stockInRepository.GetStockInWithCode(stockInCode);
+            if(stockIn==null)
+            {
+                return new ServiceResponse<StockInResponseDTO>(false, "Không tìm thấy phiếu nhập");
+            }    
+            var stockInResponse = new StockInResponseDTO
+            {
+                StockInCode = stockIn.StockInCode,
+                OrderTypeCode = stockIn.OrderTypeCode,
+                OrderTypeName = stockIn.OrderTypeCodeNavigation!.OrderTypeName,
+                WarehouseCode = stockIn.WarehouseCode,
+                WarehouseName = stockIn.WarehouseCodeNavigation!.WarehouseName,
+                SupplierCode = stockIn.SupplierCode,
+                SupplierName = stockIn.SupplierCodeNavigation!.SupplierName,
+                Responsible = stockIn.Responsible,
+                FullNameResponsible = stockIn.ResponsibleNavigation!.FullName,
+                StatusId = stockIn.StatusId,
+                StatusName = stockIn.Status!.StatusName,
+                OrderDeadline = stockIn.OrderDeadline!.Value.ToString("dd/MM/yyyy"),
+                StockInDescription = stockIn.StockInDescription,
+            };
+            return new ServiceResponse<StockInResponseDTO>(true, "Lấy được dữ liệu của phiếu nhập", stockInResponse);
         }
 
         public async Task<ServiceResponse<PagedResponse<StockInResponseDTO>>> SearchStockInAsync(string[] warehouseCodes, string textToSearch, int page, int pageSize)

@@ -174,11 +174,11 @@ namespace Chrome.Controllers
         }
 
         [HttpGet("GetListResponsibleAsync")]
-        public async Task<IActionResult> GetListResponsibleAsync()
+        public async Task<IActionResult> GetListResponsibleAsync([FromQuery]string warehouseCode)
         {
             try
             {
-                var response = await _stockInService.GetListResponsibleAsync();
+                var response = await _stockInService.GetListResponsibleAsync(warehouseCode);
                 if (!response.Success)
                 {
                     return NotFound(new
@@ -236,6 +236,28 @@ namespace Chrome.Controllers
             catch (Exception ex)
             {
                 return StatusCode(StatusCodes.Status500InternalServerError, $"Lỗi : {ex.Message}");
+            }
+        }
+
+        [HttpGet("GetStockInByCode")]
+        public async Task<IActionResult> GetStockInByCode([FromQuery]string stockInCode)
+        {
+            try
+            {
+                var response = await _stockInService.GetStockInByCode(stockInCode);
+                if (!response.Success)
+                {
+                    return NotFound(new
+                    {
+                        Success = false,
+                        Message = response.Message
+                    });
+                }
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, $"Lỗi: {ex.Message}");
             }
         }
 
