@@ -174,11 +174,11 @@ namespace Chrome.Controllers
         }
 
         [HttpGet("GetListResponsibleAsync")]
-        public async Task<IActionResult> GetListResponsibleAsync()
+        public async Task<IActionResult> GetListResponsibleAsync([FromQuery]string warehouseCode)
         {
             try
             {
-                var response = await _stockOutService.GetListResponsibleAsync();
+                var response = await _stockOutService.GetListResponsibleAsync(warehouseCode);
                 if (!response.Success)
                 {
                     return NotFound(new
