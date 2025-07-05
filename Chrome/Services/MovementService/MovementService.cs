@@ -302,11 +302,11 @@ namespace Chrome.Services.MovementService
             return new ServiceResponse<List<OrderTypeResponseDTO>>(true, "Lấy danh sách loại chuyển kệ thành công", lstOrderTypeList);
         }
 
-        public async Task<ServiceResponse<List<AccountManagementResponseDTO>>> GetListResponsibleAsync()
+        public async Task<ServiceResponse<List<AccountManagementResponseDTO>>> GetListResponsibleAsync(string warehouseCode)
         {
             var lstResponsible = await _accountRepository.GetAllAccount(1, int.MaxValue);
             var lstResponsibleForMovement = lstResponsible
-                .Where(x => !x.GroupId!.StartsWith("ADMIN") && !x.GroupId.StartsWith("QLKHO"))
+                .Where(x => !x.GroupId!.StartsWith("ADMIN") && !x.GroupId.StartsWith("QLKHO") &&x.Group!.GroupFunctions.Select(x=>x.ApplicableLocation).FirstOrDefault()==warehouseCode)
                 .Select(x => new AccountManagementResponseDTO
                 {
                     UserName = x.UserName,

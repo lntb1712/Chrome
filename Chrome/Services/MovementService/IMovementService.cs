@@ -21,7 +21,7 @@ namespace Chrome.Services.MovementService
         Task<ServiceResponse<bool>> DeleteMovementAsync(string movementCode);
         Task<ServiceResponse<bool>> UpdateMovement(MovementRequestDTO movement);
         Task<ServiceResponse<List<OrderTypeResponseDTO>>> GetListOrderType(string prefix);
-        Task<ServiceResponse<List<AccountManagementResponseDTO>>> GetListResponsibleAsync();
+        Task<ServiceResponse<List<AccountManagementResponseDTO>>> GetListResponsibleAsync(string warehouseCode);
         Task<ServiceResponse<List<StatusMasterResponseDTO>>> GetListStatusMaster();
         Task<ServiceResponse<List<WarehouseMasterResponseDTO>>> GetListWarehousePermission(string[] warehouseCodes);
         Task<ServiceResponse<List<LocationMasterResponseDTO>>> GetListToLocation(string warehouseCode,string fromLocation);
