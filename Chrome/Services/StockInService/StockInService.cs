@@ -352,7 +352,7 @@ namespace Chrome.Services.StockInService
         {
             if (warehouseCodes.Length == 0 || page < 1 || pageSize < 1)
             {
-                return new ServiceResponse<PagedResponse<StockInResponseDTO>>(false, "Dữu liệu nhận vào không hợp lệ");
+                return new ServiceResponse<PagedResponse<StockInResponseDTO>>(false, "Dữ liệu nhận vào không hợp lệ");
             }
             var query = _stockInRepository.SearchStockInAsync(warehouseCodes,textToSearch);
             var result = await query

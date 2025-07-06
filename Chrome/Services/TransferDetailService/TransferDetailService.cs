@@ -157,7 +157,7 @@ namespace Chrome.Services.TransferDetailService
 
         public async Task<ServiceResponse<bool>> AddTransferDetail(TransferDetailRequestDTO transferDetail)
         {
-                using var transaction = await _context.Database.BeginTransactionAsync();
+            using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
                 // Validate input
@@ -190,9 +190,9 @@ namespace Chrome.Services.TransferDetailService
 
                 var fromWarehouseCode = transfer.FromWarehouseCode;
                 var toWarehouseCode = transfer.ToWarehouseCode;
-                if (string.IsNullOrWhiteSpace(fromWarehouseCode))
+                if (string.IsNullOrWhiteSpace(fromWarehouseCode) || string.IsNullOrWhiteSpace(toWarehouseCode))
                 {
-                    return new ServiceResponse<bool>(false, "Transfer không có FromWarehouseCode hợp lệ.");
+                    return new ServiceResponse<bool>(false, "Transfer không có FromWarehouseCode hoặc ToWarehouseCode hợp lệ.");
                 }
 
                 // Check inventory at FromWarehouseCode
@@ -217,7 +217,7 @@ namespace Chrome.Services.TransferDetailService
                 await _context.SaveChangesAsync(); // Save for Reservation
 
                 // Create Reservation
-                var reservationCode = $"RES_{transfer.TransferCode}_{transferDetail.ProductCode}";
+                var reservationCode = $"RES_{transfer.TransferCode}";
                 var reservationRequest = new ReservationRequestDTO
                 {
                     ReservationCode = reservationCode,
@@ -233,62 +233,122 @@ namespace Chrome.Services.TransferDetailService
                     return new ServiceResponse<bool>(false, $"Lỗi khi tạo reservation: {reservationResponse.Message}");
                 }
 
-                // Create Picklist
-                var pickListCode = $"PICK_{transfer.TransferCode}_{transferDetail.ProductCode}";
-                var pickListRequest = new PickListRequestDTO
+                // Check if PickList exists, create if not
+                var pickListCode = $"PICK_{transfer.TransferCode}";
+                var existingPickList = await _context.PickLists.FirstOrDefaultAsync(x=>x.PickNo==pickListCode);
+                if (existingPickList == null)
                 {
-                    PickNo = pickListCode,
-                    ReservationCode = reservationCode,
-                    WarehouseCode = fromWarehouseCode,
-                    Responsible = transfer.FromResponsible,
-                    PickDate = DateTime.Now.ToString("dd/MM/yyyy"),
-                    StatusId = 1
-                };
-                var pickListResponse = await _pickListService.AddPickList(pickListRequest, transaction);
-                if (!pickListResponse.Success)
+                    var pickListRequest = new PickListRequestDTO
+                    {
+                        PickNo = pickListCode,
+                        ReservationCode = reservationCode,
+                        WarehouseCode = fromWarehouseCode,
+                        Responsible = transfer.FromResponsible,
+                        PickDate = DateTime.Now.ToString("dd/MM/yyyy"),
+                        StatusId = 1
+                    };
+                    var pickListResponse = await _pickListService.AddPickList(pickListRequest, transaction);
+                    if (!pickListResponse.Success)
+                    {
+                        await transaction.RollbackAsync();
+                        return new ServiceResponse<bool>(false, $"Lỗi khi tạo picklist: {pickListResponse.Message}");
+                    }
+                }
+
+                // Create PickListDetail based on ReservationDetail
+                var reservation = await _context.Reservations
+                    .Include(r => r.ReservationDetails)
+                    .FirstOrDefaultAsync(r => r.ReservationCode == reservationCode);
+                if (reservation == null || !reservation.ReservationDetails.Any())
                 {
                     await transaction.RollbackAsync();
-                    return new ServiceResponse<bool>(false, $"Lỗi khi tạo picklist: {pickListResponse.Message}");
+                    return new ServiceResponse<bool>(false, "Không tìm thấy Reservation hoặc ReservationDetail để tạo PickListDetail.");
                 }
+
+                foreach (var reservationDetail in reservation.ReservationDetails.Where(rd => rd.QuantityReserved > 0 && rd.ProductCode == transferDetail.ProductCode))
+                {
+                    var pickListDetail = new PickListDetail
+                    {
+                        PickNo = pickListCode,
+                        ProductCode = reservationDetail.ProductCode!,
+                        LotNo = reservationDetail.LotNo!,
+                        Demand = (float)reservationDetail.QuantityReserved!,
+                        Quantity = 0,
+                        LocationCode = reservationDetail.LocationCode
+                    };
+
+                    var existingPickListDetail = await _context.PickListDetails
+                        .FirstOrDefaultAsync(x => x.PickNo == pickListCode && x.ProductCode == reservationDetail.ProductCode && x.LotNo == reservationDetail.LotNo);
+                    if (existingPickListDetail == null)
+                    {
+                        await _context.PickListDetails.AddAsync(pickListDetail);
+                    }
+                    else
+                    {
+                        existingPickListDetail.Demand = (float)reservationDetail.QuantityReserved!;
+                        existingPickListDetail.LotNo = reservationDetail.LotNo;
+                        existingPickListDetail.LocationCode = reservationDetail.LocationCode;
+                        _context.PickListDetails.Update(existingPickListDetail);
+                    }
+                }
+
                 // Preload PutAwayRules
                 var putAwayRulesPaged = await _putAwayRulesRepository.GetAllPutAwayRules(1, int.MaxValue);
-                // Handle multiple rules for the same ProductCode by selecting all applicable rules
                 var putAwayRulesList = putAwayRulesPaged
                     .Where(x => x.ProductCode == transferDetail.ProductCode && x.LocationCodeNavigation!.WarehouseCode == toWarehouseCode)
                     .ToList();
 
-                // Load ProductMasters and LocationMasters
+                // Load ProductMasters, LocationMasters, and StorageProducts
                 var productMasters = (await _productMasterRepository.GetAllProduct(1, int.MaxValue))
                     .GroupBy(p => p.ProductCode!)
-                    .ToDictionary(g => g.Key, g => g.First()); // Take the first ProductMaster if duplicates exist
+                    .ToDictionary(g => g.Key, g => g.First());
                 var locationMasters = await _context.LocationMasters
                     .Where(l => l.WarehouseCode == toWarehouseCode)
                     .ToDictionaryAsync(l => l.LocationCode!, l => l);
                 var storageProducts = await _context.StorageProducts
                     .ToDictionaryAsync(sp => sp.StorageProductId!, sp => sp);
 
-                string locationCode;
+                // Tính tổng số lượng tồn kho hiện tại tại các vị trí
+                var inventoryQuantities = await _inventoryRepository.GetInventoryByProductCodeAsync(transferDetail.ProductCode, toWarehouseCode)
+                    .GroupBy(i => i.LocationCode)
+                    .Select(g => new { LocationCode = g.Key, TotalQuantity = g.Sum(i => i.Quantity ?? 0) })
+                    .ToListAsync();
+
+                string? selectedLocationCode = null;
+                double quantityToPut = (double)transferDetail.Demand!;
+
+                // Tìm vị trí phù hợp từ PutAwayRules
                 if (putAwayRulesList.Any())
                 {
-                    var checkQuantityForLocation = _inventoryRepository.GetInventoryByProductCodeAsync(transferDetail.ProductCode, transfer.ToWarehouseCode!);
-                    var inventoryQuantities = await checkQuantityForLocation
-                        .GroupBy(i => i.LocationCode)
-                        .Select(g => new { LocationCode = g.Key, TotalQuantity = g.Sum(i => i.Quantity ?? 0) })
-                        .ToListAsync();
+                    var sortedRules = putAwayRulesList
+                        .Where(r => locationMasters.ContainsKey(r.LocationCode!) && storageProducts.ContainsKey(locationMasters[r.LocationCode!].StorageProductId!))
+                        .OrderBy(r => inventoryQuantities.FirstOrDefault(q => q.LocationCode == r.LocationCode)?.TotalQuantity ?? 0);
 
-                    var rule = putAwayRulesList
-                        .OrderBy(r => inventoryQuantities.FirstOrDefault(q => q.LocationCode == r.LocationCode)?.TotalQuantity ?? int.MaxValue)
-                        .First();
-                    locationCode = rule.LocationCode!;
+                    foreach (var rule in sortedRules)
+                    {
+                        var locationCode = rule.LocationCode!;
+                        var storageProductId = locationMasters[locationCode].StorageProductId!;
+                        var storageProduct = storageProducts[storageProductId];
+                        var currentQuantity = inventoryQuantities.FirstOrDefault(q => q.LocationCode == locationCode)?.TotalQuantity ?? 0;
+                        var maxQuantity = storageProduct.MaxQuantity ?? int.MaxValue;
+                        var availableSpace = maxQuantity - currentQuantity;
+
+                        if (availableSpace >= quantityToPut)
+                        {
+                            selectedLocationCode = locationCode;
+                            break;
+                        }
+                    }
                 }
-                else
+
+                // Nếu không tìm được vị trí thực, thử vị trí ảo
+                if (selectedLocationCode == null)
                 {
-                    locationCode = $"{toWarehouseCode}/VIRTUAL_LOC/{transferDetail.ProductCode}";
-                    // StorageProduct
+                    var locationCode = $"{toWarehouseCode}/VIRTUAL_LOC/{transferDetail.ProductCode}";
                     var storageProductId = $"SP_{transferDetail.ProductCode}";
+
                     if (!storageProducts.TryGetValue(storageProductId, out var storageProduct))
                     {
-                        // Get BaseQuantity from ProductMaster to calculate MaxQuantity
                         var baseQuantity = productMasters.ContainsKey(transferDetail.ProductCode) ? (productMasters[transferDetail.ProductCode].BaseQuantity ?? 1) : 1;
                         var maxQuantityInBaseUOM = transferDetail.Demand * baseQuantity;
 
@@ -297,20 +357,19 @@ namespace Chrome.Services.TransferDetailService
                             StorageProductId = storageProductId,
                             StorageProductName = $"Định mức ảo cho {transferDetail.ProductCode}",
                             ProductCode = transferDetail.ProductCode,
-                            MaxQuantity = maxQuantityInBaseUOM // Store in base UOM
+                            MaxQuantity = maxQuantityInBaseUOM
                         };
                         _context.StorageProducts.Add(storageProduct);
                         storageProducts.Add(storageProductId, storageProduct);
                     }
                     else
                     {
-                        // Update MaxQuantity
                         var baseQuantity = productMasters.ContainsKey(transferDetail.ProductCode) ? (productMasters[transferDetail.ProductCode].BaseQuantity ?? 1) : 1;
                         storageProduct.MaxQuantity += transferDetail.Demand * baseQuantity;
                         _context.StorageProducts.Update(storageProduct);
                     }
 
-                    // Virtual Location
+                    // Tạo vị trí ảo nếu chưa tồn tại
                     if (!locationMasters.ContainsKey(locationCode))
                     {
                         var newLocation = new LocationMaster
@@ -322,21 +381,37 @@ namespace Chrome.Services.TransferDetailService
                         };
                         _context.LocationMasters.Add(newLocation);
                         locationMasters.Add(locationCode, newLocation);
-                        await _context.SaveChangesAsync(); // lưu location
+                        await _context.SaveChangesAsync();
+                    }
+
+                    // Kiểm tra định mức của vị trí ảo
+                    var currentLocationQuantity = inventoryQuantities.FirstOrDefault(q => q.LocationCode == locationCode)?.TotalQuantity ?? 0;
+                    var availableSpace = storageProduct.MaxQuantity - currentLocationQuantity;
+
+                    if (availableSpace >= quantityToPut)
+                    {
+                        selectedLocationCode = locationCode;
                     }
                 }
 
-                // Create Putaway
+                // Nếu không tìm được vị trí nào đủ định mức, trả về lỗi
+                if (selectedLocationCode == null)
+                {
+                    await transaction.RollbackAsync();
+                    return new ServiceResponse<bool>(false, $"Không tìm được vị trí có đủ định mức để cất {quantityToPut} đơn vị sản phẩm {transferDetail.ProductCode}");
+                }
+
+                // Tạo PutAway
                 var putAwayCode = $"PUT_{transfer.TransferCode}_{transferDetail.ProductCode}";
                 var putAwayRequest = new PutAwayRequestDTO
                 {
                     PutAwayCode = putAwayCode,
                     OrderTypeCode = transfer.OrderTypeCode,
-                    LocationCode = locationCode,
+                    LocationCode = selectedLocationCode,
                     Responsible = transfer.ToResponsible,
                     StatusId = 1,
                     PutAwayDate = DateTime.Now.ToString("dd/MM/yyyy"),
-                    PutAwayDescription = $"Cất hàng cho lệnh chuyển kho {transfer.TransferCode}"
+                    PutAwayDescription = $"Cất hàng cho lệnh chuyển kho {transfer.TransferCode}, sản phẩm {transferDetail.ProductCode}"
                 };
                 var putAwayResponse = await _putAwayService.AddPutAway(putAwayRequest, transaction);
                 if (!putAwayResponse.Success)
@@ -344,20 +419,33 @@ namespace Chrome.Services.TransferDetailService
                     await transaction.RollbackAsync();
                     return new ServiceResponse<bool>(false, $"Lỗi khi tạo putaway: {putAwayResponse.Message}");
                 }
-
-                var pickListDetail = _pickListDetailRepository.GetPickListDetailsByPickNoAsync(pickListCode);
-                foreach (var pickDetail in pickListDetail)
+                var pickDetail = await _context.PickListDetails.FirstOrDefaultAsync(x => x.PickNo == pickListCode && x.ProductCode == transferDetail.ProductCode);
+                if (pickDetail == null)
                 {
-                    var putAwayDetail = new PutAwayDetail
-                    {
-                        PutAwayCode = putAwayCode,
-                        ProductCode = pickDetail.ProductCode!,
-                        LotNo = pickDetail.LotNo!,
-                        Demand = pickDetail.Demand,
-                        Quantity = 0,
-                    };
-                    await _context.PutAwayDetails.AddAsync(putAwayDetail);
+                    return new ServiceResponse<bool>(false, "Không tìm thấy chi tiết pick");
+                }
+                // Tạo PutAwayDetail
+                var putAwayDetail = new PutAwayDetail
+                {
+                    PutAwayCode = putAwayCode,
+                    ProductCode = transferDetail.ProductCode,
+                    LotNo = pickDetail.LotNo!, // Lấy LotNo từ TransferDetail nếu có
+                    Demand = transferDetail.Demand,
+                    Quantity = 0 // Quantity sẽ được cập nhật sau khi cất hàng thực tế
+                };
 
+                var existingPutAwayDetail = await _context.PutAwayDetails
+                    .FirstOrDefaultAsync(x => x.PutAwayCode == putAwayDetail.PutAwayCode && x.ProductCode == putAwayDetail.ProductCode);
+
+                if (existingPutAwayDetail == null)
+                {
+                    await _context.PutAwayDetails.AddAsync(putAwayDetail);
+                }
+                else
+                {
+                    existingPutAwayDetail.Demand = transferDetail.Demand;
+                    existingPutAwayDetail.LotNo = pickDetail.LotNo!;
+                    _context.PutAwayDetails.Update(existingPutAwayDetail);
                 }
 
                 await _context.SaveChangesAsync();
@@ -375,7 +463,6 @@ namespace Chrome.Services.TransferDetailService
                 return new ServiceResponse<bool>(false, $"Lỗi khi thêm chi tiết chuyển kho: {ex.Message}");
             }
         }
-
         public async Task<ServiceResponse<bool>> UpdateTransferDetail(TransferDetailRequestDTO transferDetail)
         {
             using var transaction = await _context.Database.BeginTransactionAsync();

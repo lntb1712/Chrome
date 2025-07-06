@@ -309,9 +309,10 @@ namespace Chrome.Services.PutAwayService
             }
         }
 
-        public async Task<ServiceResponse<bool>> UpdatePutAway(PutAwayRequestDTO putAway)
+        public async Task<ServiceResponse<bool>> UpdatePutAway(PutAwayRequestDTO putAway, IDbContextTransaction transaction = null!)
         {
-            using var transaction = await _context.Database.BeginTransactionAsync();
+            bool isExternalTransaction = transaction != null;
+            transaction ??= await _context.Database.BeginTransactionAsync();
             try
             {
                 if (putAway == null || string.IsNullOrEmpty(putAway.PutAwayCode))
@@ -370,17 +371,17 @@ namespace Chrome.Services.PutAwayService
                 }
 
                 await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
+                if (!isExternalTransaction) await transaction.CommitAsync();
                 return new ServiceResponse<bool>(true, "Cập nhật put away thành công");
             }
             catch (DbUpdateException dbEx)
             {
-                await transaction.RollbackAsync();
+                if (!isExternalTransaction) await transaction.RollbackAsync();
                 return new ServiceResponse<bool>(false, $"Lỗi database khi cập nhật put away: {dbEx.Message}");
             }
             catch (Exception ex)
             {
-                await transaction.RollbackAsync();
+                if (!isExternalTransaction) await transaction.RollbackAsync();
                 return new ServiceResponse<bool>(false, $"Lỗi khi cập nhật put away: {ex.Message}");
             }
         }
@@ -519,5 +520,71 @@ namespace Chrome.Services.PutAwayService
                 return new ServiceResponse<PagedResponse<PutAwayResponseDTO>>(false, $"Lỗi khi tìm kiếm put away: {ex.Message}");
             }
         }
+
+        public async Task<ServiceResponse<List<PutAwayAndDetailResponseDTO>>> GetListPutAwayContainsCodeAsync(string orderCode)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(orderCode))
+                {
+                    return new ServiceResponse<List<PutAwayAndDetailResponseDTO>>(false, "Mã lệnh không được để trống");
+                }
+
+                var putAways = await _putAwayRepository.GetListGetPutAwayContainsCodeAsync(orderCode);
+                if (putAways == null || !putAways.Any())
+                {
+                    return new ServiceResponse<List<PutAwayAndDetailResponseDTO>>(false, "Không tìm thấy phiếu put away nào");
+                }
+
+                var result = new List<PutAwayAndDetailResponseDTO>();
+
+                foreach (var item in putAways)
+                {
+                    var putAwayDetail = await _putAwayDetailRepository.GetPutAwayDetailsByPutawayNoAsync(item.PutAwayCode).ToListAsync();
+                    if (putAwayDetail == null)
+                    {
+                        return new ServiceResponse<List<PutAwayAndDetailResponseDTO>>(false, $"Không tìm thấy chi tiết để hàng cho mã: {item.PutAwayCode}");
+                    }
+
+                    var detailDTOs = await Task.WhenAll(putAwayDetail.Select(async pd => new PutAwayDetailResponseDTO
+                    {
+                        PutAwayCode = pd.PutAwayCode!,
+                        ProductCode = pd.ProductCode!,
+                        ProductName = await _context.ProductMasters
+                            .Where(x => x.ProductCode == pd.ProductCode)
+                            .Select(x => x.ProductName)
+                            .FirstOrDefaultAsync() ?? "",
+                        LotNo = pd.LotNo,
+                        Demand = pd.Demand,
+                        Quantity = pd.Quantity
+                    }));
+
+                    var dto = new PutAwayAndDetailResponseDTO
+                    {
+                        PutAwayCode = item.PutAwayCode,
+                        OrderTypeCode = item.OrderTypeCode,
+                        OrderTypeName = item.OrderTypeCodeNavigation?.OrderTypeName,
+                        LocationCode = item.LocationCode,
+                        LocationName = item.LocationCodeNavigation?.LocationName,
+                        Responsible = item.Responsible,
+                        FullNameResponsible = item.ResponsibleNavigation?.FullName,
+                        StatusId = item.StatusId,
+                        StatusName = item.Status?.StatusName,
+                        PutAwayDate = item.PutAwayDate?.ToString("dd/MM/yyyy"),
+                        PutAwayDescription = item.PutAwayDescription,
+                        putAwayDetailResponseDTOs = detailDTOs.ToList()
+                    };
+
+                    result.Add(dto);
+                }
+
+                return new ServiceResponse<List<PutAwayAndDetailResponseDTO>>(true, "Lấy danh sách put away thành công", result);
+            }
+            catch (Exception ex)
+            {
+                return new ServiceResponse<List<PutAwayAndDetailResponseDTO>>(false, $"Lỗi khi lấy danh sách put away: {ex.Message}");
+            }
+        }
+
     }
 }

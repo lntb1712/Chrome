@@ -130,5 +130,25 @@ namespace Chrome.Repositories.PutAwayRepository
 
             return putaway!;
         }
+
+        public async Task<List<PutAway>> GetListGetPutAwayContainsCodeAsync(string orderCode)
+        {
+            if (string.IsNullOrEmpty(orderCode))
+            {
+                throw new ArgumentNullException(nameof(orderCode), "Mã lệnh không được để trống.");
+            }
+
+            var putaway = await _context.PutAways
+                                       .Include(p => p.OrderTypeCodeNavigation)
+                                       .Include(p => p.LocationCodeNavigation)
+                                       .Include(p => p.ResponsibleNavigation)
+                                       .Include(p => p.Status)
+                                       .Where(p => p.PutAwayCode.Contains(orderCode))
+                                       .ToListAsync();
+
+
+
+            return putaway;
+        }
     }
 }

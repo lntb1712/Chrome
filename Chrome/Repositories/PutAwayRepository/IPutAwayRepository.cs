@@ -10,6 +10,7 @@ namespace Chrome.Repositories.PutawayRepository
         IQueryable<PutAway> SearchPutAwayAsync(string[] warehouseCodes, string textToSearch);
         Task<PutAway> GetPutAwayCodeAsync(string putawayNo);
         Task<PutAway> GetPutAwayContainsCodeAsync(string orderCode);
+        Task<List<PutAway>> GetListGetPutAwayContainsCodeAsync(string orderCode);
         Task<PutAway> GetPutAwayContainsMovement(string movementCode);
     }
 }

@@ -14,9 +14,10 @@ namespace Chrome.Services.PutAwayService
         Task<ServiceResponse<PagedResponse<PutAwayResponseDTO>>> SearchPutAwaysAsyncWithResponsible(string[] warehouseCodes,string responsible,  string textToSearch, int page = 1, int pageSize = 10);
         Task<ServiceResponse<PutAwayResponseDTO>> GetPutAwayByCodeAsync(string putAwayCode);
         Task<ServiceResponse<PutAwayAndDetailResponseDTO>> GetPutAwayContainsCodeAsync(string putAwayCode);
+        Task<ServiceResponse<List<PutAwayAndDetailResponseDTO>>>GetListPutAwayContainsCodeAsync(string putAwayCode);
         Task<ServiceResponse<bool>> AddPutAway(PutAwayRequestDTO putAway, IDbContextTransaction transaction = null!);
         Task<ServiceResponse<bool>> DeletePutAway(string putAwayCode);
-        Task<ServiceResponse<bool>> UpdatePutAway(PutAwayRequestDTO putAway);
+        Task<ServiceResponse<bool>> UpdatePutAway(PutAwayRequestDTO putAway, IDbContextTransaction transaction = null!);
         Task<ServiceResponse<List<StatusMasterResponseDTO>>> GetListStatusMaster();
     }
 }

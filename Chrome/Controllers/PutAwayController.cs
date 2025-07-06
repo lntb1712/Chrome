@@ -169,6 +169,27 @@ namespace Chrome.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, $"Lỗi: {ex.Message}");
             }
         }
+        [HttpGet("GetListPutAwayContainsCodeAsync")]
+        public async Task<IActionResult> GetListPutAwayContainsCodeAsync([FromQuery] string orderCode)
+        {
+            try
+            {
+                var response = await _putAwayService.GetListPutAwayContainsCodeAsync(orderCode);
+                if (!response.Success)
+                {
+                    return NotFound(new
+                    {
+                        Success = false,
+                        Message = response.Message
+                    });
+                }
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, $"Lỗi: {ex.Message}");
+            }
+        }
 
         [HttpPost("AddPutAway")]
         public async Task<IActionResult> AddPutAway([FromBody] PutAwayRequestDTO putAway)
