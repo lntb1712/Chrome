@@ -261,7 +261,8 @@ namespace Chrome.Services.ManufacturingOrderService
                     await _manufacturingOrderRepository.AddAsync(manufacturing, saveChanges: false);
                     // Thêm chi tiết lệnh sản xuất
                     await _context.ManufacturingOrderDetails.AddRangeAsync(manufacturingDetails);
-
+                    // Lưu thay đổi và commit transaction
+                    await _context.SaveChangesAsync();
                     // Tạo Reservation
                     var reservationCode = $"RES_{manufacturing.ManufacturingOrderCode}";
                     var reservationRequest = new ReservationRequestDTO
@@ -539,7 +540,7 @@ namespace Chrome.Services.ManufacturingOrderService
                 try
                 {
                     existingOrder.QuantityProduced = manufacturingOrder.QuantityProduced;
-                    if (existingOrder.QuantityProduced > 0 && existingOrder.QuantityProduced < existingOrder.Quantity)
+                    if (existingOrder.QuantityProduced > 0 && existingOrder.QuantityProduced <= existingOrder.Quantity)
                     {
                         existingOrder.StatusId = 2;
                     }
@@ -1098,7 +1099,7 @@ namespace Chrome.Services.ManufacturingOrderService
                         Quantity = x.Quantity,
                         QuantityProduced = x.QuantityProduced
                     })
-                    .OrderBy(x => x.ManufacturingOrderCode)
+                    .OrderBy(x => x.StatusId)
                     .Skip((page - 1) * pageSize)
                     .Take(pageSize)
                     .ToListAsync();
@@ -1147,7 +1148,7 @@ namespace Chrome.Services.ManufacturingOrderService
                         Quantity = x.Quantity,
                         QuantityProduced = x.QuantityProduced
                     })
-                    .OrderBy(x => x.ManufacturingOrderCode)
+                    .OrderBy(x => x.StatusId)
                     .Skip((page - 1) * pageSize)
                     .Take(pageSize)
                     .ToListAsync();

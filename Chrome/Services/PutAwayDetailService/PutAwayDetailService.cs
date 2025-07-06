@@ -4,6 +4,7 @@ using Chrome.DTO.InventoryDTO;
 using Chrome.DTO.PutAwayDetailDTO;
 using Chrome.Models;
 using Chrome.Repositories.InventoryRepository;
+using Chrome.Repositories.ProductMasterRepository;
 using Chrome.Repositories.PutAwayDetailRepository;
 using Chrome.Services.InventoryService;
 using DocumentFormat.OpenXml.Wordprocessing;
@@ -19,13 +20,15 @@ namespace Chrome.Services.PutAwayDetailService
         private readonly IPutAwayDetailRepository _putAwayDetailRepository;
         private readonly IInventoryRepository _inventoryRepository;
         private readonly IInventoryService _inventoryService;
+        private readonly IProductMasterRepository _productMasterRepository;
         private readonly ChromeContext _context;
 
-        public PutAwayDetailService(IPutAwayDetailRepository putAwayDetailRepository,IInventoryRepository inventoryRepository, IInventoryService inventoryService, ChromeContext context)
+        public PutAwayDetailService(IPutAwayDetailRepository putAwayDetailRepository,IInventoryRepository inventoryRepository,IProductMasterRepository productMasterRepository, IInventoryService inventoryService, ChromeContext context)
         {
             _putAwayDetailRepository = putAwayDetailRepository ?? throw new ArgumentNullException(nameof(putAwayDetailRepository));
             _inventoryRepository = inventoryRepository ?? throw new ArgumentNullException(nameof(inventoryRepository));
             _inventoryService = inventoryService ?? throw new ArgumentNullException(nameof(inventoryService));
+            _productMasterRepository = productMasterRepository ?? throw new ArgumentNullException(nameof(productMasterRepository));
             _context = context ?? throw new ArgumentNullException(nameof(context));
         }
 
@@ -147,18 +150,31 @@ namespace Chrome.Services.PutAwayDetailService
                 {
                     return new ServiceResponse<bool>(false, "Chi tiết putaway không tồn tại.");
                 }
-               
-                var quantityDiff = putAwayDetail.Quantity - existingDetail.Quantity;
+
+                var product = await _productMasterRepository.GetProductMasterWithProductCode(putAwayDetail.ProductCode);
+
+                if (product == null)
+                {
+                    return new ServiceResponse<bool>(false, "Không tìm thấy product");
+                }
+                var putAway = await _context.PutAways
+                        .Include(x => x.LocationCodeNavigation)
+                        .FirstOrDefaultAsync(p => p.PutAwayCode == putAwayDetail.PutAwayCode);
+                var quantityDiff = 0.0;
+                if (putAway!.OrderTypeCode!.StartsWith("MO"))
+                {
+                    quantityDiff = (double)((putAwayDetail.Quantity - existingDetail.Quantity) / product.BaseQuantity)!;
+                }
+                else {
+                    quantityDiff = (double)(putAwayDetail.Quantity - existingDetail.Quantity)!;
+                }
 
 
                 //cộng tồn kho nhận (+)
                 if (quantityDiff > 0)
                 {
 
-                    // Tìm PutAway để lấy WarehouseCode và ToLocation
-                    var putAway = await _context.PutAways
-                        .Include(x => x.LocationCodeNavigation)
-                        .FirstOrDefaultAsync(p => p.PutAwayCode == putAwayDetail.PutAwayCode);
+                    
                     if (putAway == null || string.IsNullOrEmpty(putAway.LocationCodeNavigation!.WarehouseCode) || string.IsNullOrEmpty(putAway.LocationCode))
                     {
                         return new ServiceResponse<bool>(false, "PutAway hoặc thông tin WarehouseCode/LocationCode không hợp lệ.");
@@ -203,12 +219,10 @@ namespace Chrome.Services.PutAwayDetailService
 
 
                 }
-                existingDetail.Quantity = putAwayDetail.Quantity ;
+                existingDetail.Quantity = putAwayDetail.Quantity;
                 //Cập nhật trạng thái đang thực hiện cho putAway
                 if (existingDetail.Quantity > 0 && existingDetail.Quantity < existingDetail.Demand)
                 {
-                    var putAway = await _context.PutAways
-                        .FirstOrDefaultAsync(pa => pa.PutAwayCode == putAwayDetail.PutAwayCode);
 
                     if (putAway == null)
                     {
@@ -220,24 +234,22 @@ namespace Chrome.Services.PutAwayDetailService
                     string putAwayCode = existingDetail.PutAwayCode;
 
                     string orderCode = putAwayCode.StartsWith("PUT_") ? putAwayCode.Substring(4) : putAwayCode;
-                    
+
 
                 }
                 //Cập nhật trạng thái hoàn thành cho putaway
                 else if (existingDetail.Quantity == existingDetail.Demand)
                 {
-                    var putAway = await _context.PutAways
-                       .FirstOrDefaultAsync(pa => pa.PutAwayCode == putAwayDetail.PutAwayCode);
 
                     if (putAway == null)
                     {
                         return new ServiceResponse<bool>(false, "Không tìm thấy mã phiếu để hàng");
                     }
-                    putAway.StatusId = 3;
+                    putAway.StatusId = 2;
                     _context.PutAways.Update(putAway);
 
-                    string putAwayCode = existingDetail.PutAwayCode; 
-                    
+                    string putAwayCode = existingDetail.PutAwayCode;
+
                     string orderCode = putAwayCode.StartsWith("PUT_") ? putAwayCode.Substring(4) : putAwayCode;
                     if (putAway.OrderTypeCode!.StartsWith("MV"))
                     {
@@ -267,6 +279,21 @@ namespace Chrome.Services.PutAwayDetailService
 
                         transfer.StatusId = 3;
                         _context.Transfers.Update(transfer);
+                    }
+                }
+                var allDetails = await _context.PutAwayDetails
+                       .Where(x => x.PutAwayCode == putAwayDetail.PutAwayCode)
+                       .ToListAsync();
+
+                bool allCompleted = allDetails.All(x => x.Quantity >= x.Demand);
+                if (allCompleted)
+                {
+                    var putAwayToUpdate = await _context.PutAways
+                        .FirstOrDefaultAsync(pl => pl.PutAwayCode == putAwayDetail.PutAwayCode);
+                    if (putAwayToUpdate != null)
+                    {
+                        putAwayToUpdate.StatusId = 3; // trạng thái hoàn tất toàn bộ
+                        _context.PutAways.Update(putAwayToUpdate);
                     }
                 }
                 await _context.SaveChangesAsync();

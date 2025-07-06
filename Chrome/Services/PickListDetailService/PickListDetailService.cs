@@ -3,6 +3,7 @@ using Chrome.DTO.InventoryDTO;
 using Chrome.DTO.PickListDetailDTO;
 using Chrome.Models;
 using Chrome.Repositories.PickListDetailRepository;
+using Chrome.Repositories.ProductMasterRepository;
 using Chrome.Services.InventoryService;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
@@ -12,13 +13,15 @@ namespace Chrome.Services.PickListDetailService
     public class PickListDetailService : IPickListDetailService
     {
         private readonly IPickListDetailRepository _pickListDetailRepository;
+        private readonly IProductMasterRepository _productMasterRepository;
         private readonly IInventoryService _inventoryService;
         private readonly ChromeContext _context;
 
-        public PickListDetailService(IPickListDetailRepository pickListDetailRepository, IInventoryService inventoryService, ChromeContext context)
+        public PickListDetailService(IPickListDetailRepository pickListDetailRepository,IProductMasterRepository productMasterRepository, IInventoryService inventoryService, ChromeContext context)
         {
             _pickListDetailRepository = pickListDetailRepository ?? throw new ArgumentNullException(nameof(pickListDetailRepository));
             _inventoryService = inventoryService ?? throw new ArgumentNullException(nameof(inventoryService));
+            _productMasterRepository = productMasterRepository;
             _context = context ?? throw new ArgumentNullException(nameof(context));
         }
 
@@ -163,12 +166,16 @@ namespace Chrome.Services.PickListDetailService
                 {
                     return new ServiceResponse<bool>(false, "Chi tiết pick list không tồn tại.");
                 }
-
+                var product = await _productMasterRepository.GetProductMasterWithProductCode(pickListDetail.ProductCode);
+                if (product == null)
+                {
+                    return new ServiceResponse<bool>(false, "Không tìm thấy sản phẩm");
+                }
 
 
 
                 //cập nhật tồn kho kho đi (-)
-                var quantityDiff = pickListDetail.Quantity - existingDetail.Quantity;
+                var quantityDiff = (pickListDetail.Quantity - existingDetail.Quantity)/product.BaseQuantity;
                 if (quantityDiff > 0)
                 {
                     var pickList = await _context.PickLists
@@ -263,7 +270,7 @@ namespace Chrome.Services.PickListDetailService
                     {
                         return new ServiceResponse<bool>(false, "Không tìm thấy mã phiếu lấy");
                     }
-                    pickList.StatusId = 3;
+                    pickList.StatusId = 2;
                     _context.PickLists.Update(pickList);
 
                     var reservation = await _context.Reservations
@@ -308,6 +315,21 @@ namespace Chrome.Services.PickListDetailService
                         _context.Transfers.Update(transfer);
                     }
 
+                }
+                var allDetails = await _context.PickListDetails
+                        .Where(x => x.PickNo == pickListDetail.PickNo)
+                        .ToListAsync();
+
+                bool allCompleted = allDetails.All(x => x.Quantity >= x.Demand);
+                if (allCompleted)
+                {
+                    var pickListToUpdate = await _context.PickLists
+                        .FirstOrDefaultAsync(pl => pl.PickNo == pickListDetail.PickNo);
+                    if (pickListToUpdate != null)
+                    {
+                        pickListToUpdate.StatusId = 3; // trạng thái hoàn tất toàn bộ
+                        _context.PickLists.Update(pickListToUpdate);
+                    }
                 }
 
 
