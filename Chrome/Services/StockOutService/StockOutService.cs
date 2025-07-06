@@ -125,7 +125,7 @@ namespace Chrome.Services.StockOutService
             {
                 try
                 {
-                    await _stockOutRepository.DeleteAsync(stockOut, saveChanges: false);
+                    await _stockOutRepository.DeleteAsync(stockOutCode, saveChanges: false);
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
                     return new ServiceResponse<bool>(true, "Xóa lệnh xuất kho thành công");

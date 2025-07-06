@@ -352,131 +352,131 @@ namespace Chrome.Services.StockInDetailService
             {
                 try
                 {
-                    // Tính số lượng mới sau khi cập nhật
-                    var newQuantity = existingStockInDetail.Quantity + stockInDetail.Quantity;
-                    if (newQuantity < 0)
-                    {
-                        return new ServiceResponse<bool>(false, "Số lượng không thể âm");
-                    }
-
-                    // Cập nhật số lượng StockInDetail
-                    existingStockInDetail.Quantity = newQuantity;
-                    await _stockInDetailRepository.UpdateAsync(existingStockInDetail, saveChanges: false);
-
-                    // Tạo hoặc cập nhật PutAway khi có số lượng hợp lệ
-                    if (existingStockInDetail.Quantity > 0 && existingStockInDetail.Quantity <= existingStockInDetail.Demand)
-                    {
-                        var stockIn = await _stockInRepository.GetStockInWithCode(existingStockInDetail.StockInCode);
-                        var stockInDetailResponse = await _stockInDetailRepository.GetStockInDetailWithCode(stockIn.StockInCode, stockInDetail.ProductCode);
-
-                        // Preload PutAwayRules
-                        var putAwayRulesPaged = await _putAwayRulesRepository.GetAllPutAwayRules(1, int.MaxValue);
-                        var putAwayRulesList = putAwayRulesPaged
-                            .Where(x => x.ProductCode == stockInDetail.ProductCode && x.LocationCodeNavigation!.WarehouseCode == stockIn.WarehouseCode)
-                            .ToList();
-
-                        // Load ProductMasters, LocationMasters, and StorageProducts
-                        var productMasters = (await _productMasterRepository.GetAllProduct(1, int.MaxValue))
-                            .GroupBy(p => p.ProductCode!)
-                            .ToDictionary(g => g.Key, g => g.First());
-                        var locationMasters = await _context.LocationMasters
-                            .Where(l => l.WarehouseCode == stockIn.WarehouseCode)
-                            .ToDictionaryAsync(l => l.LocationCode!, l => l);
-                        var storageProducts = await _context.StorageProducts
-                            .ToDictionaryAsync(sp => sp.StorageProductId!, sp => sp);
-
-                        // Tính tổng số lượng tồn kho hiện tại tại các vị trí
-                        var inventoryQuantities = await _inventoryRepository.GetInventoryByProductCodeAsync(stockInDetail.ProductCode, stockIn.WarehouseCode!)
-                            .GroupBy(i => i.LocationCode)
-                            .Select(g => new { LocationCode = g.Key, TotalQuantity = g.Sum(i => i.Quantity ?? 0) })
-                            .ToListAsync();
-
-                        string? selectedLocationCode = null;
-                        double quantityToPut = (double)newQuantity!;
-
-                        // Tìm vị trí phù hợp từ PutAwayRules
-                        if (putAwayRulesList.Any())
+                        // Tính số lượng mới sau khi cập nhật
+                        var newQuantity = existingStockInDetail.Quantity + stockInDetail.Quantity;
+                        if (newQuantity < 0)
                         {
-                            var sortedRules = putAwayRulesList
-                                .Where(r => locationMasters.ContainsKey(r.LocationCode!) && storageProducts.ContainsKey(locationMasters[r.LocationCode!].StorageProductId!))
-                                .OrderBy(r => inventoryQuantities.FirstOrDefault(q => q.LocationCode == r.LocationCode)?.TotalQuantity ?? 0);
+                            return new ServiceResponse<bool>(false, "Số lượng không thể âm");
+                        }
 
-                            foreach (var rule in sortedRules)
+                        // Cập nhật số lượng StockInDetail
+                        existingStockInDetail.Quantity = newQuantity;
+                        await _stockInDetailRepository.UpdateAsync(existingStockInDetail, saveChanges: false);
+
+                        // Tạo hoặc cập nhật PutAway khi có số lượng hợp lệ
+                        if (existingStockInDetail.Quantity > 0 && existingStockInDetail.Quantity <= existingStockInDetail.Demand)
+                        {
+                            var stockIn = await _stockInRepository.GetStockInWithCode(existingStockInDetail.StockInCode);
+                            var stockInDetailResponse = await _stockInDetailRepository.GetStockInDetailWithCode(stockIn.StockInCode, stockInDetail.ProductCode);
+
+                            // Preload PutAwayRules
+                            var putAwayRulesPaged = await _putAwayRulesRepository.GetAllPutAwayRules(1, int.MaxValue);
+                            var putAwayRulesList = putAwayRulesPaged
+                                .Where(x => x.ProductCode == stockInDetail.ProductCode && x.LocationCodeNavigation!.WarehouseCode == stockIn.WarehouseCode)
+                                .ToList();
+
+                            // Load ProductMasters, LocationMasters, and StorageProducts
+                            var productMasters = (await _productMasterRepository.GetAllProduct(1, int.MaxValue))
+                                .GroupBy(p => p.ProductCode!)
+                                .ToDictionary(g => g.Key, g => g.First());
+                            var locationMasters = await _context.LocationMasters
+                                .Where(l => l.WarehouseCode == stockIn.WarehouseCode)
+                                .ToDictionaryAsync(l => l.LocationCode!, l => l);
+                            var storageProducts = await _context.StorageProducts
+                                .ToDictionaryAsync(sp => sp.StorageProductId!, sp => sp);
+
+                            // Tính tổng số lượng tồn kho hiện tại tại các vị trí
+                            var inventoryQuantities = await _inventoryRepository.GetInventoryByProductCodeAsync(stockInDetail.ProductCode, stockIn.WarehouseCode!)
+                                .GroupBy(i => i.LocationCode)
+                                .Select(g => new { LocationCode = g.Key, TotalQuantity = g.Sum(i => i.Quantity ?? 0) })
+                                .ToListAsync();
+
+                            string? selectedLocationCode = null;
+                            double quantityToPut = (double)newQuantity!;
+
+                            // Tìm vị trí phù hợp từ PutAwayRules
+                            if (putAwayRulesList.Any())
                             {
-                                var locationCode = rule.LocationCode!;
-                                var storageProductId = locationMasters[locationCode].StorageProductId!;
-                                var storageProduct = storageProducts[storageProductId];
-                                var currentQuantity = inventoryQuantities.FirstOrDefault(q => q.LocationCode == locationCode)?.TotalQuantity ?? 0;
-                                var maxQuantity = storageProduct.MaxQuantity ?? int.MaxValue;
-                                var availableSpace = maxQuantity - currentQuantity;
+                                var sortedRules = putAwayRulesList
+                                    .Where(r => locationMasters.ContainsKey(r.LocationCode!) && storageProducts.ContainsKey(locationMasters[r.LocationCode!].StorageProductId!))
+                                    .OrderBy(r => inventoryQuantities.FirstOrDefault(q => q.LocationCode == r.LocationCode)?.TotalQuantity ?? 0);
+
+                                foreach (var rule in sortedRules)
+                                {
+                                    var locationCode = rule.LocationCode!;
+                                    var storageProductId = locationMasters[locationCode].StorageProductId!;
+                                    var storageProduct = storageProducts[storageProductId];
+                                    var currentQuantity = inventoryQuantities.FirstOrDefault(q => q.LocationCode == locationCode)?.TotalQuantity ?? 0;
+                                    var maxQuantity = storageProduct.MaxQuantity ?? int.MaxValue;
+                                    var availableSpace = maxQuantity - currentQuantity;
+
+                                    if (availableSpace >= quantityToPut)
+                                    {
+                                        selectedLocationCode = locationCode;
+                                        break;
+                                    }
+                                }
+                            }
+
+                            // Nếu không tìm được vị trí thực, thử vị trí ảo
+                            if (selectedLocationCode == null)
+                            {
+                                var locationCode = $"{stockIn.WarehouseCode}/VIRTUAL_LOC/{stockInDetail.ProductCode}";
+                                var storageProductId = $"SP_{stockInDetail.ProductCode}";
+
+                                if (!storageProducts.TryGetValue(storageProductId, out var storageProduct))
+                                {
+                                    var baseQuantity = productMasters.ContainsKey(stockInDetail.ProductCode) ? (productMasters[stockInDetail.ProductCode].BaseQuantity ?? 1) : 1;
+                                    var maxQuantityInBaseUOM = stockInDetail.Demand * baseQuantity;
+
+                                    storageProduct = new StorageProduct
+                                    {
+                                        StorageProductId = storageProductId,
+                                        StorageProductName = $"Định mức ảo cho {stockInDetail.ProductCode}",
+                                        ProductCode = stockInDetail.ProductCode,
+                                        MaxQuantity = maxQuantityInBaseUOM
+                                    };
+                                    _context.StorageProducts.Add(storageProduct);
+                                    storageProducts.Add(storageProductId, storageProduct);
+                                }
+                                else
+                                {
+                                    var baseQuantity = productMasters.ContainsKey(stockInDetail.ProductCode) ? (productMasters[stockInDetail.ProductCode].BaseQuantity ?? 1) : 1;
+                                    storageProduct.MaxQuantity += stockInDetail.Demand * baseQuantity;
+                                    _context.StorageProducts.Update(storageProduct);
+                                }
+
+                                // Tạo vị trí ảo nếu chưa tồn tại
+                                if (!locationMasters.ContainsKey(locationCode))
+                                {
+                                    var newLocation = new LocationMaster
+                                    {
+                                        LocationCode = locationCode,
+                                        LocationName = $"Vùng ảo cho {stockInDetail.ProductCode}",
+                                        WarehouseCode = stockIn.WarehouseCode,
+                                        StorageProductId = storageProductId
+                                    };
+                                    _context.LocationMasters.Add(newLocation);
+                                    locationMasters.Add(locationCode, newLocation);
+                                    await _context.SaveChangesAsync();
+                                }
+
+                                // Kiểm tra định mức của vị trí ảo
+                                var currentLocationQuantity = inventoryQuantities.FirstOrDefault(q => q.LocationCode == locationCode)?.TotalQuantity ?? 0;
+                                var availableSpace = storageProduct.MaxQuantity - currentLocationQuantity;
 
                                 if (availableSpace >= quantityToPut)
                                 {
                                     selectedLocationCode = locationCode;
-                                    break;
                                 }
                             }
-                        }
 
-                        // Nếu không tìm được vị trí thực, thử vị trí ảo
-                        if (selectedLocationCode == null)
-                        {
-                            var locationCode = $"{stockIn.WarehouseCode}/VIRTUAL_LOC/{stockInDetail.ProductCode}";
-                            var storageProductId = $"SP_{stockInDetail.ProductCode}";
-
-                            if (!storageProducts.TryGetValue(storageProductId, out var storageProduct))
+                            // Nếu không tìm được vị trí nào đủ định mức, trả về lỗi
+                            if (selectedLocationCode == null)
                             {
-                                var baseQuantity = productMasters.ContainsKey(stockInDetail.ProductCode) ? (productMasters[stockInDetail.ProductCode].BaseQuantity ?? 1) : 1;
-                                var maxQuantityInBaseUOM = stockInDetail.Demand * baseQuantity;
-
-                                storageProduct = new StorageProduct
-                                {
-                                    StorageProductId = storageProductId,
-                                    StorageProductName = $"Định mức ảo cho {stockInDetail.ProductCode}",
-                                    ProductCode = stockInDetail.ProductCode,
-                                    MaxQuantity = maxQuantityInBaseUOM
-                                };
-                                _context.StorageProducts.Add(storageProduct);
-                                storageProducts.Add(storageProductId, storageProduct);
+                                await transaction.RollbackAsync();
+                                return new ServiceResponse<bool>(false, $"Không tìm được vị trí có đủ định mức để cất {quantityToPut} đơn vị sản phẩm {stockInDetail.ProductCode}");
                             }
-                            else
-                            {
-                                var baseQuantity = productMasters.ContainsKey(stockInDetail.ProductCode) ? (productMasters[stockInDetail.ProductCode].BaseQuantity ?? 1) : 1;
-                                storageProduct.MaxQuantity += stockInDetail.Demand * baseQuantity;
-                                _context.StorageProducts.Update(storageProduct);
-                            }
-
-                            // Tạo vị trí ảo nếu chưa tồn tại
-                            if (!locationMasters.ContainsKey(locationCode))
-                            {
-                                var newLocation = new LocationMaster
-                                {
-                                    LocationCode = locationCode,
-                                    LocationName = $"Vùng ảo cho {stockInDetail.ProductCode}",
-                                    WarehouseCode = stockIn.WarehouseCode,
-                                    StorageProductId = storageProductId
-                                };
-                                _context.LocationMasters.Add(newLocation);
-                                locationMasters.Add(locationCode, newLocation);
-                                await _context.SaveChangesAsync();
-                            }
-
-                            // Kiểm tra định mức của vị trí ảo
-                            var currentLocationQuantity = inventoryQuantities.FirstOrDefault(q => q.LocationCode == locationCode)?.TotalQuantity ?? 0;
-                            var availableSpace = storageProduct.MaxQuantity - currentLocationQuantity;
-
-                            if (availableSpace >= quantityToPut)
-                            {
-                                selectedLocationCode = locationCode;
-                            }
-                        }
-
-                        // Nếu không tìm được vị trí nào đủ định mức, trả về lỗi
-                        if (selectedLocationCode == null)
-                        {
-                            await transaction.RollbackAsync();
-                            return new ServiceResponse<bool>(false, $"Không tìm được vị trí có đủ định mức để cất {quantityToPut} đơn vị sản phẩm {stockInDetail.ProductCode}");
-                        }
 
                         // Tạo hoặc cập nhật PutAway cho vị trí được chọn
                         var putAwayCode = $"PUT_{stockIn.StockInCode}_{stockInDetail.ProductCode}";

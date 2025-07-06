@@ -613,9 +613,9 @@ namespace Chrome.Services.ManufacturingOrderService
                         Expression<Func<ManufacturingOrderDetail, bool>> expression = x => x.ManufacturingOrderCode == item.ManufacturingOrderCode && x.ComponentCode == item.ComponentCode;
                         await _manufacturingOrderDetailRepository.DeleteFirstByConditionAsync(expression, saveChanges: false);
                     }
-                   
+
                     await _manufacturingOrderRepository.DeleteAsync(manufacturingCode, saveChanges: false);
-                    
+
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
                     return new ServiceResponse<bool>(true, "Xóa lệnh sản xuất thành công");
@@ -784,13 +784,19 @@ namespace Chrome.Services.ManufacturingOrderService
             {
                 try
                 {
+                    // Validate quantity
+                    if (manufacturing.QuantityProduced <= 0)
+                    {
+                        return new ServiceResponse<bool>(false, "Số lượng sản xuất không thể nhỏ hơn hoặc bằng 0");
+                    }
+
                     // Preload PutAwayRules
                     var putAwayRulesPaged = await _putAwayRulesRepository.GetAllPutAwayRules(1, int.MaxValue);
                     var putAwayRulesList = putAwayRulesPaged
                         .Where(x => x.ProductCode == manufacturing.ProductCode && x.LocationCodeNavigation!.WarehouseCode == manufacturing.WarehouseCode)
                         .ToList();
 
-                    // Load ProductMasters and LocationMasters
+                    // Load ProductMasters, LocationMasters, and StorageProducts
                     var productMasters = (await _productMasterRepository.GetAllProduct(1, int.MaxValue))
                         .GroupBy(p => p.ProductCode!)
                         .ToDictionary(g => g.Key, g => g.First());
@@ -800,22 +806,43 @@ namespace Chrome.Services.ManufacturingOrderService
                     var storageProducts = await _context.StorageProducts
                         .ToDictionaryAsync(sp => sp.StorageProductId!, sp => sp);
 
-                    string locationCode;
+                    // Tính tổng số lượng tồn kho hiện tại tại các vị trí
+                    var inventoryQuantities = await _inventoryRepository.GetInventoryByProductCodeAsync(manufacturing.ProductCode!, manufacturing.WarehouseCode!)
+                        .GroupBy(i => i.LocationCode)
+                        .Select(g => new { LocationCode = g.Key, TotalQuantity = g.Sum(i => i.Quantity ?? 0) })
+                        .ToListAsync();
+
+                    string? selectedLocationCode = null;
+                    double quantityToPut = (double)manufacturing.QuantityProduced!;
+
+                    // Tìm vị trí phù hợp từ PutAwayRules
                     if (putAwayRulesList.Any())
                     {
-                        var inventoryQuantities = await _inventoryRepository.GetInventoryByProductCodeAsync(manufacturing.ProductCode!, manufacturing.WarehouseCode!)
-                            .GroupBy(i => i.LocationCode)
-                            .Select(g => new { LocationCode = g.Key, TotalQuantity = g.Sum(i => i.Quantity ?? 0) })
-                            .ToListAsync();
+                        var sortedRules = putAwayRulesList
+                            .Where(r => locationMasters.ContainsKey(r.LocationCode!) && storageProducts.ContainsKey(locationMasters[r.LocationCode!].StorageProductId!))
+                            .OrderBy(r => inventoryQuantities.FirstOrDefault(q => q.LocationCode == r.LocationCode)?.TotalQuantity ?? 0);
 
-                        var rule = putAwayRulesList
-                            .OrderBy(r => inventoryQuantities.FirstOrDefault(q => q.LocationCode == r.LocationCode)?.TotalQuantity ?? int.MaxValue)
-                            .First();
-                        locationCode = rule.LocationCode!;
+                        foreach (var rule in sortedRules)
+                        {
+                            var locationCode = rule.LocationCode!;
+                            var storageProductId = locationMasters[locationCode].StorageProductId!;
+                            var storageProduct = storageProducts[storageProductId];
+                            var currentQuantity = inventoryQuantities.FirstOrDefault(q => q.LocationCode == locationCode)?.TotalQuantity ?? 0;
+                            var maxQuantity = storageProduct.MaxQuantity ?? int.MaxValue;
+                            var availableSpace = maxQuantity - currentQuantity;
+
+                            if (availableSpace >= quantityToPut)
+                            {
+                                selectedLocationCode = locationCode;
+                                break;
+                            }
+                        }
                     }
-                    else
+
+                    // Nếu không tìm được vị trí thực, thử vị trí ảo
+                    if (selectedLocationCode == null)
                     {
-                        locationCode = $"{manufacturing.WarehouseCode}/VIRTUAL_LOC/{manufacturing.ProductCode}";
+                        var locationCode = $"{manufacturing.WarehouseCode}/VIRTUAL_LOC/{manufacturing.ProductCode}";
                         var storageProductId = $"SP_{manufacturing.ProductCode}";
 
                         if (!storageProducts.TryGetValue(storageProductId, out var storageProduct))
@@ -840,6 +867,7 @@ namespace Chrome.Services.ManufacturingOrderService
                             _context.StorageProducts.Update(storageProduct);
                         }
 
+                        // Tạo vị trí ảo nếu chưa tồn tại
                         if (!locationMasters.ContainsKey(locationCode))
                         {
                             var newLocation = new LocationMaster
@@ -851,8 +879,24 @@ namespace Chrome.Services.ManufacturingOrderService
                             };
                             _context.LocationMasters.Add(newLocation);
                             locationMasters.Add(locationCode, newLocation);
+                            await _context.SaveChangesAsync();
                         }
-                        await _context.SaveChangesAsync();
+
+                        // Kiểm tra định mức của vị trí ảo
+                        var currentLocationQuantity = inventoryQuantities.FirstOrDefault(q => q.LocationCode == locationCode)?.TotalQuantity ?? 0;
+                        var availableSpace = storageProduct.MaxQuantity - currentLocationQuantity;
+
+                        if (availableSpace >= quantityToPut)
+                        {
+                            selectedLocationCode = locationCode;
+                        }
+                    }
+
+                    // Nếu không tìm được vị trí nào đủ định mức, trả về lỗi
+                    if (selectedLocationCode == null)
+                    {
+                        await transaction.RollbackAsync();
+                        return new ServiceResponse<bool>(false, $"Không tìm được vị trí có đủ định mức để cất {quantityToPut} đơn vị sản phẩm {manufacturing.ProductCode}");
                     }
 
                     // Create PutAway
@@ -861,7 +905,7 @@ namespace Chrome.Services.ManufacturingOrderService
                     {
                         PutAwayCode = putAwayCode,
                         OrderTypeCode = manufacturing.OrderTypeCode,
-                        LocationCode = locationCode,
+                        LocationCode = selectedLocationCode,
                         Responsible = manufacturing.Responsible,
                         StatusId = 1,
                         PutAwayDate = DateTime.Now.ToString("dd/MM/yyyy"),
@@ -874,25 +918,42 @@ namespace Chrome.Services.ManufacturingOrderService
                         await transaction.RollbackAsync();
                         return new ServiceResponse<bool>(false, $"Lỗi khi tạo putaway: {putAwayResponse.Message}");
                     }
+
+                    // Create or update PutAwayDetail
                     var putAwayDetail = new PutAwayDetail
                     {
                         PutAwayCode = putAwayCode,
                         ProductCode = manufacturing.ProductCode!,
-                        LotNo = manufacturing.Lotno!,
+                        LotNo = manufacturing.Lotno!, // Using manufacturing.LotNo as per original logic
                         Demand = manufacturing.QuantityProduced,
                         Quantity = 0,
                     };
-                    await _context.PutAwayDetails.AddAsync(putAwayDetail);
+
+                    var existingPutAwayDetail = await _context.PutAwayDetails
+                        .FirstOrDefaultAsync(x => x.PutAwayCode == putAwayCode && x.ProductCode == manufacturing.ProductCode);
+                    if (existingPutAwayDetail == null)
+                    {
+                        await _context.PutAwayDetails.AddAsync(putAwayDetail);
+                    }
+                    else
+                    {
+                        existingPutAwayDetail.Demand = manufacturing.QuantityProduced;
+                        existingPutAwayDetail.LotNo = manufacturing.Lotno;
+                        _context.PutAwayDetails.Update(existingPutAwayDetail);
+                    }
 
                     // Update manufacturing order status to "Completed" (assuming statusId 3 is Completed)
                     manufacturing.StatusId = 3;
                     manufacturing.Quantity = manufacturing.QuantityProduced;
 
-                    var manufacturingDetail = await _context.ManufacturingOrderDetails.Where(x => x.ManufacturingOrderCode == manufacturingCode).ToListAsync();
+                    var manufacturingDetail = await _context.ManufacturingOrderDetails
+                        .Where(x => x.ManufacturingOrderCode == manufacturingCode)
+                        .ToListAsync();
                     foreach (var detail in manufacturingDetail)
                     {
                         detail.ToConsumeQuantity = detail.ConsumedQuantity;
                     }
+
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
 
@@ -905,6 +966,7 @@ namespace Chrome.Services.ManufacturingOrderService
                 }
             }
         }
+
 
         public async Task<ServiceResponse<bool>> CreateBackOrder(string manufacturingCode)
         {
