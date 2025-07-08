@@ -111,12 +111,12 @@ namespace Chrome.Controllers
         }
 
         [HttpPost("CreateBackOrder")]
-        public async Task<IActionResult> CreateBackOrder([FromRoute] string stockOutCode, [FromQuery] string backOrderDescription)
+        public async Task<IActionResult> CreateBackOrder([FromRoute] string stockOutCode, [FromQuery] string backOrderDescription, [FromQuery]string dateBackOrder)
         {
             try
             {
                 string decodedStockOutCode = Uri.UnescapeDataString(stockOutCode);
-                var response = await _stockOutDetailService.CreateBackOrder(decodedStockOutCode, backOrderDescription);
+                var response = await _stockOutDetailService.CreateBackOrder(decodedStockOutCode, backOrderDescription,dateBackOrder);
                 if (!response.Success)
                 {
                     return Conflict(new

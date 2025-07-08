@@ -9,6 +9,7 @@ using Chrome.Repositories.ReservationRepository;
 using Chrome.Repositories.StockOutDetailRepository;
 using Chrome.Repositories.StockOutRepository;
 using Microsoft.EntityFrameworkCore;
+using System.Globalization;
 using System.Linq.Expressions;
 
 namespace Chrome.Services.StockOutDetailService
@@ -158,7 +159,7 @@ namespace Chrome.Services.StockOutDetailService
             }
         }
 
-        public async Task<ServiceResponse<bool>> CreateBackOrder(string stockOutCode, string backOrderDescription)
+        public async Task<ServiceResponse<bool>> CreateBackOrder(string stockOutCode, string backOrderDescription, string dateBackOrder)
         {
             if (string.IsNullOrEmpty(stockOutCode))
                 return new ServiceResponse<bool>(false, "Mã xuất kho không được để trống");
@@ -173,6 +174,16 @@ namespace Chrome.Services.StockOutDetailService
             if (itemsToBackOrder.Count == 0)
                 return new ServiceResponse<bool>(false, "Không có sản phẩm cần tạo backorder");
 
+            if (string.IsNullOrEmpty(dateBackOrder)) return new ServiceResponse<bool>(false, "Mã xuất kho không được để trống");
+            string[] formats = {
+                "M/d/yyyy h:mm:ss tt",
+                "MM/dd/yyyy hh:mm:ss tt",
+                "dd/MM/yyyy"
+            };
+            if (!DateTime.TryParseExact(dateBackOrder, formats, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime parsedDate))
+            {
+                return new ServiceResponse<bool>(false, "Ngày xuất kho không đúng định dạng. Vui lòng sử dụng dd/MM/yyyy hoặc M/d/yyyy h:mm:ss tt.");
+            }
             using (var transaction = await _context.Database.BeginTransactionAsync())
             {
                 try
@@ -187,7 +198,7 @@ namespace Chrome.Services.StockOutDetailService
                         WarehouseCode = stockOutHeader.WarehouseCode,
                         CustomerCode = stockOutHeader.CustomerCode,
                         Responsible = stockOutHeader.Responsible,
-                        StockOutDate = stockOutHeader.StockOutDate,
+                        StockOutDate = parsedDate,
                         StatusId = 1,
                         StockOutDescription = backOrderDescription
                     };

@@ -11,7 +11,7 @@ namespace Chrome.Services.StockInDetailService
         Task<ServiceResponse<bool>> UpdateStockInDetail(StockInDetailRequestDTO stockInDetail);
         Task<ServiceResponse<bool>> DeleteStockInDetail(string stockInCode,string productCode);
         Task<ServiceResponse<bool>> ConfirmStockIn(string stockInCode);
-        Task<ServiceResponse<bool>> CreateBackOrder(string stockInCode, string backOrderDescription);
+        Task<ServiceResponse<bool>> CreateBackOrder(string stockInCode, string backOrderDescription, string dateBackOrder);
         Task<ServiceResponse<bool>> CheckAndUpdateBackOrderStatus(string stockInCode);
         Task<ServiceResponse<List<ProductMasterResponseDTO>>> GetListProductToSI();
     }

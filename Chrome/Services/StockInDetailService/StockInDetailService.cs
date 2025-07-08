@@ -152,7 +152,7 @@ namespace Chrome.Services.StockInDetailService
             return new ServiceResponse<bool>(true, "Chưa đủ số lượng để hoàn tất phiếu nhập kho");
         }
 
-        public async Task<ServiceResponse<bool>> CreateBackOrder(string stockInCode, string backOrderDescription)
+        public async Task<ServiceResponse<bool>> CreateBackOrder(string stockInCode, string backOrderDescription, string dateBackOrder)
         {
             if (string.IsNullOrEmpty(stockInCode))
                 return new ServiceResponse<bool>(false, "Mã nhập kho không được để trống");
@@ -168,6 +168,16 @@ namespace Chrome.Services.StockInDetailService
             if (itemsToBackOrder.Count == 0)
                 return new ServiceResponse<bool>(false, "Không có sản phẩm cần tạo backorder");
 
+            if (string.IsNullOrEmpty(dateBackOrder)) return new ServiceResponse<bool>(false, "Mã xuất kho không được để trống");
+            string[] formats = {
+                "M/d/yyyy h:mm:ss tt",
+                "MM/dd/yyyy hh:mm:ss tt",
+                "dd/MM/yyyy"
+            };
+            if (!DateTime.TryParseExact(dateBackOrder, formats, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime parsedDate))
+            {
+                return new ServiceResponse<bool>(false, "Ngày xuất kho không đúng định dạng. Vui lòng sử dụng dd/MM/yyyy hoặc M/d/yyyy h:mm:ss tt.");
+            }
             using (var transaction = await _context.Database.BeginTransactionAsync())
             {
                 try
@@ -184,7 +194,7 @@ namespace Chrome.Services.StockInDetailService
                         WarehouseCode = stockInHeader.WarehouseCode,
                         SupplierCode = stockInHeader.SupplierCode,
                         Responsible = stockInHeader.Responsible,
-                        OrderDeadline = stockInHeader.OrderDeadline,
+                        OrderDeadline = parsedDate,
                         StatusId = 1,
                         StockInDescription = backOrderDescription
                     };
@@ -353,7 +363,7 @@ namespace Chrome.Services.StockInDetailService
                 try
                 {
                         // Tính số lượng mới sau khi cập nhật
-                        var newQuantity = existingStockInDetail.Quantity + stockInDetail.Quantity;
+                        var newQuantity = stockInDetail.Quantity;
                         if (newQuantity < 0)
                         {
                             return new ServiceResponse<bool>(false, "Số lượng không thể âm");

@@ -11,7 +11,7 @@ namespace Chrome.Services.StockOutDetailService
         Task<ServiceResponse<bool>> UpdateStockOutDetail(StockOutDetailRequestDTO stockOutDetail);
         Task<ServiceResponse<bool>> DeleteStockOutDetail(string stockOutCode, string productCode);
         Task<ServiceResponse<bool>> ConfirmStockOut(string stockOutCode);
-        Task<ServiceResponse<bool>> CreateBackOrder(string stockOutCode, string backOrderDescription);
+        Task<ServiceResponse<bool>> CreateBackOrder(string stockOutCode, string backOrderDescription, string dateBackOrder);
         Task<ServiceResponse<bool>> CheckAndUpdateBackOrderStatus(string stockOutCode);
         Task<ServiceResponse<List<ProductMasterResponseDTO>>> GetListProductToSO();
         Task<ServiceResponse<ForecastStockOutDetailDTO>> GetForecastStockOutDetail(string stockOutCode, string productCode);
