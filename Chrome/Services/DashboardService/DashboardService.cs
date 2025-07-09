@@ -54,7 +54,7 @@ namespace Chrome.Services.DashboardService
             // STOCK IN
             statusOrderCodeDTOs.Add(new StatusOrderCodeDTO
             {
-                OrderTypeCode = "StockIn",
+                OrderTypeCode = "Phiếu nhập",
                 CountStatusStart = stockIns.Count(x => x.StatusId == 1),
                 CountStatusInProgress = stockIns.Count(x => x.StatusId == 2),
                 CountStatusCompleted = stockIns.Count(x => x.StatusId == 3)
@@ -63,7 +63,7 @@ namespace Chrome.Services.DashboardService
             // STOCK OUT
             statusOrderCodeDTOs.Add(new StatusOrderCodeDTO
             {
-                OrderTypeCode = "StockOut",
+                OrderTypeCode = "Phiếu xuất",
                 CountStatusStart = stockOuts.Count(x => x.StatusId == 1),
                 CountStatusInProgress = stockOuts.Count(x => x.StatusId == 2),
                 CountStatusCompleted = stockOuts.Count(x => x.StatusId == 3)
@@ -72,7 +72,7 @@ namespace Chrome.Services.DashboardService
             // MANUFACTURING ORDER
             statusOrderCodeDTOs.Add(new StatusOrderCodeDTO
             {
-                OrderTypeCode = "ManufacturingOrder",
+                OrderTypeCode = "Sản xuất",
                 CountStatusStart = manufacturingOrders.Count(x => x.StatusId == 1),
                 CountStatusInProgress = manufacturingOrders.Count(x => x.StatusId == 2),
                 CountStatusCompleted = manufacturingOrders.Count(x => x.StatusId == 3)
@@ -81,7 +81,7 @@ namespace Chrome.Services.DashboardService
             // TRANSFER
             statusOrderCodeDTOs.Add(new StatusOrderCodeDTO
             {
-                OrderTypeCode = "Transfer",
+                OrderTypeCode = "Chuyển kho",
                 CountStatusStart = transfers.Count(x => x.StatusId == 1),
                 CountStatusInProgress = transfers.Count(x => x.StatusId == 2),
                 CountStatusCompleted = transfers.Count(x => x.StatusId == 3)
@@ -90,7 +90,7 @@ namespace Chrome.Services.DashboardService
             // MOVEMENT
             statusOrderCodeDTOs.Add(new StatusOrderCodeDTO
             {
-                OrderTypeCode = "Movement",
+                OrderTypeCode = "Chuyển kệ",
                 CountStatusStart = movements.Count(x => x.StatusId == 1),
                 CountStatusInProgress = movements.Count(x => x.StatusId == 2),
                 CountStatusCompleted = movements.Count(x => x.StatusId == 3)
