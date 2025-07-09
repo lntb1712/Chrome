@@ -442,7 +442,6 @@ namespace Chrome.Services.MovementService
             {
                 try
                 {
-                    existingMovement.StatusId = movement.StatusId;
                     existingMovement.MovementDescription = movement.MovementDescription;
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();

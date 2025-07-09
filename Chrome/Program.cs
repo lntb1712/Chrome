@@ -44,6 +44,7 @@ using Chrome.Services.BOMComponentService;
 using Chrome.Services.BOMMasterService;
 using Chrome.Services.CategoryService;
 using Chrome.Services.CustomerMasterService;
+using Chrome.Services.DashboardService;
 using Chrome.Services.FunctionService;
 using Chrome.Services.GroupFunctionService;
 using Chrome.Services.GroupManagementService;
@@ -175,6 +176,7 @@ builder.Services.AddScoped<IStockTakeDetailService, StockTakeDetailService>();
 builder.Services.AddScoped<IManufacturingOrderService, ManufacturingOrderService>();
 builder.Services.AddScoped<IManufacturingOrderDetailService, ManufacturingOrderDetailService>();
 builder.Services.AddScoped<IQRGeneratorService, QRGeneratorService>();
+builder.Services.AddScoped<IDashboardService, DashboardService>();
 
 // Đăng ký IHttpContextAccessor để thực hiện sử dụng HttpCookie
 builder.Services.AddHttpContextAccessor();

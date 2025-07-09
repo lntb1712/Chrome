@@ -178,6 +178,7 @@ namespace Chrome.Services.StockInService
             return new ServiceResponse<PagedResponse<StockInResponseDTO>>(true, "Lấy danh sách lệnh nhập kho thành công", pagedResponse);
         }
 
+
         public async Task<ServiceResponse<PagedResponse<StockInResponseDTO>>> GetAllStockInsWithStatus(string[] warehouseCodes, int statusId, int page, int pageSize)
         {
             if (warehouseCodes.Length == 0 || page < 1 || pageSize < 1)
