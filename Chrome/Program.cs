@@ -25,6 +25,7 @@ using Chrome.Repositories.PutAwayDetailRepository;
 using Chrome.Repositories.PutawayRepository;
 using Chrome.Repositories.PutAwayRepository;
 using Chrome.Repositories.PutAwayRulesRepository;
+using Chrome.Repositories.ReplenishRepository;
 using Chrome.Repositories.ReservationDetailRepository;
 using Chrome.Repositories.ReservationRepository;
 using Chrome.Repositories.StatusMasterRepository;
@@ -65,6 +66,7 @@ using Chrome.Services.PutAwayDetailService;
 using Chrome.Services.PutAwayRulesService;
 using Chrome.Services.PutAwayService;
 using Chrome.Services.QRGeneratorService;
+using Chrome.Services.ReplenishService;
 using Chrome.Services.ReservationDetailService;
 using Chrome.Services.ReservationService;
 using Chrome.Services.StockInDetailService;
@@ -135,6 +137,7 @@ builder.Services.AddScoped<IStockTakeRepository, StockTakeRepository>();
 builder.Services.AddScoped<IStockTakeDetailRepository,StocktakeDetailRepository>();
 builder.Services.AddScoped<IManufacturingOrderRepository, ManufacturingOrderRepository>();
 builder.Services.AddScoped<IManufacturingOrderDetailRepository, ManufacturingOrderDetailRepository>();
+builder.Services.AddScoped<IReplenishRepository, ReplenishRepository>();
 
 
 // Đăng kí Dependency Injection cho các Service
@@ -177,6 +180,7 @@ builder.Services.AddScoped<IManufacturingOrderService, ManufacturingOrderService
 builder.Services.AddScoped<IManufacturingOrderDetailService, ManufacturingOrderDetailService>();
 builder.Services.AddScoped<IQRGeneratorService, QRGeneratorService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
+builder.Services.AddScoped<IReplenishService, ReplenishService>();
 
 // Đăng ký IHttpContextAccessor để thực hiện sử dụng HttpCookie
 builder.Services.AddHttpContextAccessor();

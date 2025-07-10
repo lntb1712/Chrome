@@ -45,6 +45,8 @@ public partial class ProductMaster
 
     public virtual ICollection<PutAwayRule> PutAwayRules { get; set; } = new List<PutAwayRule>();
 
+    public virtual ICollection<Replenish> Replenishes { get; set; } = new List<Replenish>();
+
     public virtual ICollection<StockInDetail> StockInDetails { get; set; } = new List<StockInDetail>();
 
     public virtual ICollection<StockOutDetail> StockOutDetails { get; set; } = new List<StockOutDetail>();

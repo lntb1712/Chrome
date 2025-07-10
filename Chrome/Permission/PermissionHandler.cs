@@ -84,7 +84,8 @@ namespace Chrome.Permission
             {"ucReservation",@"^/api/Reservation" },
             {"ucPutAway",@"^/api/PutAway" },
             {"ucMovement",@"^/api/Movement" },
-            {"ucStockTake",@"^/api/StockTake" }
+            {"ucStockTake",@"^/api/StockTake" },
+            {"ucReplenish", @"^/api/Replenish"},
         };
     }
 }
