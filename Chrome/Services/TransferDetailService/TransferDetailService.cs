@@ -311,7 +311,7 @@ namespace Chrome.Services.TransferDetailService
                 // Tính tổng số lượng tồn kho hiện tại tại các vị trí
                 var inventoryQuantities = await _inventoryRepository.GetInventoryByProductCodeAsync(transferDetail.ProductCode, toWarehouseCode)
                     .GroupBy(i => i.LocationCode)
-                    .Select(g => new { LocationCode = g.Key, TotalQuantity = g.Sum(i => i.Quantity ?? 0) })
+                    .Select(g => new { LocationCode = g.Key, TotalQuantity = g.Sum(i => i.Quantity ?? 0)/g.First().ProductCodeNavigation.BaseQuantity })
                     .ToListAsync();
 
                 string? selectedLocationCode = null;

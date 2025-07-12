@@ -197,24 +197,34 @@ namespace Chrome.Services.PutAwayDetailService
                     }
 
                     string putAwayCode = existingDetail.PutAwayCode;
-                    string orderCode = putAwayCode.StartsWith("PUT_") ? putAwayCode.Substring(4) : putAwayCode;
+                    // Bước 1: Bỏ prefix "PUT_" nếu có
+                    string orderCode = putAwayCode.StartsWith("PUT_")
+                        ? putAwayCode.Substring(4)
+                        : putAwayCode;
+
+                    // Bước 2: Tách transferCode (lấy phần trước dấu _ đầu tiên)
+                    int underscoreIndex = orderCode.IndexOf('_');
+                    string transferCode = underscoreIndex != -1
+                        ? orderCode.Substring(0, underscoreIndex)
+                        : orderCode; // fallback nếu không có dấu _
+
+                    // Bước 3: Cập nhật TransferDetail
                     if (putAway.OrderTypeCode!.StartsWith("TF"))
                     {
-                        int lastUnderscoreIndex = orderCode.LastIndexOf('_');
-                        string transferCode = lastUnderscoreIndex != -1 ? orderCode.Substring(0, lastUnderscoreIndex) : orderCode;
-
                         var transferDetail = await _context.TransferDetails
-                                                          .FirstOrDefaultAsync(x => x.TransferCode == transferCode && x.ProductCode == putAwayDetail.ProductCode);
+                            .FirstOrDefaultAsync(x => x.TransferCode == transferCode &&
+                                                      x.ProductCode == putAwayDetail.ProductCode);
 
                         if (transferDetail == null)
                         {
                             return new ServiceResponse<bool>(false, $"Không tìm thấy chi tiết Lệnh chuyển kho với mã {transferCode}");
                         }
 
-                        transferDetail!.QuantityOutBounded = putAwayDetail.Quantity;
+                        transferDetail.QuantityOutBounded = putAwayDetail.Quantity;
                         _context.TransferDetails.Update(transferDetail);
                     }
-                   
+
+
 
 
 
@@ -266,8 +276,12 @@ namespace Chrome.Services.PutAwayDetailService
                     }
                     else if (putAway.OrderTypeCode!.StartsWith("TF"))
                     {
-                        int lastUnderscoreIndex = orderCode.LastIndexOf('_');
-                        string transferCode = lastUnderscoreIndex != -1 ? orderCode.Substring(0, lastUnderscoreIndex) : orderCode;
+                        int underscoreIndex = orderCode.IndexOf('_');
+                        string transferCode = underscoreIndex != -1
+                            ? orderCode.Substring(0, underscoreIndex)
+                            : orderCode; // fallback nếu không có dấu _
+
+                       
 
                         var transfer = await _context.Transfers
                              .FirstOrDefaultAsync(x => x.TransferCode == transferCode);
@@ -280,6 +294,7 @@ namespace Chrome.Services.PutAwayDetailService
                         transfer.StatusId = 3;
                         _context.Transfers.Update(transfer);
                     }
+
                 }
                 var allDetails = await _context.PutAwayDetails
                        .Where(x => x.PutAwayCode == putAwayDetail.PutAwayCode)

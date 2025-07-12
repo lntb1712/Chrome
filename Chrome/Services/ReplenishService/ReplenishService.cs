@@ -129,7 +129,7 @@ namespace Chrome.Services.ReplenishService
                     MaxQuantity = r.MaxQuantity,
                     ProductName = r.ProductCodeNavigation!.ProductName! ,
                     WarehouseName = r.WarehouseCodeNavigation!.WarehouseName!,
-                    TotalOnHand = (float)(r.ProductCodeNavigation.Inventories.Where(t => t.ProductCode == r.ProductCode).Sum(i => i.Quantity) ?? 0.00)/r.ProductCodeNavigation.BaseQuantity,
+                    TotalOnHand = (float)(r.ProductCodeNavigation.Inventories.Where(i => i.ProductCode == r.ProductCode && i.LocationCodeNavigation.WarehouseCode == warehouseCode).Sum(i => i.Quantity) ?? 0.00)/r.ProductCodeNavigation.BaseQuantity,
                 })
                 .ToListAsync();
             
@@ -157,7 +157,7 @@ namespace Chrome.Services.ReplenishService
                 MaxQuantity = replenish.MaxQuantity,
                 ProductName = replenish.ProductCodeNavigation!.ProductName!,
                 WarehouseName = replenish.WarehouseCodeNavigation!.WarehouseName!,
-                TotalOnHand = (float)(replenish.ProductCodeNavigation.Inventories.Where(t => t.ProductCode == replenish.ProductCode).Sum(i => i.Quantity) ?? 0.00)/replenish.ProductCodeNavigation.BaseQuantity,
+                TotalOnHand = (float)(replenish.ProductCodeNavigation.Inventories.Where(t => t.ProductCode == replenish.ProductCode && t.LocationCodeNavigation.WarehouseCode==warehouseCode).Sum(i => i.Quantity) ?? 0.00)/replenish.ProductCodeNavigation.BaseQuantity,
             };
             return new ServiceResponse<ReplenishResponseDTO>(true, "Lấy dữ liệu thành công", response);
         }
@@ -194,7 +194,7 @@ namespace Chrome.Services.ReplenishService
                     MaxQuantity = r.MaxQuantity,
                     ProductName = r.ProductCodeNavigation!.ProductName!,
                     WarehouseName = r.WarehouseCodeNavigation!.WarehouseName!,
-                    TotalOnHand = (float)(r.ProductCodeNavigation.Inventories.Where(t => t.ProductCode == r.ProductCode).Sum(i => i.Quantity) ?? 0.00)/r.ProductCodeNavigation.BaseQuantity,
+                    TotalOnHand = (float)(r.ProductCodeNavigation.Inventories.Where(i => i.ProductCode == r.ProductCode && i.LocationCodeNavigation.WarehouseCode == warehouseCode).Sum(i => i.Quantity) ?? 0.00)/r.ProductCodeNavigation.BaseQuantity,
                 })
                 .ToListAsync();
             var pagedResponse = new PagedResponse<ReplenishResponseDTO>(replenishList, page, pageSize, totalCount);
@@ -269,7 +269,7 @@ namespace Chrome.Services.ReplenishService
                         r.MinQuantity,
                         r.MaxQuantity,
                         TotalOnHand = (float)(r.ProductCodeNavigation.Inventories
-                                            .Where(i => i.ProductCode == r.ProductCode)
+                                            .Where(i => i.ProductCode == r.ProductCode && i.LocationCodeNavigation.WarehouseCode==warehouseCode)
                                             .Sum(i => i.Quantity) ?? 0.00f) / r.ProductCodeNavigation.BaseQuantity
                     })
                     .ToListAsync();

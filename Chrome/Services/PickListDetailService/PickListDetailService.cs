@@ -175,7 +175,7 @@ namespace Chrome.Services.PickListDetailService
 
 
                 //cập nhật tồn kho kho đi (-)
-                var quantityDiff = (pickListDetail.Quantity - existingDetail.Quantity)/product.BaseQuantity;
+                var quantityDiff = (pickListDetail.Quantity - existingDetail.Quantity);
                 if (quantityDiff > 0)
                 {
                     var pickList = await _context.PickLists

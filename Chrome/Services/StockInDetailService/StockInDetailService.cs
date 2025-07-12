@@ -396,7 +396,7 @@ namespace Chrome.Services.StockInDetailService
                                 .ToListAsync();
 
                             string? selectedLocationCode = null;
-                            double quantityToPut = (double)newQuantity!;
+                            double quantityToPut = (double)existingStockInDetail.Quantity!;
 
                             // Tìm vị trí phù hợp từ PutAwayRules
                             if (putAwayRulesList.Any())
