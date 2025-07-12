@@ -1,11 +1,13 @@
 ﻿using Chrome.DTO;
 using Chrome.DTO.ManufacturingOrderDetailDTO;
+using Chrome.Models;
 using Chrome.Repositories.InventoryRepository;
 using Chrome.Repositories.ManufacturingOrderDetailRepository;
 using Chrome.Repositories.ManufacturingOrderRepository;
 using Chrome.Repositories.ProductMasterRepository;
 using Chrome.Repositories.ReservationRepository;
 using Chrome.Repositories.StockInRepository;
+using DocumentFormat.OpenXml.VariantTypes;
 using Microsoft.EntityFrameworkCore;
 
 namespace Chrome.Services.ManufacturingOrderDetailService
@@ -18,6 +20,7 @@ namespace Chrome.Services.ManufacturingOrderDetailService
         private readonly IManufacturingOrderRepository _manufacturingOrderRepository;
         private readonly IProductMasterRepository _productMasterRepository;
         private readonly IInventoryRepository _inventoryRepository;
+        private readonly ChromeContext _context;
 
         public ManufacturingOrderDetailService(
             IManufacturingOrderDetailRepository manufacturingOrderDetailRepository,
@@ -25,7 +28,8 @@ namespace Chrome.Services.ManufacturingOrderDetailService
             IStockInRepository stockInRepository,
             IManufacturingOrderRepository manufacturingOrderRepository,
             IProductMasterRepository productMasterRepository,
-            IInventoryRepository inventoryRepository)
+            IInventoryRepository inventoryRepository,
+            ChromeContext context)
         {
             _manufacturingOrderDetailRepository = manufacturingOrderDetailRepository;
             _reservationRepository = reservationRepository;
@@ -33,6 +37,7 @@ namespace Chrome.Services.ManufacturingOrderDetailService
             _productMasterRepository = productMasterRepository;
             _inventoryRepository = inventoryRepository;
             _manufacturingOrderRepository = manufacturingOrderRepository;
+            _context = context;
         }
 
         public async Task<ServiceResponse<ForecastManufacturingOrderDetailDTO>> GetForecastManufacturingOrderDetail(string manufacturingOrderCode, string productCode)
@@ -54,7 +59,7 @@ namespace Chrome.Services.ManufacturingOrderDetailService
 
                 // Lấy tồn kho hiện tại của sản phẩm tại kho đó
                 var inventoryList = await _inventoryRepository.GetInventoryByProductCodeAsync(productCode, manufacturingOrder.WarehouseCode!).ToListAsync();
-                var quantityOnHand = inventoryList.Sum(x => x.Quantity);
+                var quantityOnHand = inventoryList.Sum(x => x.Quantity)/inventoryList.First().ProductCodeNavigation.BaseQuantity;
 
                 // Lấy tổng số lượng reservation đang giữ cho sản phẩm đó tại kho
                 var reservations = await _reservationRepository.GetAllReservationsAsync(new string[] { manufacturingOrder.WarehouseCode! }).Where(x => x.StatusId != 3 && !x.ReservationCode.StartsWith("MV")).ToListAsync();
@@ -178,6 +183,65 @@ namespace Chrome.Services.ManufacturingOrderDetailService
             catch (Exception ex)
             {
                 return new ServiceResponse<ManufacturingOrderDetailResponseDTO>(false, $"Lỗi khi lấy chi tiết lệnh sản xuất: {ex.Message}");
+            }
+        }
+
+        public async Task<ServiceResponse<bool>> UpdateListManufacturingOrderDetail(List<ManufacturingOrderDetailRequestDTO> detailRequestDTOs)
+        {
+            if (detailRequestDTOs == null || !detailRequestDTOs.Any())
+            {
+                return new ServiceResponse<bool>(false, "Danh sách chi tiết lệnh sản xuất không được để trống");
+            }
+            try
+            {
+
+                foreach (var detailRequest in detailRequestDTOs)
+                {
+
+                    if (string.IsNullOrEmpty(detailRequest.ComponentCode))
+                    {
+                        return new ServiceResponse<bool>(false, "không tìm thấy mã thành phần");
+                    }
+
+
+                    var existingDetail = await _manufacturingOrderDetailRepository.GetManufacturingOrderDetailWithCode(
+                         detailRequest.ManufacturingOrderCode, detailRequest.ComponentCode);
+
+                    if (existingDetail == null)
+                    {
+                        return new ServiceResponse<bool>(false, "Chi tiết lệnh sản xuất không tồn tại cho mã lệnh sản xuất và mã sản phẩm đã cung cấp");
+                    }
+                    using (var transaction = await _context.Database.BeginTransactionAsync())
+                    {
+                        try
+                        {
+                            existingDetail.ToConsumeQuantity = detailRequest.ToConsumeQuantity;
+                            existingDetail.ConsumedQuantity = detailRequest.ConsumedQuantity;
+                            existingDetail.ScraptRate = detailRequest.ScraptRate;
+                            await _context.SaveChangesAsync();
+                            // Commit the transaction
+                            await transaction.CommitAsync();
+                            
+                        }
+                        catch(DbUpdateException dbEx)
+                        {
+                            // Rollback the transaction in case of error
+                            await transaction.RollbackAsync();
+                            return new ServiceResponse<bool>(false, $"Lỗi cập nhật chi tiết lệnh sản xuất: {dbEx.Message}");
+                        }
+                        catch (Exception ex)
+                        {
+                            // Rollback the transaction in case of error
+                            await transaction.RollbackAsync();
+                            return new ServiceResponse<bool>(false, $"Lỗi: {ex.Message}");
+                        }
+                    }
+                }
+                return new ServiceResponse<bool>(true, "Cập nhật chi tiết lệnh sản xuất thành công");
+            }
+            catch (Exception ex)
+            {
+                return new ServiceResponse<bool>(false, $"Lỗi: {ex.Message}");
             }
         }
     }

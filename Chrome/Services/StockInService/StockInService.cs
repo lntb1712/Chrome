@@ -1,20 +1,29 @@
-﻿using Chrome.DTO;
+﻿using Azure;
+using Chrome.DTO;
 using Chrome.DTO.AccountManagementDTO;
 using Chrome.DTO.OrderTypeDTO;
+using Chrome.DTO.PurchaseOrderDetailDTO;
+using Chrome.DTO.PurchaseOrderDTO;
 using Chrome.DTO.StatusMasterDTO;
+using Chrome.DTO.StockInDetailDTO;
 using Chrome.DTO.StockInDTO;
 using Chrome.DTO.SupplierMasterDTO;
 using Chrome.DTO.WarehouseMasterDTO;
 using Chrome.Models;
 using Chrome.Repositories.AccountRepository;
 using Chrome.Repositories.OrderTypeRepository;
+using Chrome.Repositories.PurchaseOrderDetailRepository;
+using Chrome.Repositories.PurchaseOrderRepository;
 using Chrome.Repositories.StatusMasterRepository;
 using Chrome.Repositories.StockInRepository;
 using Chrome.Repositories.SupplierMasterRepository;
 using Chrome.Repositories.WarehouseMasterRepository;
+using Chrome.Services.StockInDetailService;
 using DocumentFormat.OpenXml.Wordprocessing;
 using Microsoft.EntityFrameworkCore;
+using System;
 using System.Globalization;
+using System.Linq;
 
 namespace Chrome.Services.StockInService
 {
@@ -23,25 +32,31 @@ namespace Chrome.Services.StockInService
         private readonly IStockInRepository _stockInRepository;
         private readonly IOrderTypeRepository _orderTypeRepository;
         private readonly IAccountRepository _accountRepository;
-        private readonly ISupplierMasterRepository _supplierMasterRepository;
         private readonly IStatusMasterRepository _statusMasterRepository;
         private readonly IWarehouseMasterRepository _warehouseMasterRepository;
+        private readonly IPurchaseOrderDetailRepository _purchaseOrderDetailRepository;
+        private readonly IPurchaseOrderRepository _purchaseOrderRepository;
+        private readonly IStockInDetailService _stockInDetailService;
         private readonly ChromeContext _context;
 
         public StockInService(IStockInRepository stockInRepository,
             IOrderTypeRepository orderTypeRepository,
             IAccountRepository accountRepository,
-            ISupplierMasterRepository supplierMasterRepository,
             IStatusMasterRepository statusMasterRepository,
             IWarehouseMasterRepository warehouseMasterRepository,
+            IPurchaseOrderDetailRepository purchaseOrderDetailRepository,
+            IPurchaseOrderRepository purchaseOrderRepository,
+            IStockInDetailService stockInDetailService,
             ChromeContext context)
         {
             _stockInRepository = stockInRepository;
             _orderTypeRepository = orderTypeRepository;
             _accountRepository = accountRepository;
-            _supplierMasterRepository = supplierMasterRepository;
             _statusMasterRepository = statusMasterRepository;
             _warehouseMasterRepository = warehouseMasterRepository;
+            _purchaseOrderDetailRepository = purchaseOrderDetailRepository;
+            _purchaseOrderRepository = purchaseOrderRepository;
+            _stockInDetailService = stockInDetailService;
             _context = context;
         }
 
@@ -63,18 +78,56 @@ namespace Chrome.Services.StockInService
                 StockInCode = stockIn.StockInCode,
                 OrderTypeCode = stockIn.OrderTypeCode,
                 WarehouseCode = stockIn.WarehouseCode,
-                SupplierCode = stockIn.SupplierCode,
+                PurchaseOrderCode = stockIn.PurchaseOrderCode,
                 Responsible = stockIn.Responsible,
                 StatusId = 1,
                 OrderDeadline = parsedDate,
                 StockInDescription = stockIn.StockInDescription,
             };
+            var lstPOdetails = new List<PurchaseOrderDetailResponseDTO>();
+            if(!string.IsNullOrEmpty(stockInRequest.PurchaseOrderCode))
+            {
+                var purchaseOrderDetail = _purchaseOrderDetailRepository.GetAllPurchaseOrderDetailsAsync(stockInRequest.PurchaseOrderCode);
+                if(purchaseOrderDetail==null)
+                {
+                    return new ServiceResponse<bool>(false, "Không tìm thấy chi tiết đặt hàng");
+                }
+                lstPOdetails = await purchaseOrderDetail
+                .Select(x => new PurchaseOrderDetailResponseDTO
+                {
+                    PurchaseOrderCode = x.PurchaseOrderCode,
+                    ProductCode = x.ProductCode,
+                    ProductName = x.ProductCodeNavigation.ProductName!,
+                    Quantity = x.Quantity
+                }).ToListAsync();
+            }
 
             using (var transaction = await _context.Database.BeginTransactionAsync())
             {
                 try
                 {
+                    // 1. Thêm phiếu nhập kho (StockIn)
                     await _stockInRepository.AddAsync(stockInRequest, saveChanges: false);
+                    await _context.SaveChangesAsync();
+                    // 2. Thêm chi tiết nhập kho theo từng sản phẩm của PO
+                    foreach (var item in lstPOdetails)
+                    {
+                        var stockInDetail = new StockInDetailRequestDTO
+                        {
+                            StockInCode = stockIn.StockInCode,
+                            ProductCode = item.ProductCode,
+                            Demand = item.Quantity,
+                            Quantity = 0 // Chưa nhận hàng
+                        };
+
+                        await _stockInDetailService.AddStockInDetail(stockInDetail, transaction);
+                    }
+
+                    // 3. Cập nhật trạng thái đơn đặt hàng
+                    var purchaseOrderHeader = await _purchaseOrderRepository.GetPurchaseOrderWithCode(stockIn.PurchaseOrderCode!);
+
+                    purchaseOrderHeader.StatusId = 2; // Partially Received hoặc chờ xử lý
+                    _context.PurchaseOrders.Update(purchaseOrderHeader);
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
                     return new ServiceResponse<bool>(true, "Thêm lệnh nhập kho thành công");
@@ -160,8 +213,9 @@ namespace Chrome.Services.StockInService
                              OrderTypeName = x.OrderTypeCodeNavigation!.OrderTypeName,
                              WarehouseCode = x.WarehouseCode,
                              WarehouseName = x.WarehouseCodeNavigation!.WarehouseName,
-                             SupplierCode = x.SupplierCode,
-                             SupplierName = x.SupplierCodeNavigation!.SupplierName,
+                             PurchaseOrderCode = x.PurchaseOrderCode,
+                             SupplierCode = x.PurchaseOrderCodeNavigation!.SupplierCode,
+                             SupplierName = x.PurchaseOrderCodeNavigation!.SupplierCodeNavigation!.SupplierName,
                              Responsible = x.Responsible,
                              FullNameResponsible = x.ResponsibleNavigation!.FullName,
                              StatusId = x.StatusId,
@@ -194,8 +248,9 @@ namespace Chrome.Services.StockInService
                              OrderTypeName = x.OrderTypeCodeNavigation!.OrderTypeName,
                              WarehouseCode = x.WarehouseCode,
                              WarehouseName = x.WarehouseCodeNavigation!.WarehouseName,
-                             SupplierCode = x.SupplierCode,
-                             SupplierName = x.SupplierCodeNavigation!.SupplierName,
+                             PurchaseOrderCode = x.PurchaseOrderCode,
+                             SupplierCode = x.PurchaseOrderCodeNavigation!.SupplierCode,
+                             SupplierName = x.PurchaseOrderCodeNavigation!.SupplierCodeNavigation!.SupplierName,
                              Responsible = x.Responsible,
                              FullNameResponsible = x.ResponsibleNavigation!.FullName,
                              StatusId = x.StatusId,
@@ -227,8 +282,9 @@ namespace Chrome.Services.StockInService
                              OrderTypeName = x.OrderTypeCodeNavigation!.OrderTypeName,
                              WarehouseCode = x.WarehouseCode,
                              WarehouseName = x.WarehouseCodeNavigation!.WarehouseName,
-                             SupplierCode = x.SupplierCode,
-                             SupplierName = x.SupplierCodeNavigation!.SupplierName,
+                             PurchaseOrderCode = x.PurchaseOrderCode,
+                             SupplierCode = x.PurchaseOrderCodeNavigation!.SupplierCode,
+                             SupplierName = x.PurchaseOrderCodeNavigation!.SupplierCodeNavigation!.SupplierName,
                              Responsible = x.Responsible,
                              FullNameResponsible = x.ResponsibleNavigation!.FullName,
                              StatusId = x.StatusId,
@@ -260,6 +316,34 @@ namespace Chrome.Services.StockInService
             return new ServiceResponse<List<OrderTypeResponseDTO>>(true, "Lấy danh sách loại nhập kho thành công", lstOrderTypeList);
         }
 
+        public async Task<ServiceResponse<List<PurchaseOrderResponseDTO>>> GetListPurchaseOrder( string[] warehouseCodes, int[]? statusFilters =null)
+        {
+            if (warehouseCodes.Length == 0)
+            {
+                return new ServiceResponse<List<PurchaseOrderResponseDTO>>(false, "Dữ liệu nhận vào không hợp lệ");
+            }
+            var query = _purchaseOrderRepository.GetAllPurchaseOrdersAsync(warehouseCodes);
+            if (statusFilters != null && statusFilters.Length > 0)
+            {
+                query = query.Where(x => statusFilters.Contains(x.StatusId!.Value));
+            }
+            var purchaseOrders = await query
+                .Select(x => new PurchaseOrderResponseDTO
+                {
+                    PurchaseOrderCode = x.PurchaseOrderCode,
+                    WarehouseCode = x.WarehouseCode,
+                    StatusId = x.StatusId,
+                    WarehouseName = x.WarehouseCodeNavigation!.WarehouseName,
+                    OrderDate = x.OrderDate!.Value.ToString("dd/MM/yyyy"),
+                    ExpectedDate = x.ExpectedDate!.Value.ToString("dd/MM/yyyy"),
+                    SupplierCode = x.SupplierCode,
+                    PurchaseOrderDescription = x.PurchaseOrderDescription,
+                    StatusName = x.Status!.StatusName,
+                    SupplierName = x.SupplierCodeNavigation!.SupplierName
+                }).ToListAsync();
+            return new ServiceResponse<List<PurchaseOrderResponseDTO>>(true, "Lấy danh sách đặt hàng thành công", purchaseOrders);
+        }
+
         public async Task<ServiceResponse<List<AccountManagementResponseDTO>>> GetListResponsibleAsync(string warehouseCode)
         {
             var lstResponsible = await _accountRepository.GetAllAccount(1, int.MaxValue);
@@ -286,18 +370,7 @@ namespace Chrome.Services.StockInService
             return new ServiceResponse<List<StatusMasterResponseDTO>>(true, "Lấy danh sách trạng thái thành công", lstStatusResponse);
         }
 
-        public async Task<ServiceResponse<List<SupplierMasterResponseDTO>>> GetListSupplierMasterAsync()
-        {
-            var lstSupplier = await _supplierMasterRepository.GetAllSupplier(1, int.MaxValue);
-            var lstSupplierResponse = lstSupplier.Select(x => new SupplierMasterResponseDTO
-            {
-                SupplierCode = x.SupplierCode,
-                SupplierName = x.SupplierName,
-                SupplierPhone = x.SupplierPhone,
-                SupplierAddress = x.SupplierAddress,
-            }).ToList();
-            return new ServiceResponse<List<SupplierMasterResponseDTO>>(true, "Lấy danh sách nhà cung cấp", lstSupplierResponse);
-        }
+     
 
         public async Task<ServiceResponse<List<WarehouseMasterResponseDTO>>> GetListWarehousePermission(string[] warehouseCodes)
         {
@@ -337,8 +410,9 @@ namespace Chrome.Services.StockInService
                 OrderTypeName = stockIn.OrderTypeCodeNavigation!.OrderTypeName,
                 WarehouseCode = stockIn.WarehouseCode,
                 WarehouseName = stockIn.WarehouseCodeNavigation!.WarehouseName,
-                SupplierCode = stockIn.SupplierCode,
-                SupplierName = stockIn.SupplierCodeNavigation!.SupplierName,
+                PurchaseOrderCode = stockIn.PurchaseOrderCode,
+                SupplierCode = stockIn.PurchaseOrderCodeNavigation!.SupplierCode,
+                SupplierName = stockIn.PurchaseOrderCodeNavigation!.SupplierCodeNavigation!.SupplierName,
                 Responsible = stockIn.Responsible,
                 FullNameResponsible = stockIn.ResponsibleNavigation!.FullName,
                 StatusId = stockIn.StatusId,
@@ -364,8 +438,9 @@ namespace Chrome.Services.StockInService
                              OrderTypeName = x.OrderTypeCodeNavigation!.OrderTypeName,
                              WarehouseCode = x.WarehouseCode,
                              WarehouseName = x.WarehouseCodeNavigation!.WarehouseName,
-                             SupplierCode = x.SupplierCode,
-                             SupplierName = x.SupplierCodeNavigation!.SupplierName,
+                             PurchaseOrderCode = x.PurchaseOrderCode,
+                             SupplierCode = x.PurchaseOrderCodeNavigation!.SupplierCode,
+                             SupplierName = x.PurchaseOrderCodeNavigation!.SupplierCodeNavigation!.SupplierName,
                              Responsible = x.Responsible,
                              FullNameResponsible = x.ResponsibleNavigation!.FullName,
                              StatusId = x.StatusId,
@@ -397,8 +472,9 @@ namespace Chrome.Services.StockInService
                              OrderTypeName = x.OrderTypeCodeNavigation!.OrderTypeName,
                              WarehouseCode = x.WarehouseCode,
                              WarehouseName = x.WarehouseCodeNavigation!.WarehouseName,
-                             SupplierCode = x.SupplierCode,
-                             SupplierName = x.SupplierCodeNavigation!.SupplierName,
+                             PurchaseOrderCode = x.PurchaseOrderCode,
+                             SupplierCode = x.PurchaseOrderCodeNavigation!.SupplierCode,
+                             SupplierName = x.PurchaseOrderCodeNavigation!.SupplierCodeNavigation!.SupplierName,
                              Responsible = x.Responsible,
                              FullNameResponsible = x.ResponsibleNavigation!.FullName,
                              StatusId = x.StatusId,

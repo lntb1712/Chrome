@@ -86,6 +86,7 @@ namespace Chrome.Permission
             {"ucMovement",@"^/api/Movement" },
             {"ucStockTake",@"^/api/StockTake" },
             {"ucReplenish", @"^/api/Replenish"},
+            {"ucPurchaseOrder",@"^/api/PurchaseOrder"},
         };
     }
 }

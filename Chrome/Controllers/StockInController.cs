@@ -151,12 +151,12 @@ namespace Chrome.Controllers
             }
         }
 
-        [HttpGet("GetListSupplierMasterAsync")]
-        public async Task<IActionResult> GetListSupplierMasterAsync()
+        [HttpGet("GetListPurchaseOrder")]
+        public async Task<IActionResult> GetListPurchaseOrder([FromQuery]string[] warehouseCodes, [FromQuery] int[] statusFilters)
         {
             try
             {
-                var response = await _stockInService.GetListSupplierMasterAsync();
+                var response = await _stockInService.GetListPurchaseOrder(warehouseCodes,statusFilters);
                 if (!response.Success)
                 {
                     return NotFound(new

@@ -22,6 +22,7 @@ using Chrome.Services.StorageProductService;
 using DocumentFormat.OpenXml.Office.Word;
 using DocumentFormat.OpenXml.VariantTypes;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using System.Globalization;
 using System.Linq.Expressions;
 
@@ -30,12 +31,8 @@ namespace Chrome.Services.StockInDetailService
     public class StockInDetailService : IStockInDetailService
     {
         private readonly IStockInDetailRepository _stockInDetailRepository;
-        private readonly IInventoryService _inventoryService;
         private readonly IPutAwayRulesRepository _putAwayRulesRepository;
         private readonly IInventoryRepository _inventoryRepository;
-        private readonly ILocationMasterService _locationMasterService;
-        private readonly IStorageProductService _storageProductService;
-        private readonly IStockInService _stockInService;
         private readonly IStockInRepository _stockInRepository;
         private readonly IProductMasterRepository _productMasterRepository;
         private readonly IPutAwayService _putAwayService;
@@ -43,12 +40,8 @@ namespace Chrome.Services.StockInDetailService
         private readonly ChromeContext _context;
 
         public StockInDetailService(IStockInDetailRepository stockInDetailRepository,
-            IInventoryService inventoryService,
             IInventoryRepository inventoryRepository,
             IPutAwayRulesRepository putAwayRulesRepository,
-            ILocationMasterService locationMasterService,
-            IStorageProductService storageProductService,
-            IStockInService stockInService,
             IStockInRepository stockInRepository,
             IProductMasterRepository productMasterRepository,
             IPutAwayService putAwayService,
@@ -56,12 +49,8 @@ namespace Chrome.Services.StockInDetailService
             ChromeContext context)
         {
             _stockInDetailRepository = stockInDetailRepository;
-            _inventoryService = inventoryService;
             _inventoryRepository = inventoryRepository;
             _putAwayRulesRepository = putAwayRulesRepository;
-            _locationMasterService = locationMasterService;
-            _storageProductService = storageProductService;
-            _stockInService = stockInService;
             _stockInRepository = stockInRepository;
             _productMasterRepository = productMasterRepository;
             _putAwayService = putAwayService;
@@ -69,7 +58,7 @@ namespace Chrome.Services.StockInDetailService
             _context = context;
         }
 
-        public async Task<ServiceResponse<bool>> AddStockInDetail(StockInDetailRequestDTO stockInDetail)
+        public async Task<ServiceResponse<bool>> AddStockInDetail(StockInDetailRequestDTO stockInDetail, IDbContextTransaction transaction = null!)
         {
             if (stockInDetail == null) return new ServiceResponse<bool>(false, "Dữ liệu nhận vào không hợp lệ");
             if (string.IsNullOrEmpty(stockInDetail.StockInCode) || string.IsNullOrEmpty(stockInDetail.ProductCode))
@@ -87,18 +76,22 @@ namespace Chrome.Services.StockInDetailService
                 LotNo = "RCV-" + stockInDetail.StockInCode + "-" + stockInDetail.ProductCode,
                 Quantity = 0,
             };
-            using (var transaction = await _context.Database.BeginTransactionAsync())
+            bool isExternalTransaction = transaction != null;
+            transaction ??= await _context.Database.BeginTransactionAsync();
             {
                 try
                 {
                     await _stockInDetailRepository.AddAsync(stockInDetailRequest, saveChanges: false);
                     await _context.SaveChangesAsync();
-                    await transaction.CommitAsync();
+                    if (!isExternalTransaction)
+                    {
+                        await transaction.CommitAsync();
+                    }
                     return new ServiceResponse<bool>(true, "Thêm sản phẩm để nhập thành công");
                 }
                 catch (DbUpdateException dbEx)
                 {
-                    await transaction.RollbackAsync();
+                    if (!isExternalTransaction) await transaction.RollbackAsync();
                     if (dbEx.InnerException != null)
                     {
                         string error = dbEx.InnerException.Message.ToLower();
@@ -115,7 +108,7 @@ namespace Chrome.Services.StockInDetailService
                 }
                 catch (Exception ex)
                 {
-                    await transaction.RollbackAsync();
+                    if (!isExternalTransaction) await transaction.RollbackAsync();
                     return new ServiceResponse<bool>(false, $"Lỗi khi thêm sản phẩm nhập kho: {ex.Message}");
                 }
             }
@@ -168,15 +161,15 @@ namespace Chrome.Services.StockInDetailService
             if (itemsToBackOrder.Count == 0)
                 return new ServiceResponse<bool>(false, "Không có sản phẩm cần tạo backorder");
 
-            if (string.IsNullOrEmpty(dateBackOrder)) return new ServiceResponse<bool>(false, "Mã xuất kho không được để trống");
+            if (string.IsNullOrEmpty(dateBackOrder)) return new ServiceResponse<bool>(false, "Ngày xuất kho không được để trống");
             string[] formats = {
                 "M/d/yyyy h:mm:ss tt",
                 "MM/dd/yyyy hh:mm:ss tt",
-                "dd/MM/yyyy"
+                "dd/MM/yyyy","dd/MM/yyyy hh:mm:ss tt"
             };
-            if (!DateTime.TryParseExact(dateBackOrder, formats, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime parsedDate))
+            if (!DateTime.TryParseExact(dateBackOrder, formats, new CultureInfo("vi-VN"), DateTimeStyles.None, out DateTime parsedDate))
             {
-                return new ServiceResponse<bool>(false, "Ngày xuất kho không đúng định dạng. Vui lòng sử dụng dd/MM/yyyy hoặc M/d/yyyy h:mm:ss tt.");
+                return new ServiceResponse<bool>(false, "Ngày nhập kho không đúng định dạng. Vui lòng sử dụng dd/MM/yyyy hoặc M/d/yyyy h:mm:ss tt.");
             }
             using (var transaction = await _context.Database.BeginTransactionAsync())
             {
@@ -192,7 +185,7 @@ namespace Chrome.Services.StockInDetailService
                         StockInCode = backOrderCode,
                         OrderTypeCode = stockInHeader.OrderTypeCode,
                         WarehouseCode = stockInHeader.WarehouseCode,
-                        SupplierCode = stockInHeader.SupplierCode,
+                        PurchaseOrderCode = stockInHeader.PurchaseOrderCode,
                         Responsible = stockInHeader.Responsible,
                         OrderDeadline = parsedDate,
                         StatusId = 1,
@@ -326,7 +319,7 @@ namespace Chrome.Services.StockInDetailService
         public async Task<ServiceResponse<List<ProductMasterResponseDTO>>> GetListProductToSI()
         {
             var lstProduct = await _productMasterRepository.GetAllProduct(1, int.MaxValue);
-            var lstProductForSI = lstProduct.Where(p => p.CategoryId != "SFG")
+            var lstProductForSI = lstProduct.Where(p => p.CategoryId != "SFG" || p.CategoryId != "FG")
                                             .Select(p => new ProductMasterResponseDTO
                                             {
                                                 ProductCode = p.ProductCode,
@@ -372,6 +365,7 @@ namespace Chrome.Services.StockInDetailService
                         // Cập nhật số lượng StockInDetail
                         existingStockInDetail.Quantity = newQuantity;
                         await _stockInDetailRepository.UpdateAsync(existingStockInDetail, saveChanges: false);
+                       
 
                         // Tạo hoặc cập nhật PutAway khi có số lượng hợp lệ
                         if (existingStockInDetail.Quantity > 0 && existingStockInDetail.Quantity <= existingStockInDetail.Demand)
@@ -398,7 +392,7 @@ namespace Chrome.Services.StockInDetailService
                             // Tính tổng số lượng tồn kho hiện tại tại các vị trí
                             var inventoryQuantities = await _inventoryRepository.GetInventoryByProductCodeAsync(stockInDetail.ProductCode, stockIn.WarehouseCode!)
                                 .GroupBy(i => i.LocationCode)
-                                .Select(g => new { LocationCode = g.Key, TotalQuantity = g.Sum(i => i.Quantity ?? 0) })
+                                .Select(g => new { LocationCode = g.Key, TotalQuantity = g.Sum(i => i.Quantity ?? 0)/g.First().ProductCodeNavigation.BaseQuantity })
                                 .ToListAsync();
 
                             string? selectedLocationCode = null;
@@ -520,7 +514,7 @@ namespace Chrome.Services.StockInDetailService
                                 OrderTypeCode = existPutAway.OrderTypeCode,
                                 LocationCode = selectedLocationCode,
                                 Responsible = stockIn.Responsible,
-                                StatusId = 1,
+                                StatusId = existPutAway.StatusId,
                                 PutAwayDate = DateTime.Now.ToString("dd/MM/yyyy"),
                                 PutAwayDescription = $"Cất hàng cho lệnh nhập kho {stockIn.StockInCode}, sản phẩm {stockInDetail.ProductCode}"
                             };
@@ -575,6 +569,9 @@ namespace Chrome.Services.StockInDetailService
                         }
                         _context.StockIns.Update(stockInHeader);
                     }
+                    var purchaseOrderDetails = await _context.PurchaseOrderDetails.FirstOrDefaultAsync(x => x.PurchaseOrderCode == stockInHeader!.PurchaseOrderCode && x.ProductCode == stockInDetail.ProductCode);
+                    purchaseOrderDetails!.QuantityReceived = newQuantity;
+                     _context.PurchaseOrderDetails.Update(purchaseOrderDetails);
 
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();

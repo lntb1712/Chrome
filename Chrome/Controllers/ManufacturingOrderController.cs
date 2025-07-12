@@ -203,11 +203,11 @@ namespace Chrome.Controllers
         }
 
         [HttpPost("CreateBackOrder")]
-        public async Task<IActionResult> CreateBackOrder([FromQuery] string manufacturingCode)
+        public async Task<IActionResult> CreateBackOrder([FromQuery] string manufacturingCode, [FromQuery] string scheduleDateBackOrder, [FromQuery]string deadLineBackOrder)
         {
             try
             {
-                var response = await _manufacturingOrderService.CreateBackOrder(manufacturingCode);
+                var response = await _manufacturingOrderService.CreateBackOrder(manufacturingCode,scheduleDateBackOrder,deadLineBackOrder);
                 if (!response.Success)
                 {
                     return BadRequest(new { Success = false, Message = response.Message });

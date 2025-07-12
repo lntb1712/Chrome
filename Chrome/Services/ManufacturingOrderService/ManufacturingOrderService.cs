@@ -809,7 +809,7 @@ namespace Chrome.Services.ManufacturingOrderService
                     // Tính tổng số lượng tồn kho hiện tại tại các vị trí
                     var inventoryQuantities = await _inventoryRepository.GetInventoryByProductCodeAsync(manufacturing.ProductCode!, manufacturing.WarehouseCode!)
                         .GroupBy(i => i.LocationCode)
-                        .Select(g => new { LocationCode = g.Key, TotalQuantity = g.Sum(i => i.Quantity ?? 0) })
+                        .Select(g => new { LocationCode = g.Key, TotalQuantity = g.Sum(i => i.Quantity ?? 0)/g.First().ProductCodeNavigation.BaseQuantity })
                         .ToListAsync();
 
                     string? selectedLocationCode = null;
@@ -938,7 +938,7 @@ namespace Chrome.Services.ManufacturingOrderService
                     else
                     {
                         existingPutAwayDetail.Demand = manufacturing.QuantityProduced;
-                        existingPutAwayDetail.LotNo = manufacturing.Lotno;
+                        existingPutAwayDetail.LotNo = manufacturing.Lotno!;
                         _context.PutAwayDetails.Update(existingPutAwayDetail);
                     }
 
@@ -968,7 +968,7 @@ namespace Chrome.Services.ManufacturingOrderService
         }
 
 
-        public async Task<ServiceResponse<bool>> CreateBackOrder(string manufacturingCode)
+        public async Task<ServiceResponse<bool>> CreateBackOrder(string manufacturingCode, string ScheduleDateBackOrder, string DeadLineBackOrder)
         {
             if (string.IsNullOrEmpty(manufacturingCode))
             {
@@ -984,6 +984,19 @@ namespace Chrome.Services.ManufacturingOrderService
             if (manufacturing.QuantityProduced >= manufacturing.Quantity)
             {
                 return new ServiceResponse<bool>(false, "Số lượng sản xuất đã đủ hoặc vượt yêu cầu, không cần tạo back order");
+            }
+            string[] formats = {
+                "M/d/yyyy h:mm:ss tt",
+                "MM/dd/yyyy hh:mm:ss tt",
+                "dd/MM/yyyy","dd/MM/yyyy hh:mm:ss tt"
+            };
+            if (!DateTime.TryParseExact(ScheduleDateBackOrder, formats, new CultureInfo("vi-VN"), DateTimeStyles.None, out DateTime parsedDate))
+            {
+                return new ServiceResponse<bool>(false, "Ngày bắt đầu sản xuất không đúng định dạng. Vui lòng sử dụng dd/MM/yyyy hoặc M/d/yyyy h:mm:ss tt.");
+            }
+            if (!DateTime.TryParseExact(DeadLineBackOrder, formats, new CultureInfo("vi-VN"), DateTimeStyles.None, out DateTime parsedDeadLineDate))
+            {
+                return new ServiceResponse<bool>(false, "Ngày hạn chót sản xuất không đúng định dạng. Vui lòng sử dụng dd/MM/yyyy hoặc M/d/yyyy h:mm:ss tt.");
             }
 
             using (var transaction = await _context.Database.BeginTransactionAsync())
@@ -1002,8 +1015,8 @@ namespace Chrome.Services.ManufacturingOrderService
                         ProductCode = manufacturing.ProductCode,
                         Bomcode = manufacturing.Bomcode,
                         BomVersion = manufacturing.BomVersion,
-                        ScheduleDate = DateTime.Now,
-                        Deadline = manufacturing.Deadline,
+                        ScheduleDate = parsedDate,
+                        Deadline = parsedDeadLineDate,
                         Responsible = manufacturing.Responsible,
                         Quantity = remainingQuantity,
                         QuantityProduced = 0,

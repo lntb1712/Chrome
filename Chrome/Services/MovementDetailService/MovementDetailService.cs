@@ -191,7 +191,7 @@ namespace Chrome.Services.MovementDetailService
                 var inventoryQuery =  _inventoryRepository.GetInventoryByProductCodeAsync(movementDetail.ProductCode, warehouseCode);
                 var totalOnHand = await inventoryQuery
                     .Where(i => i.LocationCode == fromLocation)
-                    .SumAsync(i => i.Quantity ?? 0);
+                    .SumAsync(i => i.Quantity ?? 0)/*/inventoryQuery.First().ProductCodeNavigation.BaseQuantity*/;
                 if (movementDetail.Demand > totalOnHand)
                 {
                     return new ServiceResponse<bool>(false, $"Số lượng yêu cầu ({movementDetail.Demand}) vượt quá tồn kho hiện có ({totalOnHand}) cho sản phẩm {movementDetail.ProductCode} tại vị trí {fromLocation}.");

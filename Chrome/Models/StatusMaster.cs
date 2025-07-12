@@ -15,6 +15,8 @@ public partial class StatusMaster
 
     public virtual ICollection<PickList> PickLists { get; set; } = new List<PickList>();
 
+    public virtual ICollection<PurchaseOrder> PurchaseOrders { get; set; } = new List<PurchaseOrder>();
+
     public virtual ICollection<PutAway> PutAways { get; set; } = new List<PutAway>();
 
     public virtual ICollection<Reservation> Reservations { get; set; } = new List<Reservation>();

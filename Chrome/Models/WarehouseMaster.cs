@@ -23,6 +23,8 @@ public partial class WarehouseMaster
 
     public virtual ICollection<PickList> PickLists { get; set; } = new List<PickList>();
 
+    public virtual ICollection<PurchaseOrder> PurchaseOrders { get; set; } = new List<PurchaseOrder>();
+
     public virtual ICollection<PutAwayRule> PutAwayRules { get; set; } = new List<PutAwayRule>();
 
     public virtual ICollection<Replenish> Replenishes { get; set; } = new List<Replenish>();

@@ -8,5 +8,6 @@ namespace Chrome.Services.ManufacturingOrderDetailService
         Task<ServiceResponse<PagedResponse<ManufacturingOrderDetailResponseDTO>>> GetManufacturingOrderDetail(string manufacturingOrderCode);
         Task<ServiceResponse<ManufacturingOrderDetailResponseDTO>> GetManufacturingOrderDetail(string manufacturingOrderCode, string productCode);
         Task<ServiceResponse<ForecastManufacturingOrderDetailDTO>> GetForecastManufacturingOrderDetail(string manufacturingOrderCode, string productCode);
+        Task<ServiceResponse<bool>> UpdateListManufacturingOrderDetail(List<ManufacturingOrderDetailRequestDTO> detailRequestDTOs);
     }
 }

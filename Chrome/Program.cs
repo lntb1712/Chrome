@@ -21,6 +21,8 @@ using Chrome.Repositories.PickListRepository;
 using Chrome.Repositories.ProductCustomerRepository;
 using Chrome.Repositories.ProductMasterRepository;
 using Chrome.Repositories.ProductSupplierRepository;
+using Chrome.Repositories.PurchaseOrderDetailRepository;
+using Chrome.Repositories.PurchaseOrderRepository;
 using Chrome.Repositories.PutAwayDetailRepository;
 using Chrome.Repositories.PutawayRepository;
 using Chrome.Repositories.PutAwayRepository;
@@ -62,6 +64,8 @@ using Chrome.Services.PickListService;
 using Chrome.Services.ProductCustomerService;
 using Chrome.Services.ProductMasterService;
 using Chrome.Services.ProductSupplierSerivce;
+using Chrome.Services.PurchaseOrderDetailService;
+using Chrome.Services.PurchaseOrderService;
 using Chrome.Services.PutAwayDetailService;
 using Chrome.Services.PutAwayRulesService;
 using Chrome.Services.PutAwayService;
@@ -138,6 +142,8 @@ builder.Services.AddScoped<IStockTakeDetailRepository,StocktakeDetailRepository>
 builder.Services.AddScoped<IManufacturingOrderRepository, ManufacturingOrderRepository>();
 builder.Services.AddScoped<IManufacturingOrderDetailRepository, ManufacturingOrderDetailRepository>();
 builder.Services.AddScoped<IReplenishRepository, ReplenishRepository>();
+builder.Services.AddScoped<IPurchaseOrderRepository,PurchaseOrderRepository>();
+builder.Services.AddScoped<IPurchaseOrderDetailRepository, PurchaseOrderDetailRepository>();
 
 
 // Đăng kí Dependency Injection cho các Service
@@ -181,6 +187,8 @@ builder.Services.AddScoped<IManufacturingOrderDetailService, ManufacturingOrderD
 builder.Services.AddScoped<IQRGeneratorService, QRGeneratorService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<IReplenishService, ReplenishService>();
+builder.Services.AddScoped<IPurchaseOrderService, PurchaseOrderService>();
+builder.Services.AddScoped<IPurchaseOrderDetailService, PurchaseOrderDetailService>();
 
 // Đăng ký IHttpContextAccessor để thực hiện sử dụng HttpCookie
 builder.Services.AddHttpContextAccessor();

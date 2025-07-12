@@ -146,6 +146,65 @@ namespace Chrome.Services.InventoryService
             }
         }
 
+        public async Task<ServiceResponse<List<WarehouseUsageDTO>>> GetInventoryUsedPercent(string[] warehouseCodes)
+        {
+            if (warehouseCodes.Length == 0)
+            {
+                return new ServiceResponse<List<WarehouseUsageDTO>>(false, "Không có kho nào được cung cấp");
+            }
+
+            var query = from l in _context.LocationMasters
+                        where warehouseCodes.Contains(l.WarehouseCode)
+                        join i in _context.Inventories on l.LocationCode equals i.LocationCode into invGroup
+                        from i in invGroup.DefaultIfEmpty()
+                        join p in _context.ProductMasters on i.ProductCode equals p.ProductCode into prodGroup
+                        from p in prodGroup.DefaultIfEmpty()
+                        join sp in _context.StorageProducts on l.StorageProductId equals sp.StorageProductId into spGroup
+                        from sp in spGroup.DefaultIfEmpty()
+                        group new { l, i, p, sp } by new
+                        {
+                            l.WarehouseCode,
+                            l.WarehouseCodeNavigation!.WarehouseName, // thêm nếu có navigation
+                            l.LocationCode,
+                            l.LocationName,
+                            ProductCode = i != null ? i.ProductCode : null,
+                            ProductName = p != null ? p.ProductName : "",
+                            BaseQuantity = p != null ? p.BaseQuantity : 1,
+                            MaxQuantity = sp != null ? sp.MaxQuantity : 0
+                        } into g
+                        select new
+                        {
+                            g.Key.WarehouseCode,
+                            g.Key.WarehouseName,
+                            Location = new LocationUsageDTO
+                            {
+                                LocationCode = g.Key.LocationCode,
+                                LocationName = g.Key.LocationName,
+                                ProductCode = g.Key.ProductCode,
+                                ProductName = g.Key.ProductName,
+                                Quantity = Math.Round((double)g.Sum(x => x.i != null ? x.i.Quantity / (g.Key.BaseQuantity == 0 ? 1 : g.Key.BaseQuantity) : 0)!, 2),
+                                UsedPercentage = Math.Round((double)(g.Key.MaxQuantity > 0
+                                    ? g.Sum(x => x.i != null ? x.i.Quantity / (g.Key.BaseQuantity == 0 ? 1 : g.Key.BaseQuantity) : 0) / g.Key.MaxQuantity * 100
+                                    : 0)!, 2)
+                            }
+                        };
+
+            // Group lại theo WarehouseCode
+            var result = query
+                .ToList()
+                .GroupBy(x => new { x.WarehouseCode, x.WarehouseName })
+                .Select(g => new WarehouseUsageDTO
+                {
+                    WarehouseCode = g.Key.WarehouseCode,
+                    WarehouseName = g.Key.WarehouseName,
+                    locationUsageDTOs = g.Select(x => x.Location).ToList()
+                })
+                .ToList();
+
+            return new ServiceResponse<List<WarehouseUsageDTO>>(true, "Lấy danh sách phần trăm sử dụng thành công", result);
+        }
+
+
         public async Task<ServiceResponse<PagedResponse<InventorySummaryDTO>>> GetListProductInventory(string[] warehouseCodes, int page, int pageSize)
         {
             if (warehouseCodes.Length == 0 || page < 1 || pageSize < 1)

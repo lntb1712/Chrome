@@ -3,6 +3,7 @@ using Chrome.Repositories.RepositoryBase;
 
 namespace Chrome.Repositories.StockInRepository
 {
+
     public interface IStockInRepository:IRepositoryBase<StockIn>
     {
         IQueryable<StockIn> GetAllStockInAsync(string[] warehouseCodes);

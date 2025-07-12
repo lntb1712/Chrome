@@ -9,7 +9,8 @@
 
         public string? WarehouseCode { get; set; }
         public string? WarehouseName { get; set; }
-
+        
+        public string? PurchaseOrderCode { get; set; }
         public string? SupplierCode { get; set; }
         public string? SupplierName { get; set; }
 

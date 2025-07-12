@@ -1,13 +1,14 @@
 ﻿using Chrome.DTO;
 using Chrome.DTO.ProductMasterDTO;
 using Chrome.DTO.StockInDetailDTO;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace Chrome.Services.StockInDetailService
 {
     public interface IStockInDetailService
     {
         Task<ServiceResponse<PagedResponse<StockInDetailResponseDTO>>> GetAllStockInDetails(string stockInCode,int page, int pageSize);
-        Task<ServiceResponse<bool>> AddStockInDetail(StockInDetailRequestDTO stockInDetail);
+        Task<ServiceResponse<bool>> AddStockInDetail(StockInDetailRequestDTO stockInDetail, IDbContextTransaction transaction = null!);
         Task<ServiceResponse<bool>> UpdateStockInDetail(StockInDetailRequestDTO stockInDetail);
         Task<ServiceResponse<bool>> DeleteStockInDetail(string stockInCode,string productCode);
         Task<ServiceResponse<bool>> ConfirmStockIn(string stockInCode);

@@ -15,5 +15,5 @@ public partial class SupplierMaster
 
     public virtual ICollection<ProductSupplier> ProductSuppliers { get; set; } = new List<ProductSupplier>();
 
-    public virtual ICollection<StockIn> StockIns { get; set; } = new List<StockIn>();
+    public virtual ICollection<PurchaseOrder> PurchaseOrders { get; set; } = new List<PurchaseOrder>();
 }

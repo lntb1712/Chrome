@@ -11,7 +11,7 @@ public partial class StockIn
 
     public string? WarehouseCode { get; set; }
 
-    public string? SupplierCode { get; set; }
+    public string? PurchaseOrderCode { get; set; }
 
     public string? Responsible { get; set; }
 
@@ -23,13 +23,13 @@ public partial class StockIn
 
     public virtual OrderType? OrderTypeCodeNavigation { get; set; }
 
+    public virtual PurchaseOrder? PurchaseOrderCodeNavigation { get; set; }
+
     public virtual AccountManagement? ResponsibleNavigation { get; set; }
 
     public virtual StatusMaster? Status { get; set; }
 
     public virtual ICollection<StockInDetail> StockInDetails { get; set; } = new List<StockInDetail>();
-
-    public virtual SupplierMaster? SupplierCodeNavigation { get; set; }
 
     public virtual WarehouseMaster? WarehouseCodeNavigation { get; set; }
 }

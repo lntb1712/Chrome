@@ -1,7 +1,5 @@
-﻿using Chrome.DTO;
-using Chrome.DTO.InventoryDTO;
-using Chrome.Services.CategoryService;
-using Chrome.Services.InventoryService;
+﻿using Chrome.DTO.PurchaseOrderDetailDTO;
+using Chrome.Services.PurchaseOrderDetailService;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Http;
@@ -9,27 +7,44 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Chrome.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/PurchaseOrder/{purchaseOrderCode}/[controller]")]
     [ApiController]
-    [Authorize(Policy ="PermissionPolicy")]
+    [Authorize(Policy = "PermissionPolicy")]
     [EnableCors("MyCors")]
-    public class InventoryController : ControllerBase
+    public class PurchaseOrderDetailController : ControllerBase
     {
-        private readonly IInventoryService _inventoryService;
-        private readonly ICategoryService _categoryService;
-
-        public InventoryController(IInventoryService inventoryService, ICategoryService categoryService)
+        private readonly IPurchaseOrderDetailService _purchaseOrderDetailService;
+        public PurchaseOrderDetailController(IPurchaseOrderDetailService purchaseOrderDetailService)
         {
-            _inventoryService = inventoryService;
-            _categoryService = categoryService;
+            _purchaseOrderDetailService = purchaseOrderDetailService;
         }
-
-        [HttpGet("GetListProductInventory")]
-        public async Task<IActionResult> GetListProductInventory([FromQuery] string[] warehouseCodes, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+        [HttpGet("GetAllPurchaseOrderDetails")]
+        public async Task<IActionResult> GetAllPurchaseOrderDetails([FromRoute] string purchaseOrderCode, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
         {
             try
             {
-                var response = await _inventoryService.GetListProductInventory(warehouseCodes, page, pageSize);
+                var response = await _purchaseOrderDetailService.GetAllPurchaseOrderDetails(purchaseOrderCode, page, pageSize);
+                if (!response.Success)
+                {
+                    return NotFound(new
+                    {
+                        Success = false,
+                        Message = response.Message
+                    });
+                }
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, $"Lỗi: {ex.Message}");
+            }
+        }
+        [HttpGet("GetPurchaseOrderDetailByCode")]
+        public async Task<IActionResult> GetPurchaseOrderDetailByCode([FromRoute] string purchaseOrderCode, [FromQuery] string productCode)
+        {
+            try
+            {
+                var response = await _purchaseOrderDetailService.GetPurchaseOrderDetailByCode(purchaseOrderCode, productCode);
                 if (!response.Success)
                 {
                     return NotFound(new
@@ -46,15 +61,15 @@ namespace Chrome.Controllers
             }
         }
 
-        [HttpGet("GetProductWithLocations")]
-        public async Task<IActionResult> GetProductWithLocations([FromQuery] string[] warehouseCodes,[FromQuery] string productCode, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+        [HttpPost("AddPurchaseOrderDetail")]
+        public async Task<IActionResult> AddPurchaseOrderDetail([FromBody] PurchaseOrderDetailRequestDTO purchaseOrderDetail)
         {
             try
             {
-                var response = await _inventoryService.GetProductWithLocationsAsync(warehouseCodes,productCode, page, pageSize);
+                var response = await _purchaseOrderDetailService.AddPurchaseOrderDetail(purchaseOrderDetail);
                 if (!response.Success)
                 {
-                    return NotFound(new
+                    return Conflict(new
                     {
                         Success = false,
                         Message = response.Message
@@ -67,15 +82,15 @@ namespace Chrome.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, $"Lỗi: {ex.Message}");
             }
         }
-        [HttpGet("GetInventoryUsedPercent")]
-        public async Task<IActionResult> GetInventoryUsedPercent([FromQuery] string[] warehouseCodes)
+        [HttpDelete("DeletePurchaseOrderDetail")]
+        public async Task<IActionResult> DeletePurchaseOrderDetail([FromRoute] string purchaseOrderCode, [FromQuery] string productCode)
         {
             try
             {
-                var response = await _inventoryService.GetInventoryUsedPercent(warehouseCodes);
+                var response = await _purchaseOrderDetailService.DeletePurchaseOrderDetailAsync(purchaseOrderCode, productCode);
                 if (!response.Success)
                 {
-                    return NotFound(new
+                    return Conflict(new
                     {
                         Success = false,
                         Message = response.Message
@@ -88,57 +103,12 @@ namespace Chrome.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, $"Lỗi: {ex.Message}");
             }
         }
-
-        [HttpGet("GetListProductInventoryByCategoryIds")]
-        public async Task<IActionResult> GetListProductInventoryByCategoryIds([FromQuery] string[] warehouseCodes, [FromQuery] string[] categoryIds, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+        [HttpPut("UpdatePurchaseOrderDetail")]
+        public async Task<IActionResult> UpdatePurchaseOrderDetail([FromBody] PurchaseOrderDetailRequestDTO purchaseOrderDetail)
         {
             try
             {
-                var response = await _inventoryService.GetListProductInventoryByCategoryIds(warehouseCodes, categoryIds, page, pageSize);
-                if (!response.Success)
-                {
-                    return NotFound(new
-                    {
-                        Success = false,
-                        Message = response.Message
-                    });
-                }
-                return Ok(response);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, $"Lỗi: {ex.Message}");
-            }
-        }
-
-        [HttpGet("SearchProductInventory")]
-        public async Task<IActionResult> SearchProductInventory([FromQuery] string[] warehouseCodes, [FromQuery] string textToSearch, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
-        {
-            try
-            {
-                var response = await _inventoryService.SearchProductInventoryAsync(warehouseCodes, textToSearch, page, pageSize);
-                if (!response.Success)
-                {
-                    return NotFound(new
-                    {
-                        Success = false,
-                        Message = response.Message
-                    });
-                }
-                return Ok(response);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, $"Lỗi: {ex.Message}");
-            }
-        }
-
-        [HttpPost("AddInventory")]
-        public async Task<IActionResult> AddInventory([FromBody] InventoryRequestDTO inventoryRequestDTO)
-        {
-            try
-            {
-                var response = await _inventoryService.AddInventory(inventoryRequestDTO);
+                var response = await _purchaseOrderDetailService.UpdatePurchaseOrderDetail(purchaseOrderDetail);
                 if (!response.Success)
                 {
                     return Conflict(new
@@ -155,56 +125,12 @@ namespace Chrome.Controllers
             }
         }
 
-        [HttpPut("UpdateInventory")]
-        public async Task<IActionResult> UpdateInventory([FromBody] InventoryRequestDTO inventoryRequestDTO)
+        [HttpGet("GetListProductToPO")]
+        public async Task<IActionResult> GetListProductToPO()
         {
             try
             {
-                var response = await _inventoryService.UpdateInventoryAsync(inventoryRequestDTO);
-                if (!response.Success)
-                {
-                    return Conflict(new
-                    {
-                        Success = false,
-                        Message = response.Message
-                    });
-                }
-                return Ok(response);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, $"Lỗi: {ex.Message}");
-            }
-        }
-
-        [HttpDelete("DeleteInventory")]
-        public async Task<IActionResult> DeleteInventory([FromQuery] string warehouseCode, [FromQuery] string locationCode, [FromQuery] string productCode, [FromQuery] string lotNo)
-        {
-            try
-            {
-                var response = await _inventoryService.DeleteInventoryAsync(warehouseCode, locationCode, productCode, lotNo);
-                if (!response.Success)
-                {
-                    return Conflict(new
-                    {
-                        Success = false,
-                        Message = response.Message
-                    });
-                }
-                return Ok(response);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, $"Lỗi: {ex.Message}");
-            }
-        }
-
-        [HttpGet("GetAllCategories")]
-        public async Task<IActionResult> GetAllCategories()
-        {
-            try
-            {
-                var response = await _categoryService.GetAllCategories();
+                var response = await _purchaseOrderDetailService.GetListProductToPO();
                 if (!response.Success)
                 {
                     return NotFound(new
@@ -219,6 +145,72 @@ namespace Chrome.Controllers
             {
                 return StatusCode(StatusCodes.Status500InternalServerError, $"Lỗi: {ex.Message}");
             }
+        }
+
+        [HttpPost("ConfirmPurchaseOrderDetail")]
+        public async Task<IActionResult> ConfirmPurchaseOrderDetail([FromRoute] string purchaseOrderCode)
+        {
+            try
+            {
+                var response = await _purchaseOrderDetailService.ConfirmPurchaseOrderDetail(purchaseOrderCode);
+                if (!response.Success)
+                {
+                    return Conflict(new
+                    {
+                        Success = false,
+                        Message = response.Message
+                    });
+                }
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, $"Lỗi: {ex.Message}");
+            }
+        }
+
+        [HttpPost("CreateBackOrder")]
+        public async Task<IActionResult> CreateBackOrder([FromRoute] string purchaseOrderCode, [FromQuery] string backOrderDescription, [FromQuery] string dateBackOrder)
+        {
+            try
+            {
+                var response = await _purchaseOrderDetailService.CreateBackOrder(purchaseOrderCode, backOrderDescription, dateBackOrder);
+                if (!response.Success)
+                {
+                    return Conflict(new
+                    {
+                        Success = false,
+                        Message = response.Message
+                    });
+                }
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, $"Lỗi: {ex.Message}");
+            }
+        }
+        [HttpPost("CheckAndUpdateBackOrderStatus")]
+        public async Task<IActionResult> CheckAndUpdateBackOrderStatus([FromRoute] string purchaseOrderCode)
+        {
+            try
+            {
+                var response = await _purchaseOrderDetailService.CheckAndUpdateBackOrderStatus(purchaseOrderCode);
+                if (!response.Success)
+                {
+                    return Conflict(new
+                    {
+                        Success = false,
+                        Message = response.Message
+                    });
+                }
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, $"Lỗi: {ex.Message}");
+            }
+
         }
     }
 }

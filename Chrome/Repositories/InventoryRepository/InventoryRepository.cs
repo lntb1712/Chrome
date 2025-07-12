@@ -75,5 +75,17 @@ namespace Chrome.Repositories.InventoryRepository
                           .ThenInclude(x => x.Category)
                           .Where(x => x.LocationCodeNavigation.WarehouseCode == warehouseCode);
         }
+
+        public IQueryable<Inventory> GetInventoryUsedPercent(string[] warehouseCodes)
+        {
+            return _context.Inventories
+                           .Include(x => x.LocationCodeNavigation)
+                           .ThenInclude(x => x.WarehouseCodeNavigation)
+                           .Include(x=>x.LocationCodeNavigation.StorageProduct)
+                           .Include(x => x.ProductCodeNavigation)
+                           .ThenInclude(x => x.Category)
+                           .Where(x => warehouseCodes.Contains(x.LocationCodeNavigation.WarehouseCode));
+
+        }
     }
 }

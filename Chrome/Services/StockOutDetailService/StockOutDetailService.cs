@@ -178,9 +178,9 @@ namespace Chrome.Services.StockOutDetailService
             string[] formats = {
                 "M/d/yyyy h:mm:ss tt",
                 "MM/dd/yyyy hh:mm:ss tt",
-                "dd/MM/yyyy"
+                "dd/MM/yyyy","dd/MM/yyyy hh:mm:ss tt"
             };
-            if (!DateTime.TryParseExact(dateBackOrder, formats, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime parsedDate))
+            if (!DateTime.TryParseExact(dateBackOrder, formats, new CultureInfo("vi-VN"), DateTimeStyles.None, out DateTime parsedDate))
             {
                 return new ServiceResponse<bool>(false, "Ngày xuất kho không đúng định dạng. Vui lòng sử dụng dd/MM/yyyy hoặc M/d/yyyy h:mm:ss tt.");
             }

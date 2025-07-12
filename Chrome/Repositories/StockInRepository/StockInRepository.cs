@@ -18,7 +18,8 @@ namespace Chrome.Repositories.StockInRepository
             var lstStockIn = _context.StockIns
                                            .Include(x => x.OrderTypeCodeNavigation)
                                            .Include(x => x.WarehouseCodeNavigation)
-                                           .Include(x => x.SupplierCodeNavigation)
+                                           .Include(x => x.PurchaseOrderCodeNavigation)
+                                           .ThenInclude (x=>x!.SupplierCodeNavigation)
                                            .Include(x => x.ResponsibleNavigation)
                                            .Include(x=>x.StockInDetails)
                                            .Include(x => x.Status)
@@ -32,7 +33,8 @@ namespace Chrome.Repositories.StockInRepository
             var lstStockIn = _context.StockIns
                                           .Include(x => x.OrderTypeCodeNavigation)
                                           .Include(x => x.WarehouseCodeNavigation)
-                                          .Include(x => x.SupplierCodeNavigation)
+                                          .Include(x => x.PurchaseOrderCodeNavigation)
+                                          .ThenInclude(x => x!.SupplierCodeNavigation)
                                           .Include(x => x.ResponsibleNavigation)
                                           .Include(x => x.StockInDetails)
                                           .Include(x => x.Status)
@@ -46,7 +48,8 @@ namespace Chrome.Repositories.StockInRepository
             var lstStockIn = _context.StockIns
                                            .Include(x => x.OrderTypeCodeNavigation)
                                            .Include(x => x.WarehouseCodeNavigation)
-                                           .Include(x => x.SupplierCodeNavigation)
+                                           .Include(x => x.PurchaseOrderCodeNavigation)
+                                           .ThenInclude(x => x!.SupplierCodeNavigation)
                                            .Include(x => x.ResponsibleNavigation)
                                            .Include(x => x.StockInDetails)
                                            .Include(x => x.Status)
@@ -61,7 +64,8 @@ namespace Chrome.Repositories.StockInRepository
             var stockIn = await _context.StockIns
                                         .Include(x => x.OrderTypeCodeNavigation)
                                         .Include(x => x.WarehouseCodeNavigation)
-                                        .Include(x => x.SupplierCodeNavigation)
+                                        .Include(x => x.PurchaseOrderCodeNavigation)
+                                        .ThenInclude(x => x!.SupplierCodeNavigation)
                                         .Include(x => x.ResponsibleNavigation)
                                         .Include(x => x.StockInDetails)
                                         .Include(x => x.Status)
@@ -75,7 +79,8 @@ namespace Chrome.Repositories.StockInRepository
             var lstStockIn = _context.StockIns
                                      .Include(x => x.OrderTypeCodeNavigation)
                                      .Include(x => x.WarehouseCodeNavigation)
-                                     .Include(x => x.SupplierCodeNavigation)
+                                     .Include(x => x.PurchaseOrderCodeNavigation)
+                                     .ThenInclude(x => x!.SupplierCodeNavigation)
                                      .Include(x => x.ResponsibleNavigation)
                                      .Include(x => x.StockInDetails)
                                      .Include(x => x.Status)
@@ -85,8 +90,9 @@ namespace Chrome.Repositories.StockInRepository
                                      || x.WarehouseCodeNavigation!.WarehouseName!.Contains(textToSearch)
                                      || x.OrderTypeCode!.Contains(textToSearch)
                                      || x.OrderTypeCodeNavigation!.OrderTypeName!.Contains(textToSearch)
-                                     || x.SupplierCode!.Contains(textToSearch)
-                                     || x.SupplierCodeNavigation!.SupplierName!.Contains(textToSearch)
+                                     || x.PurchaseOrderCode!.Contains(textToSearch)
+                                     || x.PurchaseOrderCodeNavigation!.SupplierCode!.Contains(textToSearch)
+                                     || x.PurchaseOrderCodeNavigation!.SupplierCodeNavigation!.SupplierName!.Contains(textToSearch)
                                      || x.Responsible!.Contains(textToSearch)
                                      || x.ResponsibleNavigation!.FullName!.Contains(textToSearch)));
             return lstStockIn;
@@ -97,7 +103,8 @@ namespace Chrome.Repositories.StockInRepository
             var lstStockIn = _context.StockIns
                                       .Include(x => x.OrderTypeCodeNavigation)
                                       .Include(x => x.WarehouseCodeNavigation)
-                                      .Include(x => x.SupplierCodeNavigation)
+                                      .Include(x => x.PurchaseOrderCodeNavigation)
+                                      .ThenInclude(x => x!.SupplierCodeNavigation)
                                       .Include(x => x.ResponsibleNavigation)
                                       .Include(x => x.StockInDetails)
                                       .Include(x => x.Status)
@@ -107,8 +114,9 @@ namespace Chrome.Repositories.StockInRepository
                                       || x.WarehouseCodeNavigation!.WarehouseName!.Contains(textToSearch)
                                       || x.OrderTypeCode!.Contains(textToSearch)
                                       || x.OrderTypeCodeNavigation!.OrderTypeName!.Contains(textToSearch)
-                                      || x.SupplierCode!.Contains(textToSearch)
-                                      || x.SupplierCodeNavigation!.SupplierName!.Contains(textToSearch)
+                                      || x.PurchaseOrderCode!.Contains(textToSearch)
+                                      || x.PurchaseOrderCodeNavigation!.SupplierCode!.Contains(textToSearch)
+                                      || x.PurchaseOrderCodeNavigation!.SupplierCodeNavigation!.SupplierName!.Contains(textToSearch)
                                       || x.Responsible!.Contains(textToSearch)
                                       || x.ResponsibleNavigation!.FullName!.Contains(textToSearch)));
             return lstStockIn;

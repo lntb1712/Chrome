@@ -1,6 +1,7 @@
 ﻿using Chrome.DTO;
 using Chrome.DTO.AccountManagementDTO;
 using Chrome.DTO.OrderTypeDTO;
+using Chrome.DTO.PurchaseOrderDTO;
 using Chrome.DTO.StatusMasterDTO;
 using Chrome.DTO.StockInDTO;
 using Chrome.DTO.SupplierMasterDTO;
@@ -21,7 +22,7 @@ namespace Chrome.Services.StockInService
         Task<ServiceResponse<bool>> DeleteStockInAsync(string stockInCode);
         Task<ServiceResponse<bool>> UpdateStockIn(StockInRequestDTO stockIn);
         Task<ServiceResponse<List<OrderTypeResponseDTO>>> GetListOrderType(string prefix);
-        Task<ServiceResponse<List<SupplierMasterResponseDTO>>>GetListSupplierMasterAsync();
+        Task<ServiceResponse<List<PurchaseOrderResponseDTO>>> GetListPurchaseOrder(string[] warehouseCode, int[]? statusFilters=null);
         Task<ServiceResponse<List<AccountManagementResponseDTO>>> GetListResponsibleAsync(string warehouseCode);
         Task<ServiceResponse<List<StatusMasterResponseDTO>>> GetListStatusMaster();
         Task<ServiceResponse<List<WarehouseMasterResponseDTO>>> GetListWarehousePermission(string[] warehouseCodes);
