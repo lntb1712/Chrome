@@ -1,9 +1,7 @@
 ﻿using Chrome.DTO;
 using Chrome.DTO.AccountManagementDTO;
-using Chrome.DTO.BOMComponentDTO;
 using Chrome.DTO.BOMMasterDTO;
 using Chrome.DTO.ManufacturingOrderDTO;
-using Chrome.DTO.OrderDetailBaseDTO;
 using Chrome.DTO.OrderTypeDTO;
 using Chrome.DTO.PickListDTO;
 using Chrome.DTO.ProductMasterDTO;
@@ -23,19 +21,14 @@ using Chrome.Repositories.ProductMasterRepository;
 using Chrome.Repositories.PutAwayRulesRepository;
 using Chrome.Repositories.StatusMasterRepository;
 using Chrome.Repositories.WarehouseMasterRepository;
-using Chrome.Services.ManufacturingOrderService;
 using Chrome.Services.PickListService;
 using Chrome.Services.PutAwayService;
 using Chrome.Services.ReservationService;
-using DocumentFormat.OpenXml.Office2016.Drawing.ChartDrawing;
-using DocumentFormat.OpenXml.Wordprocessing;
+using DocumentFormat.OpenXml.Presentation;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
 using System.Linq.Expressions;
-using System.Threading.Tasks;
+using System.Text;
 
 namespace Chrome.Services.ManufacturingOrderService
 {
@@ -109,7 +102,7 @@ namespace Chrome.Services.ManufacturingOrderService
 
                 foreach (var component in bomComponents)
                 {
-                    var requiredQuantity = component.ConsumpQuantity * manufacturingOrder.Quantity;
+                    var requiredQuantity = (component.ConsumpQuantity * manufacturingOrder.Quantity ) * (1+component.ScrapRate);
                     if (requiredQuantity <= 0) continue;
 
                     // Tồn kho theo FIFO ReceiveDate
@@ -118,15 +111,17 @@ namespace Chrome.Services.ManufacturingOrderService
                         .ToListAsync();
 
                     double remainingQuantity = (double)requiredQuantity!;
-
+                    
                     foreach (var inventory in inventories)
                     {
+                        var product = await _productMasterRepository.GetProductMasterWithProductCode(inventory.ProductCode);
                         var reservedQuantity = await _context.ReservationDetails
                             .Include(rd => rd.ReservationCodeNavigation)
+                            
                             .Where(rd => rd.ProductCode == inventory.ProductCode &&
                                          rd.LotNo == inventory.Lotno &&
                                          rd.ReservationCodeNavigation!.StatusId != 3)
-                            .SumAsync(rd => (double?)rd.QuantityReserved) ?? 0;
+                            .SumAsync(rd => (double?)rd.QuantityReserved)*product.BaseQuantity ?? 0;
 
                         var availableQuantity = (inventory.Quantity ?? 0) - reservedQuantity;
 
@@ -164,6 +159,165 @@ namespace Chrome.Services.ManufacturingOrderService
             {
                 return new ServiceResponse<List<ProductShortageDTO>>(false, $"Lỗi kiểm tra tồn kho: {ex.Message}");
             }
+        }
+        public async Task<ServiceResponse<bool>> CheckInventory (ManufacturingOrderRequestDTO manufacturingOrder)
+        {
+            // 7. Kiểm tra tồn kho bằng hàm kiểm tra tồn kho tổng hợp đã viết sẵn
+            var shortageCheck = await CheckInventoryShortageForManufacturingOrderAsync(manufacturingOrder);
+            if (!shortageCheck.Success)
+                return new ServiceResponse<bool>(false, $"Lỗi kiểm tra tồn kho: {shortageCheck.Message}");
+
+            // Nếu thiếu tồn kho → thông báo lỗi, không tạo tiếp
+            if (shortageCheck.Data != null && shortageCheck.Data.Any())
+            {
+                var shortageList = string.Join("\n ", shortageCheck.Data.Select(x => $"{x.ProductCode} (thiếu {x.ShortageQuantity})"));
+                return new ServiceResponse<bool>(false, $"Không đủ tồn kho cho các thành phần: \n {shortageList}");
+            }
+            return new ServiceResponse<bool>(true, $"Đủ tồn kho để sản xuất cho mã {manufacturingOrder.ProductCode} với số lượng:{manufacturingOrder.Quantity}");
+        }
+        public async Task<ServiceResponse<bool>> CheckQuantityWithBase(ManufacturingOrderRequestDTO manufacturingOrder)
+        {
+            // 4. Lấy phiên bản BOM đang hoạt động
+            var lstBomVersion = await _bomMasterRepository.GetListVersionByBomCode(manufacturingOrder.Bomcode);
+            var bomVersionActived = lstBomVersion.FirstOrDefault(x => x.IsActive == true);
+            if (bomVersionActived == null)
+                return new ServiceResponse<bool>(false, $"Không tìm thấy phiên bản BOM hoạt động cho mã {manufacturingOrder.Bomcode}.");
+
+            // 5. Lấy danh sách chi tiết BOM
+            var bomComponents = await _bomComponentRepository.GetAllBOMComponent(manufacturingOrder.Bomcode, bomVersionActived.Bomversion);
+            if (bomComponents == null || !bomComponents.Any())
+                return new ServiceResponse<bool>(false, $"Không tìm thấy chi tiết BOM cho mã {manufacturingOrder.Bomcode} và phiên bản {bomVersionActived.Bomversion}.");
+
+            // 6. Tạo danh sách ManufacturingOrderDetail từ BOM
+            var manufacturingDetails = new List<ManufacturingOrderDetail>();
+            foreach (var bomComponent in bomComponents)
+            {
+                // Lấy thông tin chi tiết từng component (bao gồm ScrapRate)
+                var componentDetail = await _bomComponentRepository.GetBomComponent(bomComponent.Bomcode, bomComponent.ComponentCode, bomComponent.BomVersion);
+
+                manufacturingDetails.Add(new ManufacturingOrderDetail
+                {
+                    ManufacturingOrderCode = manufacturingOrder.ManufacturingOrderCode,
+                    ComponentCode = bomComponent.ComponentCode,
+                    ToConsumeQuantity = (bomComponent.ConsumpQuantity * manufacturingOrder.Quantity) * (1 + bomComponent.ScrapRate),
+                    ConsumedQuantity = 0,
+                    ScraptRate = componentDetail?.ScrapRate ?? 0
+                });
+            }
+            // 1. Lấy BaseQuantity dictionary
+            var productBaseQtyDict = _context.ProductMasters
+                .Where(p => p.BaseQuantity != null)
+                .ToDictionary(p => p.ProductCode, p => p.BaseQuantity!.Value);
+
+            // 2. Lấy thông tin số lượng
+            int currentMOQty = (int)manufacturingOrder.Quantity!;
+            int suggestedMOQty = currentMOQty;
+            string productCode = manufacturingOrder.ProductCode;
+
+            // 3. Lấy baseQty của sản phẩm chính
+            productBaseQtyDict.TryGetValue(productCode, out double mainProductBaseQty);
+            if (mainProductBaseQty == 0) mainProductBaseQty = 1;
+
+            // 4. Hàm kiểm tra hợp lệ số lượng
+            bool IsValidMOQty(int moQty)
+            {
+                // Kiểm tra sản phẩm chính
+                if (moQty % mainProductBaseQty != 0)
+                    return false;
+
+                // Kiểm tra component
+                return manufacturingDetails.All(x =>
+                {
+                    productBaseQtyDict.TryGetValue(x.ComponentCode, out double baseQty);
+                    if (baseQty == 0) baseQty = 1;
+
+                    var bomQty = bomComponents.FirstOrDefault(b => b.ComponentCode == x.ComponentCode)?.ConsumpQuantity ?? 1;
+                    var totalConsume = (bomQty * moQty) * (1 + x.ScraptRate);
+
+                    return (totalConsume % baseQty) == 0;
+                });
+            }
+
+            // 5. Tìm số lượng gần nhất chia hết
+            while (!IsValidMOQty(suggestedMOQty))
+            {
+                suggestedMOQty++;
+            }
+
+            // 6. Nếu số lượng không hợp lệ → sinh thông báo chi tiết
+            if (suggestedMOQty != currentMOQty)
+            {
+                var invalidComponents = manufacturingDetails
+                    .Select(x =>
+                    {
+                        productBaseQtyDict.TryGetValue(x.ComponentCode, out double baseQty);
+                        if (baseQty == 0) baseQty = 1;
+
+                        var bomQty = bomComponents.FirstOrDefault(b => b.ComponentCode == x.ComponentCode)?.ConsumpQuantity ?? 1;
+                        var totalConsume = (bomQty * currentMOQty) * (1 + x.ScraptRate);
+                        var convertedQty = totalConsume / baseQty;
+
+                        return new
+                        {
+                            x.ComponentCode,
+                            ToConsumeQty = Math.Round((double)x.ToConsumeQuantity!, 3),
+                            BaseQty = baseQty,
+                            ConvertedQty = Math.Round((double)convertedQty!, 3),
+                            IsInvalid = (totalConsume % baseQty) != 0
+                        };
+                    })
+                    .Where(x => x.IsInvalid)
+                    .ToList();
+
+                // Kiểm tra sản phẩm chính
+                if (currentMOQty % mainProductBaseQty != 0)
+                {
+                    invalidComponents.Add(new
+                    {
+                        ComponentCode = productCode,
+                        ToConsumeQty = (double)currentMOQty,
+                        BaseQty = mainProductBaseQty,
+                        ConvertedQty = Math.Round(currentMOQty / mainProductBaseQty, 3),
+                        IsInvalid = true
+                    });
+                }
+
+                // 7. Tách lỗi sản phẩm và nguyên vật liệu
+                var productInvalid = invalidComponents
+                    .Where(x => x.ComponentCode == productCode)
+                    .Select(x => $"{x.ComponentCode} (sản phẩm chính): Số lượng sản xuất {x.ToConsumeQty} không chia hết cho BaseQty ({x.BaseQty}) → {x.ConvertedQty}");
+
+                var componentInvalid = invalidComponents
+                    .Where(x => x.ComponentCode != productCode)
+                    .Select(x => $"{x.ComponentCode}: Tiêu thụ {x.ToConsumeQty} (chia cho base {x.BaseQty}) = {x.ConvertedQty} → không chia hết cho BaseQty");
+
+                // 8. Xây thông báo
+                var messageBuilder = new StringBuilder();
+                messageBuilder.AppendLine($"⚠️ Số lượng sản xuất hiện tại là {currentMOQty} khiến một số thành phần không chia hết theo BaseQuantity:");
+
+                if (productInvalid.Any())
+                {
+                    messageBuilder.AppendLine("\n🟥 Lỗi ở sản phẩm chính:");
+                    foreach (var msg in productInvalid)
+                        messageBuilder.AppendLine(" - " + msg);
+                }
+
+                if (componentInvalid.Any())
+                {
+                    messageBuilder.AppendLine("\n🟧 Lỗi ở nguyên vật liệu (component):");
+                    foreach (var msg in componentInvalid)
+                        messageBuilder.AppendLine(" - " + msg);
+                }
+
+                messageBuilder.AppendLine($"\n✅ Gợi ý: Tăng lên {suggestedMOQty} để toàn bộ chia hết theo BaseQuantity.");
+                messageBuilder.AppendLine($"\nBạn có muốn tiếp tục tạo lệnh nếu bị lẻ số lượng so với BaseQuantity hay không?");
+
+                // 9. Trả lỗi
+                return new ServiceResponse<bool>(false, messageBuilder.ToString());
+            }
+
+            return new ServiceResponse<bool>(true, "Số lượng đã phù hợp để sản xuất");
+
         }
 
         public async Task<ServiceResponse<bool>> AddManufacturingOrderAsync(ManufacturingOrderRequestDTO manufacturingOrder)
@@ -216,22 +370,10 @@ namespace Chrome.Services.ManufacturingOrderService
                 {
                     ManufacturingOrderCode = manufacturingOrder.ManufacturingOrderCode,
                     ComponentCode = bomComponent.ComponentCode,
-                    ToConsumeQuantity = bomComponent.ConsumpQuantity * manufacturingOrder.Quantity,
+                    ToConsumeQuantity = (bomComponent.ConsumpQuantity * manufacturingOrder.Quantity)  * (1+bomComponent.ScrapRate),
                     ConsumedQuantity = 0,
                     ScraptRate = componentDetail?.ScrapRate ?? 0
                 });
-            }
-
-            // 7. Kiểm tra tồn kho bằng hàm kiểm tra tồn kho tổng hợp đã viết sẵn
-            var shortageCheck = await CheckInventoryShortageForManufacturingOrderAsync(manufacturingOrder);
-            if (!shortageCheck.Success)
-                return new ServiceResponse<bool>(false, $"Lỗi kiểm tra tồn kho: {shortageCheck.Message}");
-
-            // Nếu thiếu tồn kho → thông báo lỗi, không tạo tiếp
-            if (shortageCheck.Data != null && shortageCheck.Data.Any())
-            {
-                var shortageList = string.Join("\n ", shortageCheck.Data.Select(x => $"{x.ProductCode} (thiếu {x.ShortageQuantity})"));
-                return new ServiceResponse<bool>(false, $"Không đủ tồn kho cho các thành phần: \n {shortageList}");
             }
 
             // 8. Tạo bản ghi ManufacturingOrder
@@ -615,6 +757,8 @@ namespace Chrome.Services.ManufacturingOrderService
                     }
 
                     await _manufacturingOrderRepository.DeleteAsync(manufacturingCode, saveChanges: false);
+                    await _pickListService.DeletePickList($"PICK_{manufacturingCode}",transaction);
+                    await _reservationService.DeleteReservationAsync($"RES_{manufacturingCode}",transaction);
 
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
@@ -809,7 +953,7 @@ namespace Chrome.Services.ManufacturingOrderService
                     // Tính tổng số lượng tồn kho hiện tại tại các vị trí
                     var inventoryQuantities = await _inventoryRepository.GetInventoryByProductCodeAsync(manufacturing.ProductCode!, manufacturing.WarehouseCode!)
                         .GroupBy(i => i.LocationCode)
-                        .Select(g => new { LocationCode = g.Key, TotalQuantity = g.Sum(i => i.Quantity ?? 0)/g.First().ProductCodeNavigation.BaseQuantity })
+                        .Select(g => new { LocationCode = g.Key, TotalQuantity = g.Sum(i => i.Quantity ?? 0) / g.First().ProductCodeNavigation.BaseQuantity })
                         .ToListAsync();
 
                     string? selectedLocationCode = null;
@@ -918,14 +1062,14 @@ namespace Chrome.Services.ManufacturingOrderService
                         await transaction.RollbackAsync();
                         return new ServiceResponse<bool>(false, $"Lỗi khi tạo putaway: {putAwayResponse.Message}");
                     }
-
+                    var product = _context.ProductMasters.FirstOrDefault(x => x.ProductCode == manufacturing.ProductCode);
                     // Create or update PutAwayDetail
                     var putAwayDetail = new PutAwayDetail
                     {
                         PutAwayCode = putAwayCode,
                         ProductCode = manufacturing.ProductCode!,
                         LotNo = manufacturing.Lotno!, // Using manufacturing.LotNo as per original logic
-                        Demand = manufacturing.QuantityProduced,
+                        Demand = manufacturing.QuantityProduced / product!.BaseQuantity,
                         Quantity = 0,
                     };
 

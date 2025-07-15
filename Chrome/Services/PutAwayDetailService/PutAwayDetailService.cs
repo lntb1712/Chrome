@@ -161,13 +161,9 @@ namespace Chrome.Services.PutAwayDetailService
                         .Include(x => x.LocationCodeNavigation)
                         .FirstOrDefaultAsync(p => p.PutAwayCode == putAwayDetail.PutAwayCode);
                 var quantityDiff = 0.0;
-                if (putAway!.OrderTypeCode!.StartsWith("MO"))
-                {
-                    quantityDiff = (double)((putAwayDetail.Quantity - existingDetail.Quantity) / product.BaseQuantity)!;
-                }
-                else {
+               
                     quantityDiff = (double)(putAwayDetail.Quantity - existingDetail.Quantity)!;
-                }
+                
 
 
                 //cộng tồn kho nhận (+)

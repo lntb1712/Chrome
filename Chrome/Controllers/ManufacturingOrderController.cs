@@ -345,6 +345,49 @@ namespace Chrome.Controllers
             }
         }
 
-        
+        [HttpPost("CheckInventory")]
+        public async Task<IActionResult> CheckInventory([FromBody] ManufacturingOrderRequestDTO manufacturingOrder)
+        {
+            try
+            {
+                var response = await _manufacturingOrderService.CheckInventory(manufacturingOrder);
+                if (!response.Success)
+                {
+                    return Conflict(new
+                    {
+                        Success = false,
+                        Message = response.Message
+                    });
+                }
+                return Ok(response);
+            }
+            catch( Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, $"Lỗi : {ex.Message}");
+            }
+        }
+        [HttpPost("CheckQuantityWithBase")]
+        public async Task<IActionResult> CheckQuantityWithBase([FromBody] ManufacturingOrderRequestDTO manufacturingOrder)
+        {
+            try
+            {
+                var response = await _manufacturingOrderService.CheckQuantityWithBase(manufacturingOrder);
+                if (!response.Success)
+                {
+                    return Conflict(new
+                    {
+                        Success = false,
+                        Message = response.Message
+                    });
+                }
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, $"Lỗi :{ex.Message}");
+            }
+        }
+
+
     }
 }

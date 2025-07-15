@@ -190,8 +190,8 @@ namespace Chrome.Services.DashboardService
                     ProductName = g.First().ProductCodeNavigation.ProductName!,
                     CategoryId = g.First().ProductCodeNavigation.CategoryId!,
                     CategoryName = g.First().ProductCodeNavigation.Category!.CategoryName!,
-                    Quantity = g.Sum(x => x.Quantity),
-                    BaseQuantity = g.Sum(x => x.Quantity / (x.ProductCodeNavigation.BaseQuantity)),
+                    Quantity = g.Sum(x => x.Quantity * (x.ProductCodeNavigation.BaseQuantity)),
+                    BaseQuantity = g.Sum(x => x.Quantity),
                     UOM = g.First().ProductCodeNavigation.Uom!,
                     BaseUOM = g.First().ProductCodeNavigation.BaseUom!
                 }).ToListAsync();

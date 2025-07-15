@@ -175,7 +175,7 @@ namespace Chrome.Services.BOMComponentService
                 try
                 {
                     existingBomComponent.ConsumpQuantity = bomComponent.ConsumpQuantity;
-                    existingBomComponent.ScrapRate = bomComponent.ConsumpQuantity;
+                    existingBomComponent.ScrapRate = bomComponent.ScrapRate;
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
                     return new ServiceResponse<bool>(true, "Cập nhật thành công");

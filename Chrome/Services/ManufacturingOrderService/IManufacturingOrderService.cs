@@ -31,6 +31,9 @@ namespace Chrome.Services.ManufacturingOrderService
         Task<ServiceResponse<List<ProductMasterResponseDTO>>> GetListProductMasterIsFGAndSFG();
         Task<ServiceResponse<List<WarehouseMasterResponseDTO>>> GetListWarehousePermissionAsync(string[] warehouseCodes);
         Task<ServiceResponse<BOMMasterResponseDTO>> GetListBomMasterAsync(string productCode);
+        Task<ServiceResponse<bool>> CheckInventory(ManufacturingOrderRequestDTO manufacturingOrder);
+        Task<ServiceResponse<bool>> CheckQuantityWithBase(ManufacturingOrderRequestDTO manufacturingOrder);
+
         Task<ServiceResponse<List<ProductShortageDTO>>> CheckInventoryShortageForManufacturingOrderAsync(ManufacturingOrderRequestDTO manufacturingOrder);
     }
 }

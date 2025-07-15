@@ -254,9 +254,10 @@ namespace Chrome.Services.PickListService
             }
         }
 
-        public async Task<ServiceResponse<bool>> DeletePickList(string pickNo)
+        public async Task<ServiceResponse<bool>> DeletePickList(string pickNo, IDbContextTransaction transaction = null!)
         {
-            using var transaction = await _context.Database.BeginTransactionAsync();
+            bool isExternalTransaction = transaction != null;
+            transaction ??= await _context.Database.BeginTransactionAsync();
             try
             {
                 if (string.IsNullOrEmpty(pickNo))
@@ -269,20 +270,26 @@ namespace Chrome.Services.PickListService
                 {
                     return new ServiceResponse<bool>(false, "Pick list không tồn tại.");
                 }
+                var pickListDetails = await _context.PickListDetails
+                                     .Where(p => p.PickNo == pickNo)
+                                     .ToListAsync();
 
+                _context.PickListDetails.RemoveRange(pickListDetails);
+
+                await _context.SaveChangesAsync();
                 await _pickListRepository.DeleteAsync(pickNo,saveChanges:false);
                 await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
+                if (!isExternalTransaction) await transaction.CommitAsync();
                 return new ServiceResponse<bool>(true, "Xóa pick list thành công");
             }
             catch (DbUpdateException dbEx)
             {
-                await transaction.RollbackAsync();
+                if (!isExternalTransaction) await transaction.RollbackAsync();
                 return new ServiceResponse<bool>(false, $"Lỗi database khi xóa pick list: {dbEx.Message}");
             }
             catch (Exception ex)
             {
-                await transaction.RollbackAsync();
+                if (!isExternalTransaction) await transaction.RollbackAsync();
                 return new ServiceResponse<bool>(false, $"Lỗi khi xóa pick list: {ex.Message}");
             }
         }

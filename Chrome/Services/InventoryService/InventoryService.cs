@@ -38,9 +38,7 @@ namespace Chrome.Services.InventoryService
                 return new ServiceResponse<bool>(false, "Sản phẩm không tồn tại");
             }
 
-            // Quy đổi số lượng từ UOM (thanh) sang BaseUOM (mét)
-            var baseQuantity = product.BaseQuantity ?? 1; // Mặc định là 1 nếu BaseQuantity null
-            var quantityInBaseUOM = inventoryRequestDTO.Quantity * baseQuantity;
+            var quantityInBaseUOM = inventoryRequestDTO.Quantity ;
 
             var inventory = new Inventory
             {
@@ -182,9 +180,9 @@ namespace Chrome.Services.InventoryService
                                 LocationName = g.Key.LocationName,
                                 ProductCode = g.Key.ProductCode,
                                 ProductName = g.Key.ProductName,
-                                Quantity = Math.Round((double)g.Sum(x => x.i != null ? x.i.Quantity / (g.Key.BaseQuantity == 0 ? 1 : g.Key.BaseQuantity) : 0)!, 2),
+                                Quantity = Math.Round((double)g.Sum(x => x.i != null ? x.i.Quantity  : 0)!, 2),
                                 UsedPercentage = Math.Round((double)(g.Key.MaxQuantity > 0
-                                    ? g.Sum(x => x.i != null ? x.i.Quantity / (g.Key.BaseQuantity == 0 ? 1 : g.Key.BaseQuantity) : 0) / g.Key.MaxQuantity * 100
+                                    ? g.Sum(x => x.i != null ? x.i.Quantity  : 0) / g.Key.MaxQuantity * 100
                                     : 0)!, 2)
                             }
                         };
@@ -227,7 +225,7 @@ namespace Chrome.Services.InventoryService
                     CategoryId = g.First().ProductCodeNavigation.CategoryId!,
                     CategoryName = g.First().ProductCodeNavigation.Category!.CategoryName!,
                     Quantity = g.Sum(x => x.Quantity),
-                    BaseQuantity = g.Sum(x => x.Quantity / (x.ProductCodeNavigation.BaseQuantity)),
+                    BaseQuantity = g.Sum(x => x.Quantity * (x.ProductCodeNavigation.BaseQuantity)),
                     UOM = g.First().ProductCodeNavigation.Uom!,
                     BaseUOM = g.First().ProductCodeNavigation.BaseUom!
                 })
@@ -264,7 +262,7 @@ namespace Chrome.Services.InventoryService
                     CategoryId = g.First().ProductCodeNavigation.CategoryId!,
                     CategoryName = g.First().ProductCodeNavigation.Category!.CategoryName!,
                     Quantity = g.Sum(x => x.Quantity),
-                    BaseQuantity = g.Sum(x => x.Quantity / (x.ProductCodeNavigation.BaseQuantity)),
+                    BaseQuantity = g.Sum(x => x.Quantity * (x.ProductCodeNavigation.BaseQuantity)),
                     UOM = g.First().ProductCodeNavigation.Uom!,
                     BaseUOM = g.First().ProductCodeNavigation.BaseUom!
                 })
@@ -320,7 +318,7 @@ namespace Chrome.Services.InventoryService
                             LocationCode = lg.Key.LocationCode,
                             LocationName = lg.Key.LocationName!,
                             Quantity = lg.Sum(x => x.Quantity),
-                            BaseQuantity = lg.Sum(x => x.Quantity / (x.ProductCodeNavigation.BaseQuantity)),
+                            BaseQuantity = lg.Sum(x => x.Quantity * (x.ProductCodeNavigation.BaseQuantity)),
                             UOM = lg.Key.Uom!,
                             BaseUOM = lg.Key.BaseUom!
                         })
@@ -362,7 +360,7 @@ namespace Chrome.Services.InventoryService
                     CategoryId = g.First().ProductCodeNavigation.CategoryId!,
                     CategoryName = g.First().ProductCodeNavigation.Category!.CategoryName!,
                     Quantity = g.Sum(x => x.Quantity),
-                    BaseQuantity = g.Sum(x => x.Quantity / (x.ProductCodeNavigation.BaseQuantity)),
+                    BaseQuantity = g.Sum(x => x.Quantity * (x.ProductCodeNavigation.BaseQuantity)),
                     UOM = g.First().ProductCodeNavigation.Uom!,
                     BaseUOM = g.First().ProductCodeNavigation.BaseUom!
                 })
@@ -401,8 +399,7 @@ namespace Chrome.Services.InventoryService
             }
 
             // Quy đổi số lượng từ UOM (thanh) sang BaseUOM (mét)
-            var baseQuantity = product.BaseQuantity ?? 1; // Mặc định là 1 nếu BaseQuantity null
-            var quantityInBaseUOM = inventoryRequestDTO.Quantity * baseQuantity;
+            var quantityInBaseUOM = inventoryRequestDTO.Quantity ;
 
             try
             {   

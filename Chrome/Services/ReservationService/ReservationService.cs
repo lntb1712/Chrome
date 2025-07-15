@@ -255,11 +255,12 @@ namespace Chrome.Services.ReservationService
             else if (orderTypeCode.StartsWith("MO"))
             {
                 return await _context.ManufacturingOrderDetails
+                    .Include(x=>x.ComponentCodeNavigation)
                    .Where(od => od.ManufacturingOrderCode == orderId)
                    .Select(od => new OrderDetailBaseDTO
                    {
                        ProductCode = od.ComponentCode,
-                       Quantity = od.ToConsumeQuantity ?? 0
+                       Quantity = od.ToConsumeQuantity/od.ComponentCodeNavigation.BaseQuantity ?? 0
                    })
                    .ToListAsync();
             }
@@ -376,28 +377,35 @@ namespace Chrome.Services.ReservationService
                 }
             }
         }
-        public async Task<ServiceResponse<bool>> DeleteReservationAsync(string reservationCode)
+        public async Task<ServiceResponse<bool>> DeleteReservationAsync(string reservationCode, IDbContextTransaction transaction = null!)
         {
-            using var transaction = await _context.Database.BeginTransactionAsync();
+            bool isExternalTransaction = transaction != null;
+            transaction ??= await _context.Database.BeginTransactionAsync();
             try
             {
                 var reservation = await _reservationRepository.GetReservationWithCode(reservationCode);
                 if (reservation == null)
                     return new ServiceResponse<bool>(false, "Reservation không tồn tại");
+                var resevationDetail = await _context.ReservationDetails
+                                                        .Where(p => p.ReservationCode == reservationCode)
+                                                        .ToListAsync();
 
+                _context.ReservationDetails.RemoveRange(resevationDetail);
+
+                await _context.SaveChangesAsync();
                 await _reservationRepository.DeleteAsync(reservationCode, saveChanges: false);
                 await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
+                if (!isExternalTransaction) await transaction.CommitAsync();
                 return new ServiceResponse<bool>(true, "Xóa reservation thành công");
             }
             catch (DbUpdateException dbEx)
             {
-                await transaction.RollbackAsync();
+                if (!isExternalTransaction) await transaction.RollbackAsync();
                 return new ServiceResponse<bool>(false, $"Lỗi database khi xóa reservation: {dbEx.Message}");
             }
             catch (Exception ex)
             {
-                await transaction.RollbackAsync();
+                if (!isExternalTransaction) await transaction.RollbackAsync();
                 return new ServiceResponse<bool>(false, $"Lỗi khi xóa reservation: {ex.Message}");
             }
         }

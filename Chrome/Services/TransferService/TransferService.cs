@@ -248,7 +248,7 @@ namespace Chrome.Services.TransferService
             {
                 var lstResponsible = await _accountRepository.GetAllAccount(1, int.MaxValue);
                 var lstResponsibleForTransfer = lstResponsible
-                    .Where(x => !x.GroupId!.StartsWith("ADMIN") && !x.GroupId.StartsWith("QLKHO") && x.Group!.GroupFunctions.Select(x => x.ApplicableLocation).FirstOrDefault() == warehouseCode)
+                    .Where(x => !x.GroupId!.StartsWith("ADMIN") && !x.GroupId.StartsWith("QLKHO") && !x.GroupId.StartsWith("QLSX") && x.Group!.GroupFunctions.Select(x => x.ApplicableLocation).FirstOrDefault() == warehouseCode)
                     .Select(x => new AccountManagementResponseDTO
                     {
                         UserName = x.UserName,
