@@ -15,8 +15,8 @@ namespace Chrome.Controllers
             _dashboardService = dashboardService;
         }
 
-        [HttpGet("GetDashboardInformation")]
-        public async Task<IActionResult> GetDashboardInformation([FromQuery] DashboardRequestDTO dashboardRequest)
+        [HttpPost("GetDashboardInformation")]
+        public async Task<IActionResult> GetDashboardInformation([FromBody] DashboardRequestDTO dashboardRequest)
         {
             try
             {
@@ -37,8 +37,8 @@ namespace Chrome.Controllers
             }
         }
 
-        [HttpGet("GetStockInOutSummaryAsync")]
-        public async Task<IActionResult> GetStockInOutSummaryAsync([FromQuery] DashboardRequestDTO dashboardRequest)
+        [HttpPost("GetStockInOutSummaryAsync")]
+        public async Task<IActionResult> GetStockInOutSummaryAsync([FromBody] DashboardRequestDTO dashboardRequest)
         {
             try
             {
