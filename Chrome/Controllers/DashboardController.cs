@@ -58,5 +58,27 @@ namespace Chrome.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, $"Error: {ex.Message}");
             }
         }
+
+        [HttpPost("GetHandyDashboardAsync")]
+        public async Task<IActionResult> GetHandyDashboardAsync([FromBody] HandyDashboardRequestDTO dashboardRequest)
+        {
+            try
+            {
+                var response = await _dashboardService.GetHandyDashboardAsync(dashboardRequest);
+                if (!response.Success)
+                {
+                    return NotFound(new
+                    {
+                        Success = false,
+                        Message = response.Message
+                    });
+                }
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, $"Error: {ex.Message}");
+            }
+        }
     }
 }

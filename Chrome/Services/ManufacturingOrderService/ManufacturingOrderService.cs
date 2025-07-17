@@ -680,7 +680,7 @@ namespace Chrome.Services.ManufacturingOrderService
             using (var transaction = await _context.Database.BeginTransactionAsync())
             {
                 try
-                {
+                {   
                     existingOrder.QuantityProduced = manufacturingOrder.QuantityProduced;
                     if (existingOrder.QuantityProduced > 0 && existingOrder.QuantityProduced <= existingOrder.Quantity)
                     {

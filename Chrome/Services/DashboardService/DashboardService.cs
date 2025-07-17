@@ -346,7 +346,167 @@ namespace Chrome.Services.DashboardService
             return new ServiceResponse<DashboardStockInOutSummaryDTO>(true, "Thành công", result);
         }
 
-        // Updated FilterByDate method with new logic
+        public async Task<ServiceResponse<HandyDashboardDTO>> GetHandyDashboardAsync(HandyDashboardRequestDTO dashboardRequest)
+        {
+            if (dashboardRequest == null || dashboardRequest.warehouseCodes == null || !dashboardRequest.warehouseCodes.Any())
+                return new ServiceResponse<HandyDashboardDTO>(false, "Dữ liệu đầu vào không hợp lệ");
+
+            var today = DateTime.Today;
+            var deadlineRange = today.AddDays(3);
+
+            var stockIns = FilterByDateHandy(_stockInRepository.GetAllStockInAsync(dashboardRequest.warehouseCodes), dashboardRequest, "OrderDeadline");
+            var stockOuts = FilterByDateHandy(_stockOutRepository.GetAllStockOutAsync(dashboardRequest.warehouseCodes), dashboardRequest, "StockOutDate");
+            var manufacturingOrders = FilterByDateHandy(_manufacturingOrderRepository.GetAllManufacturingOrder(dashboardRequest.warehouseCodes), dashboardRequest, "Deadline");
+            var transfers = FilterByDateHandy(_transferRepository.GetAllTransfersAsync(dashboardRequest.warehouseCodes), dashboardRequest, "TransferDate");
+            var movements = FilterByDateHandy(_movementRepository.GetAllMovementAsync(dashboardRequest.warehouseCodes), dashboardRequest, "MovementDate");
+
+            var userCode = dashboardRequest.userName;
+
+            var alerts = new List<string>();
+
+            alerts.AddRange(await stockIns
+                .Where(x => x.OrderDeadline.HasValue &&
+                            x.OrderDeadline.Value.Date < today &&
+                            x.StatusId != 3 &&
+                            x.Responsible == userCode)
+                .Select(x => $"Đơn nhập kho {x.StockInCode} t\nrễ hạn ({x.OrderDeadline!.Value:dd-MM-yyyy})")
+                .ToListAsync());
+
+            alerts.AddRange(await stockOuts
+                .Where(x => x.StockOutDate.HasValue &&
+                            x.StockOutDate.Value.Date < today &&
+                            x.StatusId != 3 &&
+                            x.Responsible == userCode)
+                .Select(x => $"Đơn xuất kho {x.StockOutCode} \ntrễ hạn ({x.StockOutDate!.Value:dd-MM-yyyy})")
+                .ToListAsync());
+
+            alerts.AddRange(await transfers
+                .Where(x => x.TransferDate.HasValue &&
+                            x.TransferDate.Value.Date < today &&
+                            x.StatusId != 3 &&
+                            x.FromResponsible == userCode|| x.ToResponsible ==userCode)
+                .Select(x => $"Phiếu chuyển kho {x.TransferCode} \ntrễ hạn ({x.TransferDate!.Value:dd-MM-yyyy})")
+                .ToListAsync());
+
+            alerts.AddRange(await movements
+                .Where(x => x.MovementDate.HasValue &&
+                            x.MovementDate.Value.Date < today &&
+                            x.StatusId != 3 &&
+                            x.Responsible == userCode)
+                .Select(x => $"Phiếu chuyển kệ {x.MovementCode} \ntrễ hạn ({x.MovementDate!.Value:dd-MM-yyyy})")
+                .ToListAsync());
+
+            alerts.AddRange(await manufacturingOrders
+                .Where(x => x.Deadline.HasValue &&
+                            x.Deadline.Value.Date < today &&
+                            x.StatusId != 3 &&
+                            x.Responsible == userCode)
+                .Select(x => $"Lệnh sản xuất {x.ManufacturingOrderCode} \ntrễ hạn ({x.Deadline!.Value:dd-MM-yyyy})")
+                .ToListAsync());
+
+            var todoTasks = new List<HandyTaskDTO>();
+
+            // NHẬP KHO
+            todoTasks.AddRange(await stockIns
+                .Where(x => x.OrderDeadline.HasValue &&
+                            x.OrderDeadline.Value.Date >= today &&
+                            x.OrderDeadline.Value.Date <= deadlineRange &&
+                            x.StatusId != 3 &&
+                            x.Responsible == userCode)
+                .Select(x => new HandyTaskDTO
+                {
+                    OrderCode = x.StockInCode,
+                    OrderType = "Nhập kho",
+                    Deadline = x.OrderDeadline!.Value.ToString("yyyy-MM-dd"),
+                    Status = x.Status!.StatusName!,
+                    ProductCodes = x.StockInDetails.Select(d => d.ProductCode!).Distinct().ToList()
+                }).ToListAsync());
+
+            // XUẤT KHO
+            todoTasks.AddRange(await stockOuts
+                .Where(x => x.StockOutDate.HasValue &&
+                            x.StockOutDate.Value.Date >= today &&
+                            x.StockOutDate.Value.Date <= deadlineRange &&
+                            x.StatusId != 3 &&
+                            x.Responsible == userCode)
+                .Select(x => new HandyTaskDTO
+                {
+                    OrderCode = x.StockOutCode,
+                    OrderType = "Xuất kho",
+                    Deadline = x.StockOutDate!.Value.ToString("yyyy-MM-dd"),
+                    Status = x.Status!.StatusName!,
+                    ProductCodes = x.StockOutDetails.Select(d => d.ProductCode!).Distinct().ToList()
+                }).ToListAsync());
+
+            // CHUYỂN KHO
+            todoTasks.AddRange(await transfers
+                .Where(x => x.TransferDate.HasValue &&
+                            x.TransferDate.Value.Date >= today &&
+                            x.TransferDate.Value.Date <= deadlineRange &&
+                            x.StatusId != 3 &&(
+                            x.ToResponsible == userCode || x.FromResponsible ==userCode))
+                .Select(x => new HandyTaskDTO
+                {
+                    OrderCode = x.TransferCode,
+                    OrderType = "Chuyển kho",
+                    Deadline = x.TransferDate!.Value.ToString("yyyy-MM-dd"),
+                    Status = x.Status!.StatusName!,
+                    ProductCodes = x.TransferDetails.Select(d => d.ProductCode!).Distinct().ToList()
+                }).ToListAsync());
+
+            // CHUYỂN KỆ
+            todoTasks.AddRange(await movements
+                .Where(x => x.MovementDate.HasValue &&
+                            x.MovementDate.Value.Date >= today &&
+                            x.MovementDate.Value.Date <= deadlineRange &&
+                            x.StatusId != 3 &&
+                            x.Responsible == userCode)
+                .Select(x => new HandyTaskDTO
+                {
+                    OrderCode = x.MovementCode,
+                    OrderType = "Chuyển kệ",
+                    Deadline = x.MovementDate!.Value.ToString("yyyy-MM-dd"),
+                    Status = x.Status!.StatusName!,
+                    ProductCodes = x.MovementDetails.Select(d => d.ProductCode!).Distinct().ToList()
+                }).ToListAsync());
+
+            // SẢN XUẤT
+            todoTasks.AddRange(await manufacturingOrders
+                .Where(x => x.Deadline.HasValue &&
+                            x.Deadline.Value.Date >= today &&
+                            x.Deadline.Value.Date <= deadlineRange &&
+                            x.StatusId != 3 &&
+                            x.Responsible == userCode)
+                .Select(x => new HandyTaskDTO
+                {
+                    OrderCode = x.ManufacturingOrderCode,
+                    OrderType = "Sản xuất",
+                    Deadline = x.Deadline!.Value.ToString("yyyy-MM-dd"),
+                    Status = x.Status!.StatusName!,
+                    ProductCodes = new List<string> { x.ProductCode! }
+                }).ToListAsync());
+
+            // SUMMARY
+            var summary = new Dictionary<string, int>
+            {
+                ["Nhập kho"] = await stockIns.CountAsync(x => x.OrderDeadline.HasValue && x.OrderDeadline.Value.Date == today && x.Responsible == userCode),
+                ["Xuất kho"] = await stockOuts.CountAsync(x => x.StockOutDate.HasValue && x.StockOutDate.Value.Date == today && x.Responsible == userCode),
+                ["Chuyển kho"] = await transfers.CountAsync(x => x.TransferDate.HasValue && x.TransferDate.Value.Date == today && (x.ToResponsible == userCode|| x.FromResponsible==userCode)),
+                ["Chuyển kệ"] = await movements.CountAsync(x => x.MovementDate.HasValue && x.MovementDate.Value.Date == today && x.Responsible == userCode),
+                ["Sản xuất"] = await manufacturingOrders.CountAsync(x => x.Deadline.HasValue && x.Deadline.Value.Date == today && x.Responsible == userCode)
+            };
+
+            var result = new HandyDashboardDTO
+            {
+                Alerts = alerts,
+                TodoTasks = todoTasks.OrderBy(x => x.Deadline).ToList(),
+                SummaryToday = summary
+            };
+
+            return new ServiceResponse<HandyDashboardDTO>(true, "Lấy dashboard thành công", result);
+        }
+
+
         private IQueryable<T> FilterByDate<T>(IQueryable<T> query, DashboardRequestDTO request, string dateProperty) where T : class
         {
             if (query == null)
@@ -372,7 +532,52 @@ namespace Chrome.Services.DashboardService
                     2 => (4, 6),   // Q2: April - June
                     3 => (7, 9),   // Q3: July - September
                     4 => (10, 12), // Q4: October - December
-                    _ => throw new ArgumentException("Invalid quarter value. Must be 1, 2, 3, or 4.")
+                    _ => throw new ArgumentException("Dữ liệu quý không hợp lệ, 1,2,3")
+                };
+
+                query = query.Where(x =>
+                    EF.Property<DateTime?>(x, dateProperty) != null &&
+                    EF.Property<DateTime?>(x, dateProperty)!.Value.Month >= startMonth &&
+                    EF.Property<DateTime?>(x, dateProperty)!.Value.Month <= endMonth &&
+                    (!request.Year.HasValue || EF.Property<DateTime?>(x, dateProperty)!.Value.Year == request.Year.Value));
+            }
+            // Month filter: Filter by the entire month within the year (if provided)
+            else if (request.Month.HasValue)
+            {
+                query = query.Where(x =>
+                    EF.Property<DateTime?>(x, dateProperty) != null &&
+                    EF.Property<DateTime?>(x, dateProperty)!.Value.Month == request.Month.Value &&
+                    (!request.Year.HasValue || EF.Property<DateTime?>(x, dateProperty)!.Value.Year == request.Year.Value));
+            }
+
+            return query;
+        }
+        private IQueryable<T> FilterByDateHandy<T>(IQueryable<T> query, HandyDashboardRequestDTO request, string dateProperty) where T : class
+        {
+            if (query == null)
+                throw new ArgumentNullException(nameof(query));
+
+            // If no filters are provided, return the original query
+            if (!request.Year.HasValue && !request.Month.HasValue && !request.Quarter.HasValue)
+                return query;
+
+            // Year filter: Filter by the entire year
+            if (request.Year.HasValue && !request.Month.HasValue && !request.Quarter.HasValue)
+            {
+                query = query.Where(x =>
+                    EF.Property<DateTime?>(x, dateProperty) != null &&
+                    EF.Property<DateTime?>(x, dateProperty)!.Value.Year == request.Year.Value);
+            }
+            // Quarter filter: Filter by the specified quarter within the year (if provided)
+            else if (request.Quarter.HasValue && !request.Month.HasValue)
+            {
+                var (startMonth, endMonth) = request.Quarter.Value switch
+                {
+                    1 => (1, 3),   // Q1: January - March
+                    2 => (4, 6),   // Q2: April - June
+                    3 => (7, 9),   // Q3: July - September
+                    4 => (10, 12), // Q4: October - December
+                    _ => throw new ArgumentException("Dữ liệu quý không hợp lệ, 1,2,3")
                 };
 
                 query = query.Where(x =>

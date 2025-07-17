@@ -7,5 +7,6 @@ namespace Chrome.Services.DashboardService
     {
         Task<ServiceResponse<DashboardResponseDTO>> GetDashboardInformation (DashboardRequestDTO dashboardRequest);
         Task<ServiceResponse<DashboardStockInOutSummaryDTO>> GetStockInOutSummaryAsync(DashboardRequestDTO dashboardRequest);
+        Task<ServiceResponse<HandyDashboardDTO>> GetHandyDashboardAsync(HandyDashboardRequestDTO dashboardRequest);
     }
 }
