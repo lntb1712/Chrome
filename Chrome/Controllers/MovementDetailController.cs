@@ -46,7 +46,8 @@ namespace Chrome.Controllers
         {
             try
             {
-                var response = await _movementDetailService.GetMovementDetailsByMovementCodeAsync(movementCode, page, pageSize);
+                string decodedMovementCode = Uri.UnescapeDataString(movementCode);
+                var response = await _movementDetailService.GetMovementDetailsByMovementCodeAsync(decodedMovementCode, page, pageSize);
                 if (!response.Success)
                 {
                     return NotFound(new
@@ -68,7 +69,8 @@ namespace Chrome.Controllers
         {
             try
             {
-                var response = await _movementDetailService.SearchMovementDetailsAsync(warehouseCodes, movementCode, textToSearch, page, pageSize);
+                string decodedMovementCode = Uri.UnescapeDataString(movementCode);
+                var response = await _movementDetailService.SearchMovementDetailsAsync(warehouseCodes, decodedMovementCode, textToSearch, page, pageSize);
                 if (!response.Success)
                 {
                     return NotFound(new
@@ -134,7 +136,8 @@ namespace Chrome.Controllers
         {
             try
             {
-                var response = await _movementDetailService.DeleteMovementDetail(movementCode, productCode);
+                string decodedMovementCode = Uri.UnescapeDataString(movementCode);
+                var response = await _movementDetailService.DeleteMovementDetail(decodedMovementCode, productCode);
                 if (!response.Success)
                 {
                     return Conflict(new

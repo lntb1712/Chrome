@@ -48,7 +48,8 @@ namespace Chrome.Controllers
         {
             try
             {
-                var response = await _pickListDetailService.GetPickListDetailsByPickNoAsync(pickNo, page, pageSize);
+                string decodedPickNo = Uri.UnescapeDataString(pickNo);
+                var response = await _pickListDetailService.GetPickListDetailsByPickNoAsync(decodedPickNo, page, pageSize);
                 if (!response.Success)
                 {
                     return NotFound(new
@@ -70,7 +71,8 @@ namespace Chrome.Controllers
         {
             try
             {
-                var response = await _pickListDetailService.SearchPickListDetailsAsync(warehouseCodes,pickNo, textToSearch, page, pageSize);
+                string decodedPickNo = Uri.UnescapeDataString(pickNo);
+                var response = await _pickListDetailService.SearchPickListDetailsAsync(warehouseCodes, decodedPickNo, textToSearch, page, pageSize);
                 if (!response.Success)
                 {
                     return NotFound(new
@@ -114,7 +116,8 @@ namespace Chrome.Controllers
         {
             try
             {
-                var response = await _pickListDetailService.DeletePickListDetail(pickNo, productCode);
+                string decodedPickNo = Uri.UnescapeDataString(pickNo);
+                var response = await _pickListDetailService.DeletePickListDetail(decodedPickNo, productCode);
                 if (!response.Success)
                 {
                     return Conflict(new

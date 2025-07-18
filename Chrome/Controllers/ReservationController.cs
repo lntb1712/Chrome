@@ -161,7 +161,8 @@ namespace Chrome.Controllers
         {
             try
             {
-                var response = await _reservationService.GetReservationsByStockOutCodeAsync(stockOutCode);
+                string decodedStockOutCode = Uri.UnescapeDataString(stockOutCode);
+                var response = await _reservationService.GetReservationsByStockOutCodeAsync(decodedStockOutCode);
                 if (!response.Success)
                 {
                     return NotFound(new
@@ -203,7 +204,8 @@ namespace Chrome.Controllers
         {
             try
             {
-                var response = await _reservationService.GetReservationsByMovementCodeAsync(movementCode);
+                string decodedMovementCode = Uri.UnescapeDataString(movementCode);
+                var response = await _reservationService.GetReservationsByMovementCodeAsync(decodedMovementCode);
                 if (!response.Success)
                 {
                     return NotFound(new
@@ -224,7 +226,8 @@ namespace Chrome.Controllers
         {
             try
             {
-                var response = await _reservationService.GetReservationsByManufacturingCodeAsync(manufacturingCode);
+                string decodedManufacCode = Uri.UnescapeDataString(manufacturingCode);
+                var response = await _reservationService.GetReservationsByManufacturingCodeAsync(decodedManufacCode);
                 if (!response.Success)
                 {
                     return NotFound(new
@@ -285,8 +288,8 @@ namespace Chrome.Controllers
                         Message = "Mã reservation không được để trống"
                     });
                 }
-
-                var response = await _reservationService.DeleteReservationAsync(reservationCode);
+                string decodedResCode = Uri.UnescapeDataString(reservationCode);
+                var response = await _reservationService.DeleteReservationAsync(decodedResCode);
                 if (!response.Success)
                 {
                     return Conflict(new

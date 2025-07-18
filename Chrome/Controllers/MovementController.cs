@@ -337,7 +337,8 @@ namespace Chrome.Controllers
         {
             try
             {
-                var response = await _movementService.GetPutAwayContainsMovement(movementCode);
+                string decodedMovementCode = Uri.UnescapeDataString(movementCode);
+                var response = await _movementService.GetPutAwayContainsMovement(decodedMovementCode);
                 if (!response.Success)
                 {
                     return NotFound(new
@@ -358,7 +359,8 @@ namespace Chrome.Controllers
         {
             try
             {
-                var response = await _movementService.GetPickListContainsMovement(movementCode);
+                string decodedMovementCode = Uri.UnescapeDataString(movementCode);
+                var response = await _movementService.GetPickListContainsMovement(decodedMovementCode);
                 if (!response.Success)
                 {
                     return NotFound(new

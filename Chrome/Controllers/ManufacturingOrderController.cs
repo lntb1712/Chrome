@@ -99,7 +99,8 @@ namespace Chrome.Controllers
         {
             try
             {
-                var response = await _manufacturingOrderService.GetManufacturingOrderByCodeAsync(manufacturingCode);
+                string decodedManufacturingOrderCode = Uri.UnescapeDataString(manufacturingCode);
+                var response = await _manufacturingOrderService.GetManufacturingOrderByCodeAsync(decodedManufacturingOrderCode);
                 if (!response.Success)
                 {
                     return NotFound(new { Success = false, Message = response.Message });
@@ -171,7 +172,8 @@ namespace Chrome.Controllers
         {
             try
             {
-                var response = await _manufacturingOrderService.DeleteManufacturingOrderAsync(manufacturingCode);
+                string decodedManufacturingOrderCode = Uri.UnescapeDataString(manufacturingCode);
+                var response = await _manufacturingOrderService.DeleteManufacturingOrderAsync(decodedManufacturingOrderCode);
                 if (!response.Success)
                 {
                     return BadRequest(new { Success = false, Message = response.Message });
@@ -189,7 +191,8 @@ namespace Chrome.Controllers
         {
             try
             {
-                var response = await _manufacturingOrderService.ConfirmManufacturingOrder(manufacturingCode);
+                string decodedManufacturingOrderCode = Uri.UnescapeDataString(manufacturingCode);
+                var response = await _manufacturingOrderService.ConfirmManufacturingOrder(decodedManufacturingOrderCode);
                 if (!response.Success)
                 {
                     return BadRequest(new { Success = false, Message = response.Message });
@@ -207,7 +210,8 @@ namespace Chrome.Controllers
         {
             try
             {
-                var response = await _manufacturingOrderService.CreateBackOrder(manufacturingCode,scheduleDateBackOrder,deadLineBackOrder);
+                string decodedManufacturingOrderCode = Uri.UnescapeDataString(manufacturingCode);
+                var response = await _manufacturingOrderService.CreateBackOrder(decodedManufacturingOrderCode, scheduleDateBackOrder,deadLineBackOrder);
                 if (!response.Success)
                 {
                     return BadRequest(new { Success = false, Message = response.Message });
@@ -225,7 +229,8 @@ namespace Chrome.Controllers
         {
             try
             {
-                var response = await _manufacturingOrderService.CheckAndUpdateBackOrderStatus(manufacturingCode);
+                string decodedManufacturingOrderCode = Uri.UnescapeDataString(manufacturingCode);
+                var response = await _manufacturingOrderService.CheckAndUpdateBackOrderStatus(decodedManufacturingOrderCode);
                 if (!response.Success)
                 {
                     return BadRequest(new { Success = false, Message = response.Message });

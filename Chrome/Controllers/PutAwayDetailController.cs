@@ -48,7 +48,8 @@ namespace Chrome.Controllers
         {
             try
             {
-                var response = await _putAwayDetailService.GetPutAwayDetailsByPutawayCodeAsync(putAwayCode, page, pageSize);
+                string decodedPutAwayCode = Uri.UnescapeDataString(putAwayCode);
+                var response = await _putAwayDetailService.GetPutAwayDetailsByPutawayCodeAsync(decodedPutAwayCode, page, pageSize);
                 if (!response.Success)
                 {
                     return NotFound(new
@@ -70,7 +71,8 @@ namespace Chrome.Controllers
         {
             try
             {
-                var response = await _putAwayDetailService.SearchPutAwayDetailsAsync(warehouseCodes, putAwayCode, textToSearch, page, pageSize);
+                string decodedPutAwayCode = Uri.UnescapeDataString(putAwayCode);
+                var response = await _putAwayDetailService.SearchPutAwayDetailsAsync(warehouseCodes, decodedPutAwayCode, textToSearch, page, pageSize);
                 if (!response.Success)
                 {
                     return NotFound(new
@@ -114,7 +116,8 @@ namespace Chrome.Controllers
         {
             try
             {
-                var response = await _putAwayDetailService.DeletePutAwayDetail(putAwayCode, productCode);
+                string decodedPutAwayCode = Uri.UnescapeDataString(putAwayCode);
+                var response = await _putAwayDetailService.DeletePutAwayDetail(decodedPutAwayCode, productCode);
                 if (!response.Success)
                 {
                     return Conflict(new

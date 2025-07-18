@@ -34,8 +34,8 @@ namespace Chrome.Controllers
                         Message = "Mã reservation không được để trống"
                     });
                 }
-
-                var response = await _reservationDetailService.GetAllReservationDetails(reservationCode, page, pageSize);
+                string decodedResCode = Uri.UnescapeDataString(reservationCode);
+                var response = await _reservationDetailService.GetAllReservationDetails(decodedResCode, page, pageSize);
                 if (!response.Success)
                 {
                     return NotFound(new
@@ -87,8 +87,8 @@ namespace Chrome.Controllers
                         Message = "Mã reservation không được để trống"
                     });
                 }
-
-                var response = await _reservationDetailService.SearchReservationDetailsAsync(reservationCode, textToSearch, page, pageSize);
+                string decodedResCode = Uri.UnescapeDataString(reservationCode);
+                var response = await _reservationDetailService.SearchReservationDetailsAsync(decodedResCode, textToSearch, page, pageSize);
                 if (!response.Success)
                 {
                     return NotFound(new

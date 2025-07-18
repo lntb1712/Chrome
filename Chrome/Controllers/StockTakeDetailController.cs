@@ -47,7 +47,8 @@ namespace Chrome.Controllers
         {
             try
             {
-                var response = await _StockTakeDetailService.GetStockTakeDetailsByStockTakeCodeAsync(StockTakeCode, page, pageSize);
+                string decodedStockTake = Uri.UnescapeDataString(StockTakeCode);
+                var response = await _StockTakeDetailService.GetStockTakeDetailsByStockTakeCodeAsync(decodedStockTake, page, pageSize);
                 if (!response.Success)
                 {
                     return NotFound(new
@@ -69,7 +70,8 @@ namespace Chrome.Controllers
         {
             try
             {
-                var response = await _StockTakeDetailService.SearchStockTakeDetailsAsync(warehouseCodes, StockTakeCode, textToSearch, page, pageSize);
+                string decodedStockTake = Uri.UnescapeDataString(StockTakeCode);
+                var response = await _StockTakeDetailService.SearchStockTakeDetailsAsync(warehouseCodes, decodedStockTake, textToSearch, page, pageSize);
                 if (!response.Success)
                 {
                     return NotFound(new
@@ -113,7 +115,8 @@ namespace Chrome.Controllers
         {
             try
             {
-                var response = await _StockTakeDetailService.DeleteStockTakeDetail(StockTakeCode, productCode, lotNo, locationCode);
+                string decodedStockTake = Uri.UnescapeDataString(StockTakeCode);
+                var response = await _StockTakeDetailService.DeleteStockTakeDetail(decodedStockTake, productCode, lotNo, locationCode);
                 if (!response.Success)
                 {
                     return Conflict(new

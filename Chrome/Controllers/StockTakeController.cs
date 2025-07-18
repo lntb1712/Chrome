@@ -195,7 +195,8 @@ public class StockTakeController : ControllerBase
     {
         try
         {
-            var response = await _StockTakeService.DeleteStockTakeAsync(StockTakeCode);
+            string decodedStockTake = Uri.UnescapeDataString(StockTakeCode);
+            var response = await _StockTakeService.DeleteStockTakeAsync(decodedStockTake);
             if (!response.Success)
             {
                 return Conflict(new

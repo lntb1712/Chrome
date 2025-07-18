@@ -132,7 +132,8 @@ namespace Chrome.Controllers
         {
             try
             {
-                var response = await _putAwayService.GetPutAwayByCodeAsync(putAwayCode);
+                string decodedPutAwayCode = Uri.UnescapeDataString(putAwayCode);
+                var response = await _putAwayService.GetPutAwayByCodeAsync(decodedPutAwayCode);
                 if (!response.Success)
                 {
                     return NotFound(new
@@ -153,7 +154,8 @@ namespace Chrome.Controllers
         {
             try
             {
-                var response = await _putAwayService.GetPutAwayContainsCodeAsync(orderCode);
+                string decodedPutAwayCode = Uri.UnescapeDataString(orderCode);
+                var response = await _putAwayService.GetPutAwayContainsCodeAsync(decodedPutAwayCode);
                 if (!response.Success)
                 {
                     return NotFound(new
@@ -174,7 +176,8 @@ namespace Chrome.Controllers
         {
             try
             {
-                var response = await _putAwayService.GetListPutAwayContainsCodeAsync(orderCode);
+                string decodedPutAwayCode = Uri.UnescapeDataString(orderCode);
+                var response = await _putAwayService.GetListPutAwayContainsCodeAsync(decodedPutAwayCode);
                 if (!response.Success)
                 {
                     return NotFound(new
@@ -218,7 +221,8 @@ namespace Chrome.Controllers
         {
             try
             {
-                var response = await _putAwayService.DeletePutAway(putAwayCode);
+                string decodedPutAwayCode = Uri.UnescapeDataString(putAwayCode);
+                var response = await _putAwayService.DeletePutAway(decodedPutAwayCode);
                 if (!response.Success)
                 {
                     return Conflict(new

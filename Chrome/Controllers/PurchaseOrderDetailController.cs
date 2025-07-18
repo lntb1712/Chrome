@@ -23,7 +23,8 @@ namespace Chrome.Controllers
         {
             try
             {
-                var response = await _purchaseOrderDetailService.GetAllPurchaseOrderDetails(purchaseOrderCode, page, pageSize);
+                string decodedPurchaseOrderCode = Uri.UnescapeDataString(purchaseOrderCode);
+                var response = await _purchaseOrderDetailService.GetAllPurchaseOrderDetails(decodedPurchaseOrderCode, page, pageSize);
                 if (!response.Success)
                 {
                     return NotFound(new
@@ -44,7 +45,8 @@ namespace Chrome.Controllers
         {
             try
             {
-                var response = await _purchaseOrderDetailService.GetPurchaseOrderDetailByCode(purchaseOrderCode, productCode);
+                string decodedPurchaseOrderCode = Uri.UnescapeDataString(purchaseOrderCode);
+                var response = await _purchaseOrderDetailService.GetPurchaseOrderDetailByCode(decodedPurchaseOrderCode, productCode);
                 if (!response.Success)
                 {
                     return NotFound(new
@@ -87,7 +89,8 @@ namespace Chrome.Controllers
         {
             try
             {
-                var response = await _purchaseOrderDetailService.DeletePurchaseOrderDetailAsync(purchaseOrderCode, productCode);
+                string decodedPurchaseOrderCode = Uri.UnescapeDataString(purchaseOrderCode);
+                var response = await _purchaseOrderDetailService.DeletePurchaseOrderDetailAsync(decodedPurchaseOrderCode, productCode);
                 if (!response.Success)
                 {
                     return Conflict(new
@@ -152,7 +155,8 @@ namespace Chrome.Controllers
         {
             try
             {
-                var response = await _purchaseOrderDetailService.ConfirmPurchaseOrderDetail(purchaseOrderCode);
+                string decodedPurchaseOrderCode = Uri.UnescapeDataString(purchaseOrderCode);
+                var response = await _purchaseOrderDetailService.ConfirmPurchaseOrderDetail(decodedPurchaseOrderCode);
                 if (!response.Success)
                 {
                     return Conflict(new
@@ -174,7 +178,8 @@ namespace Chrome.Controllers
         {
             try
             {
-                var response = await _purchaseOrderDetailService.CreateBackOrder(purchaseOrderCode, backOrderDescription, dateBackOrder);
+                string decodedPurchaseOrderCode = Uri.UnescapeDataString(purchaseOrderCode);
+                var response = await _purchaseOrderDetailService.CreateBackOrder(decodedPurchaseOrderCode, backOrderDescription, dateBackOrder);
                 if (!response.Success)
                 {
                     return Conflict(new
@@ -195,7 +200,8 @@ namespace Chrome.Controllers
         {
             try
             {
-                var response = await _purchaseOrderDetailService.CheckAndUpdateBackOrderStatus(purchaseOrderCode);
+                string decodedPurchaseOrderCode = Uri.UnescapeDataString(purchaseOrderCode);
+                var response = await _purchaseOrderDetailService.CheckAndUpdateBackOrderStatus(decodedPurchaseOrderCode);
                 if (!response.Success)
                 {
                     return Conflict(new

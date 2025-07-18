@@ -46,7 +46,8 @@ namespace Chrome.Controllers
         {
             try
             {
-                var response = await _purchaseOrderService.GetPurchaseOrderByCode(purchaseOrderCode);
+                string decodedPurchaseOrderCode = Uri.UnescapeDataString(purchaseOrderCode);
+                var response = await _purchaseOrderService.GetPurchaseOrderByCode(decodedPurchaseOrderCode);
                 if (!response.Success)
                 {
                     return NotFound(new
@@ -134,7 +135,8 @@ namespace Chrome.Controllers
         {
             try
             {
-                var response = await _purchaseOrderService.DeletePurchaseOrderAsync(purchaseOrderCode);
+                string decodedPurchaseOrderCode = Uri.UnescapeDataString(purchaseOrderCode);
+                var response = await _purchaseOrderService.DeletePurchaseOrderAsync(decodedPurchaseOrderCode);
                 if (!response.Success)
                 {
                     return Conflict(new

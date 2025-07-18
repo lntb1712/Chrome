@@ -244,7 +244,8 @@ namespace Chrome.Controllers
         {
             try
             {
-                var response = await _stockInService.GetStockInByCode(stockInCode);
+                string decodedStockInCode = Uri.UnescapeDataString(stockInCode);
+                var response = await _stockInService.GetStockInByCode(decodedStockInCode);
                 if (!response.Success)
                 {
                     return NotFound(new
@@ -288,7 +289,8 @@ namespace Chrome.Controllers
         {
             try
             {
-                var response = await _stockInService.DeleteStockInAsync(stockInCode);
+                string decodedStockInCode = Uri.UnescapeDataString(stockInCode);
+                var response = await _stockInService.DeleteStockInAsync(decodedStockInCode);
                 if (!response.Success)
                 {
                     return Conflict(new

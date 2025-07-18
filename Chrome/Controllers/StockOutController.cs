@@ -266,7 +266,8 @@ namespace Chrome.Controllers
         {
             try
             {
-                var response = await _stockOutService.DeleteStockOutAsync(stockOutCode);
+                string decodedStockOutCode = Uri.UnescapeDataString(stockOutCode);
+                var response = await _stockOutService.DeleteStockOutAsync(decodedStockOutCode);
                 if (!response.Success)
                 {
                     return Conflict(new

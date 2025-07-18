@@ -28,7 +28,8 @@ namespace Chrome.Controllers
         {
             try
             {
-                var response = await _manufacturingOrderDetailService.GetManufacturingOrderDetail(manufacturingOrderCode);
+                string decodedManufacturingOrderCode = Uri.UnescapeDataString(manufacturingOrderCode);
+                var response = await _manufacturingOrderDetailService.GetManufacturingOrderDetail(decodedManufacturingOrderCode);
                 if (!response.Success)
                 {
                     return BadRequest(new { Success = false, Message = response.Message });
@@ -46,7 +47,8 @@ namespace Chrome.Controllers
         {
             try
             {
-                var response = await _manufacturingOrderDetailService.GetManufacturingOrderDetail(manufacturingOrderCode, productCode);
+                string decodedManufacturingOrderCode = Uri.UnescapeDataString(manufacturingOrderCode);
+                var response = await _manufacturingOrderDetailService.GetManufacturingOrderDetail(decodedManufacturingOrderCode, productCode);
                 if (!response.Success)
                 {
                     return NotFound(new { Success = false, Message = response.Message });
@@ -63,7 +65,8 @@ namespace Chrome.Controllers
         {
             try
             {
-                var response = await _manufacturingOrderDetailService.GetForecastManufacturingOrderDetail(manufacturingOrderCode, productCode);
+                string decodedManufacturingOrderCode = Uri.UnescapeDataString(manufacturingOrderCode);
+                var response = await _manufacturingOrderDetailService.GetForecastManufacturingOrderDetail(decodedManufacturingOrderCode, productCode);
                 if (!response.Success)
                 {
                     return NotFound(new { Success = false, Message = response.Message });

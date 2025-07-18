@@ -71,7 +71,8 @@ namespace Chrome.Controllers
         {
             try
             {
-                var response = await _stockOutDetailService.GetForecastStockOutDetail(stockOutCode,productCode);
+                string decodedStockOutCode = Uri.UnescapeDataString(stockOutCode);
+                var response = await _stockOutDetailService.GetForecastStockOutDetail(decodedStockOutCode, productCode);
                 if (!response.Success)
                 {
                     return NotFound(new
