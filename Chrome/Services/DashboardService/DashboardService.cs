@@ -57,7 +57,7 @@ namespace Chrome.Services.DashboardService
 
             // Áp dụng bộ lọc ngày, tháng, năm
             var inventorySummary = _inventoryRepository.GetInventories(dashboardRequest.warehouseCodes);
-            var manufacturingOrders = FilterByDate(_manufacturingOrderRepository.GetAllManufacturingOrder(dashboardRequest.warehouseCodes), dashboardRequest, "Deadline");
+            var manufacturingOrders = FilterByDate(_manufacturingOrderRepository.GetAllManufacturingOrder(dashboardRequest.warehouseCodes), dashboardRequest, "ScheduleDate");
             var stockIns = FilterByDate(_stockInRepository.GetAllStockInAsync(dashboardRequest.warehouseCodes), dashboardRequest, "OrderDeadline");
             var stockOuts = FilterByDate(_stockOutRepository.GetAllStockOutAsync(dashboardRequest.warehouseCodes), dashboardRequest, "StockOutDate");
             var transfers = FilterByDate(_transferRepository.GetAllTransfersAsync(dashboardRequest.warehouseCodes), dashboardRequest, "TransferDate");
@@ -171,9 +171,9 @@ namespace Chrome.Services.DashboardService
             // MANUFACTURING ORDER
             upcomingDeadlines.AddRange(
                 await manufacturingOrders
-                .Where(x => x.Deadline.HasValue &&
-                            x.Deadline.Value.Date >= today &&
-                            x.Deadline.Value.Date <= deadlineRange)
+                .Where(x => x.ScheduleDate.HasValue &&
+                            x.ScheduleDate.Value.Date >= today &&
+                            x.ScheduleDate.Value.Date <= deadlineRange)
                 .Select(x => new UpcomingDeadlineDTO
                 {
                     OrderCode = x.ManufacturingOrderCode,
@@ -356,7 +356,7 @@ namespace Chrome.Services.DashboardService
 
             var stockIns = FilterByDateHandy(_stockInRepository.GetAllStockInAsync(dashboardRequest.warehouseCodes), dashboardRequest, "OrderDeadline");
             var stockOuts = FilterByDateHandy(_stockOutRepository.GetAllStockOutAsync(dashboardRequest.warehouseCodes), dashboardRequest, "StockOutDate");
-            var manufacturingOrders = FilterByDateHandy(_manufacturingOrderRepository.GetAllManufacturingOrder(dashboardRequest.warehouseCodes), dashboardRequest, "Deadline");
+            var manufacturingOrders = FilterByDateHandy(_manufacturingOrderRepository.GetAllManufacturingOrder(dashboardRequest.warehouseCodes), dashboardRequest, "ScheduleDate");
             var transfers = FilterByDateHandy(_transferRepository.GetAllTransfersAsync(dashboardRequest.warehouseCodes), dashboardRequest, "TransferDate");
             var movements = FilterByDateHandy(_movementRepository.GetAllMovementAsync(dashboardRequest.warehouseCodes), dashboardRequest, "MovementDate");
 
@@ -397,8 +397,8 @@ namespace Chrome.Services.DashboardService
                 .ToListAsync());
 
             alerts.AddRange(await manufacturingOrders
-                .Where(x => x.Deadline.HasValue &&
-                            x.Deadline.Value.Date < today &&
+                .Where(x => x.ScheduleDate.HasValue &&
+                            x.ScheduleDate.Value.Date < today &&
                             x.StatusId != 3 &&
                             x.Responsible == userCode)
                 .Select(x => $"Lệnh sản xuất {x.ManufacturingOrderCode} \ntrễ hạn ({x.Deadline!.Value:dd-MM-yyyy})")
@@ -409,7 +409,7 @@ namespace Chrome.Services.DashboardService
             // NHẬP KHO
             todoTasks.AddRange(await stockIns
                 .Where(x => x.OrderDeadline.HasValue &&
-                            x.OrderDeadline.Value.Date >= today &&
+                            x.OrderDeadline.Value.Date <= today &&
                             x.OrderDeadline.Value.Date <= deadlineRange &&
                             x.StatusId != 3 &&
                             x.Responsible == userCode)
@@ -425,7 +425,7 @@ namespace Chrome.Services.DashboardService
             // XUẤT KHO
             todoTasks.AddRange(await stockOuts
                 .Where(x => x.StockOutDate.HasValue &&
-                            x.StockOutDate.Value.Date >= today &&
+                            x.StockOutDate.Value.Date <= today &&
                             x.StockOutDate.Value.Date <= deadlineRange &&
                             x.StatusId != 3 &&
                             x.Responsible == userCode)
@@ -441,7 +441,7 @@ namespace Chrome.Services.DashboardService
             // CHUYỂN KHO
             todoTasks.AddRange(await transfers
                 .Where(x => x.TransferDate.HasValue &&
-                            x.TransferDate.Value.Date >= today &&
+                            x.TransferDate.Value.Date <= today &&
                             x.TransferDate.Value.Date <= deadlineRange &&
                             x.StatusId != 3 &&(
                             x.ToResponsible == userCode || x.FromResponsible ==userCode))
@@ -457,7 +457,7 @@ namespace Chrome.Services.DashboardService
             // CHUYỂN KỆ
             todoTasks.AddRange(await movements
                 .Where(x => x.MovementDate.HasValue &&
-                            x.MovementDate.Value.Date >= today &&
+                            x.MovementDate.Value.Date <= today &&
                             x.MovementDate.Value.Date <= deadlineRange &&
                             x.StatusId != 3 &&
                             x.Responsible == userCode)
@@ -472,9 +472,9 @@ namespace Chrome.Services.DashboardService
 
             // SẢN XUẤT
             todoTasks.AddRange(await manufacturingOrders
-                .Where(x => x.Deadline.HasValue &&
-                            x.Deadline.Value.Date >= today &&
-                            x.Deadline.Value.Date <= deadlineRange &&
+                .Where(x => x.ScheduleDate.HasValue &&
+                            x.ScheduleDate.Value.Date <= today &&
+                            x.ScheduleDate.Value.Date <= deadlineRange &&
                             x.StatusId != 3 &&
                             x.Responsible == userCode)
                 .Select(x => new HandyTaskDTO
@@ -489,11 +489,11 @@ namespace Chrome.Services.DashboardService
             // SUMMARY
             var summary = new Dictionary<string, int>
             {
-                ["Nhập kho"] = await stockIns.CountAsync(x => x.OrderDeadline.HasValue && x.OrderDeadline.Value.Date == today && x.Responsible == userCode),
-                ["Xuất kho"] = await stockOuts.CountAsync(x => x.StockOutDate.HasValue && x.StockOutDate.Value.Date == today && x.Responsible == userCode),
-                ["Chuyển kho"] = await transfers.CountAsync(x => x.TransferDate.HasValue && x.TransferDate.Value.Date == today && (x.ToResponsible == userCode|| x.FromResponsible==userCode)),
-                ["Chuyển kệ"] = await movements.CountAsync(x => x.MovementDate.HasValue && x.MovementDate.Value.Date == today && x.Responsible == userCode),
-                ["Sản xuất"] = await manufacturingOrders.CountAsync(x => x.Deadline.HasValue && x.Deadline.Value.Date == today && x.Responsible == userCode)
+                ["Nhập kho"] = await stockIns.CountAsync(x => x.OrderDeadline.HasValue && x.OrderDeadline.Value.Date <= today && x.StatusId!=3 && x.Responsible == userCode),
+                ["Xuất kho"] = await stockOuts.CountAsync(x => x.StockOutDate.HasValue && x.StockOutDate.Value.Date <= today && x.StatusId != 3 && x.Responsible == userCode),
+                ["Chuyển kho"] = await transfers.CountAsync(x => x.TransferDate.HasValue && x.TransferDate.Value.Date <= today && x.StatusId != 3 && (x.ToResponsible == userCode|| x.FromResponsible==userCode)),
+                ["Chuyển kệ"] = await movements.CountAsync(x => x.MovementDate.HasValue && x.MovementDate.Value.Date <= today && x.StatusId != 3 && x.Responsible == userCode),
+                ["Sản xuất"] = await manufacturingOrders.CountAsync(x => x.Deadline.HasValue && x.ScheduleDate!.Value.Date <= today && x.StatusId != 3 && x.Responsible == userCode)
             };
 
             var result = new HandyDashboardDTO

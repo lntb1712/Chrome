@@ -215,9 +215,13 @@ namespace Chrome.Services.ManufacturingOrderDetailService
                     {
                         try
                         {
-                            existingDetail.ToConsumeQuantity = detailRequest.ToConsumeQuantity;
                             existingDetail.ConsumedQuantity = detailRequest.ConsumedQuantity;
-                            existingDetail.ScraptRate = detailRequest.ScraptRate;
+                            if (existingDetail.ConsumedQuantity > 0 && existingDetail.ConsumedQuantity <= existingDetail.ToConsumeQuantity)
+                            {
+                                var manufactHeader = _context.ManufacturingOrders.FirstOrDefault(x => x.ManufacturingOrderCode == existingDetail.ManufacturingOrderCode);
+                                manufactHeader!.StatusId = 2;
+                                _context.ManufacturingOrders.Update(manufactHeader);
+                            }
                             await _context.SaveChangesAsync();
                             // Commit the transaction
                             await transaction.CommitAsync();

@@ -682,17 +682,8 @@ namespace Chrome.Services.ManufacturingOrderService
                 try
                 {   
                     existingOrder.QuantityProduced = manufacturingOrder.QuantityProduced;
-                    if (existingOrder.QuantityProduced > 0 && existingOrder.QuantityProduced <= existingOrder.Quantity)
-                    {
-                        existingOrder.StatusId = 2;
-                    }
-                    var manufacturingDetails = await _context.ManufacturingOrderDetails.Where(x => x.ManufacturingOrderCode == existingOrder.ManufacturingOrderCode).ToListAsync();
-                    foreach (var detail in manufacturingDetails)
-                    {
-                        var percent = (float)manufacturingOrder.QuantityProduced! / manufacturingOrder.Quantity;
-
-                        detail.ConsumedQuantity = Math.Round((double)(percent * detail.ToConsumeQuantity)!, 3);
-                    }
+                  
+                    
 
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
