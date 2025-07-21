@@ -305,5 +305,27 @@ namespace Chrome.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, $"Lỗi: {ex.Message}");
             }
         }
+
+        [HttpGet("GetListStockOutToReport")]
+        public async Task<IActionResult> GetListStockOutToReport([FromQuery] string[] warehouseCodes, [FromQuery] int month, [FromQuery] int year)
+        {
+            try
+            {
+                var response = await _stockOutService.GetListStockOutToReport(warehouseCodes, month, year);
+                if (!response.Success)
+                {
+                    return  NotFound(new
+                    {
+                        Success = false,
+                        Message = response.Message
+                    });
+                }
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, $"Lỗi : {ex.Message}");
+            }
+        }
     }
 }

@@ -1,9 +1,11 @@
-﻿using Chrome.DTO;
+﻿using Azure;
+using Chrome.DTO;
 using Chrome.DTO.AccountManagementDTO;
 using Chrome.DTO.CustomerMasterDTO;
 using Chrome.DTO.OrderTypeDTO;
 using Chrome.DTO.ReservationDTO;
 using Chrome.DTO.StatusMasterDTO;
+using Chrome.DTO.StockOutDetailDTO;
 using Chrome.DTO.StockOutDTO;
 using Chrome.DTO.WarehouseMasterDTO;
 using Chrome.Models;
@@ -15,6 +17,7 @@ using Chrome.Repositories.StatusMasterRepository;
 using Chrome.Repositories.StockOutRepository;
 using Chrome.Repositories.WarehouseMasterRepository;
 using DocumentFormat.OpenXml.VariantTypes;
+using DocumentFormat.OpenXml.Wordprocessing;
 using Microsoft.EntityFrameworkCore;
 using System.Globalization;
 
@@ -432,6 +435,52 @@ namespace Chrome.Services.StockOutService
             var totalItems = await query.Where(x => x.Responsible == responsible).CountAsync();
             var pagedResponse = new PagedResponse<StockOutResponseDTO>(result, page, pageSize, totalItems);
             return new ServiceResponse<PagedResponse<StockOutResponseDTO>>(true, "Lấy danh sách lệnh xuất kho thành công", pagedResponse);
+        }
+
+        public async Task<ServiceResponse<List<StockOutAndDetailDTO>>> GetListStockOutToReport(string[] warehouseCodes, int month, int year)
+        {
+            if (warehouseCodes.Length == 0 || month < 1 || year < 1)
+            {
+                return new ServiceResponse<List<StockOutAndDetailDTO>>(false, "Dữ liệu nhận vào không hợp lệ");
+            }
+            var startDate = new DateTime(year, month, 1);
+            var endDate = startDate.AddMonths(1).AddDays(-1);
+            var query = _stockOutRepository.GetAllStockOutAsync(warehouseCodes)
+                                           .Where(x=>x.StockOutDate >=startDate && x.StockOutDate <= endDate)
+                                           .OrderBy(x=>x.StockOutDate);
+                        
+            var result = await query
+                         .Select(x => new StockOutAndDetailDTO
+                         {
+                             StockOutCode = x.StockOutCode,
+                             OrderTypeCode = x.OrderTypeCode,
+                             OrderTypeName = x.OrderTypeCodeNavigation!.OrderTypeName,
+                             WarehouseCode = x.WarehouseCode,
+                             WarehouseName = x.WarehouseCodeNavigation!.WarehouseName,
+                             CustomerCode = x.CustomerCode,
+                             CustomerName = x.CustomerCodeNavigation!.CustomerName,
+                             Responsible = x.Responsible,
+                             FullNameResponsible = x.ResponsibleNavigation!.FullName,
+                             StatusId = x.StatusId,
+                             StatusName = x.Status!.StatusName,
+                             StockOutDate = x.StockOutDate!.Value.ToString("dd/MM/yyyy"),
+                             StockOutDescription = x.StockOutDescription,
+                             stockOutDetails = x.StockOutDetails.Select(s=> new StockOutDetailReportDTO
+                             {
+                                 StockOutCode = s.StockOutCode,
+                                 ProductCode = s.ProductCode,
+                                 ProductName = s.ProductCodeNavigation.ProductName!,
+                                 UOM = s.ProductCodeNavigation.Uom!,
+                                 Demand =s.Demand,
+                                 Quantity = s.Quantity,
+
+                             }).ToList()
+                            
+                         })
+                         
+                         .ToListAsync();
+          
+            return new ServiceResponse<List<StockOutAndDetailDTO>>(true, "Lấy danh sách lệnh xuất kho thành công", result);
         }
     } 
 }

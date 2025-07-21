@@ -24,5 +24,6 @@ namespace Chrome.Services.StockOutService
         Task<ServiceResponse<List<AccountManagementResponseDTO>>> GetListResponsibleAsync(string warehouseCode);
         Task<ServiceResponse<List<StatusMasterResponseDTO>>> GetListStatusMaster();
         Task<ServiceResponse<List<WarehouseMasterResponseDTO>>> GetListWarehousePermission(string[] warehouseCodes);
+        Task<ServiceResponse<List<StockOutAndDetailDTO>>> GetListStockOutToReport(string[] warehouseCodes, int month, int year);
     }
 }

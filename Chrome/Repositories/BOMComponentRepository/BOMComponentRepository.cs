@@ -66,7 +66,7 @@ namespace Chrome.Repositories.BOMComponentRepository
                     BOMVersion = bom.Bomversion,
                     ComponentCode = component.ComponentCode,
                     ComponentName = component.ComponentCodeNavigation.ProductName!,
-                    TotalQuantity = (float)(parentQuantity * component.ConsumpQuantity)!,
+                    TotalQuantity = (float)(parentQuantity * component.ConsumpQuantity* (1+component.ScrapRate))!,
                     Level = level,
                 });
 

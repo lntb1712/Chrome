@@ -370,7 +370,49 @@ namespace Chrome.Services.StockInService
             return new ServiceResponse<List<StatusMasterResponseDTO>>(true, "Lấy danh sách trạng thái thành công", lstStatusResponse);
         }
 
-     
+        public async Task<ServiceResponse<List<StockInAndDetailDTO>>> GetListStockInToReport(string[] warehouseCodes, int month, int year)
+        {
+            if (warehouseCodes.Length == 0 || month < 1 || year < 1)
+            {
+                return new ServiceResponse<List<StockInAndDetailDTO>>(false, "Dữu liệu nhận vào không hợp lệ");
+            }
+            var startDate = new DateTime(year, month, 1);
+            var endDate = startDate.AddMonths(1).AddDays(-1);
+            var query = _stockInRepository.GetAllStockInAsync(warehouseCodes)
+                                          .Where(s => s.OrderDeadline >= startDate && s.OrderDeadline <= endDate)
+                                          .OrderBy(s => s.OrderDeadline);
+            var result = await query
+                         .Select(x => new StockInAndDetailDTO
+                         {
+                             StockInCode = x.StockInCode,
+                             OrderTypeCode = x.OrderTypeCode,
+                             OrderTypeName = x.OrderTypeCodeNavigation!.OrderTypeName,
+                             WarehouseCode = x.WarehouseCode,
+                             WarehouseName = x.WarehouseCodeNavigation!.WarehouseName,
+                             PurchaseOrderCode = x.PurchaseOrderCode,
+                             SupplierCode = x.PurchaseOrderCodeNavigation!.SupplierCode,
+                             SupplierName = x.PurchaseOrderCodeNavigation!.SupplierCodeNavigation!.SupplierName,
+                             Responsible = x.Responsible,
+                             FullNameResponsible = x.ResponsibleNavigation!.FullName,
+                             StatusId = x.StatusId,
+                             StatusName = x.Status!.StatusName,
+                             OrderDeadline = x.OrderDeadline!.Value.ToString("dd/MM/yyyy"),
+                             StockInDescription = x.StockInDescription,
+                             stockInDetailDTOs = x.StockInDetails.Select(sd => new StockInDetailReportDTO
+                             {
+                                 StockInCode = sd.StockInCode,
+                                 ProductCode = sd.ProductCode,
+                                 ProductName = sd.ProductCodeNavigation.ProductName!,
+                                 UOM = sd.ProductCodeNavigation.Uom!,
+                                 LotNo = sd.LotNo,
+                                 Demand = sd.Demand,
+                                 Quantity = sd.Quantity,
+                             }).ToList()
+                         })
+                         .ToListAsync();
+           
+            return new ServiceResponse<List<StockInAndDetailDTO>>(true, "Lấy danh sách lệnh nhập kho thành công", result);
+        }
 
         public async Task<ServiceResponse<List<WarehouseMasterResponseDTO>>> GetListWarehousePermission(string[] warehouseCodes)
         {

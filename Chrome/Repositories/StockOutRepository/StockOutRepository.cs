@@ -21,6 +21,7 @@ namespace Chrome.Repositories.StockOutRepository
                                      .Include(x => x.CustomerCodeNavigation)
                                      .Include(x => x.ResponsibleNavigation)
                                      .Include(x => x.StockOutDetails)
+                                     .ThenInclude (x=>x.ProductCodeNavigation)
                                      .Include(x => x.Status)
                                      .Where(x => warehouseCodes.Contains(x.WarehouseCode));
 

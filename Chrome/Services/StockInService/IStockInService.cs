@@ -7,6 +7,7 @@ using Chrome.DTO.StockInDTO;
 using Chrome.DTO.SupplierMasterDTO;
 using Chrome.DTO.WarehouseMasterDTO;
 using Chrome.Models;
+using DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace Chrome.Services.StockInService
 {
@@ -26,5 +27,6 @@ namespace Chrome.Services.StockInService
         Task<ServiceResponse<List<AccountManagementResponseDTO>>> GetListResponsibleAsync(string warehouseCode);
         Task<ServiceResponse<List<StatusMasterResponseDTO>>> GetListStatusMaster();
         Task<ServiceResponse<List<WarehouseMasterResponseDTO>>> GetListWarehousePermission(string[] warehouseCodes);
+        Task<ServiceResponse<List<StockInAndDetailDTO>>> GetListStockInToReport(string[] warehouseCodes , int month , int year);
     }
 }

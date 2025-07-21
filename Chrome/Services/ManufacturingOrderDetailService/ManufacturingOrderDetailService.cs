@@ -1,6 +1,8 @@
 ﻿using Chrome.DTO;
 using Chrome.DTO.ManufacturingOrderDetailDTO;
 using Chrome.Models;
+using Chrome.Repositories.BOMComponentRepository;
+using Chrome.Repositories.BOMMasterRepository;
 using Chrome.Repositories.InventoryRepository;
 using Chrome.Repositories.ManufacturingOrderDetailRepository;
 using Chrome.Repositories.ManufacturingOrderRepository;
@@ -20,6 +22,8 @@ namespace Chrome.Services.ManufacturingOrderDetailService
         private readonly IManufacturingOrderRepository _manufacturingOrderRepository;
         private readonly IProductMasterRepository _productMasterRepository;
         private readonly IInventoryRepository _inventoryRepository;
+        private readonly IBOMComponentRepository _bomComponentRepository;
+        private readonly IBOMMasterRepository _bOMMasterRepository;
         private readonly ChromeContext _context;
 
         public ManufacturingOrderDetailService(
@@ -29,6 +33,8 @@ namespace Chrome.Services.ManufacturingOrderDetailService
             IManufacturingOrderRepository manufacturingOrderRepository,
             IProductMasterRepository productMasterRepository,
             IInventoryRepository inventoryRepository,
+            IBOMComponentRepository bOMComponentRepository,
+            IBOMMasterRepository bOMMasterRepository,
             ChromeContext context)
         {
             _manufacturingOrderDetailRepository = manufacturingOrderDetailRepository;
@@ -37,6 +43,8 @@ namespace Chrome.Services.ManufacturingOrderDetailService
             _productMasterRepository = productMasterRepository;
             _inventoryRepository = inventoryRepository;
             _manufacturingOrderRepository = manufacturingOrderRepository;
+            _bomComponentRepository = bOMComponentRepository;
+            _bOMMasterRepository = bOMMasterRepository;
             _context = context;
         }
 
@@ -186,6 +194,68 @@ namespace Chrome.Services.ManufacturingOrderDetailService
             }
         }
 
+        //public async Task<ServiceResponse<bool>> UpdateListManufacturingOrderDetail(List<ManufacturingOrderDetailRequestDTO> detailRequestDTOs)
+        //{
+        //    if (detailRequestDTOs == null || !detailRequestDTOs.Any())
+        //    {
+        //        return new ServiceResponse<bool>(false, "Danh sách chi tiết lệnh sản xuất không được để trống");
+        //    }
+        //    try
+        //    {
+
+        //        foreach (var detailRequest in detailRequestDTOs)
+        //        {
+
+        //            if (string.IsNullOrEmpty(detailRequest.ComponentCode))
+        //            {
+        //                return new ServiceResponse<bool>(false, "không tìm thấy mã thành phần");
+        //            }
+
+
+        //            var existingDetail = await _manufacturingOrderDetailRepository.GetManufacturingOrderDetailWithCode(
+        //                 detailRequest.ManufacturingOrderCode, detailRequest.ComponentCode);
+
+        //            if (existingDetail == null)
+        //            {
+        //                return new ServiceResponse<bool>(false, "Chi tiết lệnh sản xuất không tồn tại cho mã lệnh sản xuất và mã sản phẩm đã cung cấp");
+        //            }
+        //            using (var transaction = await _context.Database.BeginTransactionAsync())
+        //            {
+        //                try
+        //                {
+        //                    existingDetail.ConsumedQuantity = detailRequest.ConsumedQuantity;
+        //                    if (existingDetail.ConsumedQuantity > 0 && existingDetail.ConsumedQuantity <= existingDetail.ToConsumeQuantity)
+        //                    {
+        //                        var manufactHeader = _context.ManufacturingOrders.FirstOrDefault(x => x.ManufacturingOrderCode == existingDetail.ManufacturingOrderCode);
+        //                        manufactHeader!.StatusId = 2;
+        //                        _context.ManufacturingOrders.Update(manufactHeader);
+        //                    }
+        //                    await _context.SaveChangesAsync();
+        //                    // Commit the transaction
+        //                    await transaction.CommitAsync();
+
+        //                }
+        //                catch(DbUpdateException dbEx)
+        //                {
+        //                    // Rollback the transaction in case of error
+        //                    await transaction.RollbackAsync();
+        //                    return new ServiceResponse<bool>(false, $"Lỗi cập nhật chi tiết lệnh sản xuất: {dbEx.Message}");
+        //                }
+        //                catch (Exception ex)
+        //                {
+        //                    // Rollback the transaction in case of error
+        //                    await transaction.RollbackAsync();
+        //                    return new ServiceResponse<bool>(false, $"Lỗi: {ex.Message}");
+        //                }
+        //            }
+        //        }
+        //        return new ServiceResponse<bool>(true, "Cập nhật chi tiết lệnh sản xuất thành công");
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return new ServiceResponse<bool>(false, $"Lỗi: {ex.Message}");
+        //    }
+        //}
         public async Task<ServiceResponse<bool>> UpdateListManufacturingOrderDetail(List<ManufacturingOrderDetailRequestDTO> detailRequestDTOs)
         {
             if (detailRequestDTOs == null || !detailRequestDTOs.Any())
@@ -194,54 +264,100 @@ namespace Chrome.Services.ManufacturingOrderDetailService
             }
             try
             {
-
-                foreach (var detailRequest in detailRequestDTOs)
+                var manufacturingOrder = await _manufacturingOrderRepository.GetManufacturingWithCode(detailRequestDTOs.First().ManufacturingOrderCode);
+                if (manufacturingOrder == null)
                 {
+                    return new ServiceResponse<bool>(false, "Không tìm thấy lệnh sản xuất gốc");
+                }
+                // Lấy phiên bản BOM hoạt động
+                var lstBomVersion = await _bOMMasterRepository.GetListVersionByBomCode(manufacturingOrder.Bomcode!);
+                var bomVersionActived = lstBomVersion.FirstOrDefault(x => x.IsActive == true);
+                if (bomVersionActived == null)
+                    return new ServiceResponse<bool>(false, $"Không tìm thấy phiên bản BOM hoạt động cho mã {manufacturingOrder.Bomcode}.");
 
-                    if (string.IsNullOrEmpty(detailRequest.ComponentCode))
+                // Lấy chi tiết BOM
+                var bomComponents = await _bomComponentRepository.GetAllBOMComponent(manufacturingOrder.Bomcode!, bomVersionActived.Bomversion);
+                if (bomComponents == null || !bomComponents.Any())
+                    return new ServiceResponse<bool>(false, $"Không tìm thấy chi tiết BOM cho mã {manufacturingOrder.Bomcode} và phiên bản {bomVersionActived.Bomversion}.");
+
+                decimal maxFinishedProductQuantity = decimal.MaxValue; // Số lượng thành phẩm tối đa có thể sản xuất
+
+                using (var transaction = await _context.Database.BeginTransactionAsync())
+                {
+                    try
                     {
-                        return new ServiceResponse<bool>(false, "không tìm thấy mã thành phần");
-                    }
-
-
-                    var existingDetail = await _manufacturingOrderDetailRepository.GetManufacturingOrderDetailWithCode(
-                         detailRequest.ManufacturingOrderCode, detailRequest.ComponentCode);
-
-                    if (existingDetail == null)
-                    {
-                        return new ServiceResponse<bool>(false, "Chi tiết lệnh sản xuất không tồn tại cho mã lệnh sản xuất và mã sản phẩm đã cung cấp");
-                    }
-                    using (var transaction = await _context.Database.BeginTransactionAsync())
-                    {
-                        try
+                        foreach (var detailRequest in detailRequestDTOs)
                         {
+                            if (string.IsNullOrEmpty(detailRequest.ComponentCode))
+                            {
+                                return new ServiceResponse<bool>(false, "Không tìm thấy mã thành phần");
+                            }
+
+                            var existingDetail = await _manufacturingOrderDetailRepository.GetManufacturingOrderDetailWithCode(
+                                 detailRequest.ManufacturingOrderCode, detailRequest.ComponentCode);
+
+                            if (existingDetail == null)
+                            {
+                                return new ServiceResponse<bool>(false, "Chi tiết lệnh sản xuất không tồn tại cho mã lệnh sản xuất và mã sản phẩm đã cung cấp");
+                            }
+
+                            var bomItem = bomComponents.FirstOrDefault(x => x.ComponentCode == detailRequest.ComponentCode);
+                            if (bomItem == null)
+                            {
+                                return new ServiceResponse<bool>(false, $"Không tìm thấy thành phần BOM cho mã {detailRequest.ComponentCode}.");
+                            }
+
+                            // Tính số lượng thành phẩm tối đa từ ConsumedQuantity, chỉ dựa trên ConsumpQuantity (số lượng chuẩn)
+                            decimal possibleFinishedQuantity = (decimal)(detailRequest.ConsumedQuantity / bomItem.ConsumpQuantity)!;
+                            // Làm tròn xuống để lấy số nguyên (số lượng thành phẩm khả thi)
+                            decimal finishedQuantity = Math.Floor(possibleFinishedQuantity);
+
+                            // Tính allowedDeviation dựa trên số lượng thành phẩm và tỉ lệ sai sót dư thừa
+                            var allowedDeviation = (double)(bomItem.ConsumpQuantity * (double)finishedQuantity * (1 + bomItem.ScrapRate))!;
+
+                            if (detailRequest.ConsumedQuantity < 0)
+                            {
+                                return new ServiceResponse<bool>(false, $"Số lượng tiêu thụ của thành phần {detailRequest.ComponentCode} không được âm ({detailRequest.ConsumedQuantity}).");
+                            }
+                            if (detailRequest.ConsumedQuantity > allowedDeviation)
+                            {
+                                return new ServiceResponse<bool>(false, $"Số lượng tiêu thụ của thành phần {detailRequest.ComponentCode} ({detailRequest.ConsumedQuantity}) vượt quá mức cho phép ({allowedDeviation}) cho {finishedQuantity} thành phẩm.");
+                            }
+                            if (detailRequest.ConsumedQuantity > existingDetail.ToConsumeQuantity)
+                            {
+                                return new ServiceResponse<bool>(false, $"Số lượng tiêu thụ của thành phần {detailRequest.ComponentCode} ({detailRequest.ConsumedQuantity}) vượt quá số lượng cần tiêu thụ ({existingDetail.ToConsumeQuantity}).");
+                            }
+
+                            // Cập nhật số lượng thành phẩm tối đa
+                            maxFinishedProductQuantity = Math.Min(maxFinishedProductQuantity, finishedQuantity);
+
+                            // Cập nhật chi tiết lệnh sản xuất
                             existingDetail.ConsumedQuantity = detailRequest.ConsumedQuantity;
                             if (existingDetail.ConsumedQuantity > 0 && existingDetail.ConsumedQuantity <= existingDetail.ToConsumeQuantity)
                             {
-                                var manufactHeader = _context.ManufacturingOrders.FirstOrDefault(x => x.ManufacturingOrderCode == existingDetail.ManufacturingOrderCode);
-                                manufactHeader!.StatusId = 2;
-                                _context.ManufacturingOrders.Update(manufactHeader);
+                                manufacturingOrder.StatusId = 2;
                             }
-                            await _context.SaveChangesAsync();
-                            // Commit the transaction
-                            await transaction.CommitAsync();
-                            
                         }
-                        catch(DbUpdateException dbEx)
-                        {
-                            // Rollback the transaction in case of error
-                            await transaction.RollbackAsync();
-                            return new ServiceResponse<bool>(false, $"Lỗi cập nhật chi tiết lệnh sản xuất: {dbEx.Message}");
-                        }
-                        catch (Exception ex)
-                        {
-                            // Rollback the transaction in case of error
-                            await transaction.RollbackAsync();
-                            return new ServiceResponse<bool>(false, $"Lỗi: {ex.Message}");
-                        }
+
+                        // Cập nhật số lượng thành phẩm vào manufacturingOrder
+                        manufacturingOrder.QuantityProduced = (int?)Math.Floor(maxFinishedProductQuantity);
+                        _context.ManufacturingOrders.Update(manufacturingOrder);
+
+                        await _context.SaveChangesAsync();
+                        await transaction.CommitAsync();
+                        return new ServiceResponse<bool>(true, "Cập nhật chi tiết lệnh sản xuất và số lượng thành phẩm thành công");
+                    }
+                    catch (DbUpdateException dbEx)
+                    {
+                        await transaction.RollbackAsync();
+                        return new ServiceResponse<bool>(false, $"Lỗi cập nhật chi tiết lệnh sản xuất: {dbEx.Message}");
+                    }
+                    catch (Exception ex)
+                    {
+                        await transaction.RollbackAsync();
+                        return new ServiceResponse<bool>(false, $"Lỗi: {ex.Message}");
                     }
                 }
-                return new ServiceResponse<bool>(true, "Cập nhật chi tiết lệnh sản xuất thành công");
             }
             catch (Exception ex)
             {
