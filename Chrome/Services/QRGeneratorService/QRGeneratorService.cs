@@ -6,6 +6,15 @@ namespace Chrome.Services.QRGeneratorService
 {
     public class QRGeneratorService : IQRGeneratorService
     {
+        private string SanitizeFileName(string input)
+        {
+            foreach (char c in Path.GetInvalidFileNameChars())
+            {
+                input = input.Replace(c, '_');
+            }
+            return input;
+        }
+
         public async Task<ServiceResponse<QRGeneratorResponseDTO>> GenerateAndSaveQRCodeAsync(QRGeneratorRequestDTO request)
         {
             try
@@ -20,7 +29,7 @@ namespace Chrome.Services.QRGeneratorService
                 byte[] imageData = pngQrCode.GetGraphic(20); // 20 pixels per module
 
                 // Base file name and desktop path
-                string baseFileName = $"{request.ProductCode}_{request.LotNo}";
+                string baseFileName = $"{SanitizeFileName(request.ProductCode)}_{SanitizeFileName(request.LotNo)}";
                 string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
                 string fileExtension = ".png";
                 // Generate file name with SerialNumber
