@@ -384,7 +384,7 @@ namespace Chrome.Services.DashboardService
                 .Where(x => x.TransferDate.HasValue &&
                             x.TransferDate.Value.Date < today &&
                             x.StatusId != 3 &&
-                            x.FromResponsible == userCode|| x.ToResponsible ==userCode)
+                            (x.FromResponsible == userCode || x.ToResponsible == userCode))
                 .Select(x => $"Phiếu chuyển kho {x.TransferCode} \ntrễ hạn ({x.TransferDate!.Value:dd-MM-yyyy})")
                 .ToListAsync());
 
@@ -489,12 +489,52 @@ namespace Chrome.Services.DashboardService
             // SUMMARY
             var summary = new Dictionary<string, int>
             {
-                ["Nhập kho"] = await stockIns.CountAsync(x => x.OrderDeadline.HasValue && x.OrderDeadline.Value.Date <= today && x.StatusId!=3 && x.Responsible == userCode),
-                ["Xuất kho"] = await stockOuts.CountAsync(x => x.StockOutDate.HasValue && x.StockOutDate.Value.Date <= today && x.StatusId != 3 && x.Responsible == userCode),
-                ["Chuyển kho"] = await transfers.CountAsync(x => x.TransferDate.HasValue && x.TransferDate.Value.Date <= today && x.StatusId != 3 && (x.ToResponsible == userCode|| x.FromResponsible==userCode)),
-                ["Chuyển kệ"] = await movements.CountAsync(x => x.MovementDate.HasValue && x.MovementDate.Value.Date <= today && x.StatusId != 3 && x.Responsible == userCode),
-                ["Sản xuất"] = await manufacturingOrders.CountAsync(x => x.Deadline.HasValue && x.ScheduleDate!.Value.Date <= today && x.StatusId != 3 && x.Responsible == userCode)
+                ["Nhập kho"] = await stockIns.CountAsync(x =>
+                    x.OrderDeadline.HasValue &&
+                    (
+                        (x.OrderDeadline.Value.Date < today && x.StatusId != 3) || // Trễ hạn & chưa hoàn thành
+                        x.OrderDeadline.Value.Date == today                         // Hôm nay
+                    )
+                    && x.Responsible == userCode
+                ),
+
+                ["Xuất kho"] = await stockOuts.CountAsync(x =>
+                    x.StockOutDate.HasValue &&
+                    (
+                        (x.StockOutDate.Value.Date < today && x.StatusId != 3) ||
+                        x.StockOutDate.Value.Date == today
+                    )
+                    && x.Responsible == userCode
+                ),
+
+                ["Chuyển kho"] = await transfers.CountAsync(x =>
+                    x.TransferDate.HasValue &&
+                    (
+                        (x.TransferDate.Value.Date < today && x.StatusId != 3) ||
+                        x.TransferDate.Value.Date == today
+                    )
+                    && (x.FromResponsible == userCode || x.ToResponsible == userCode)
+                ),
+
+                ["Chuyển kệ"] = await movements.CountAsync(x =>
+                    x.MovementDate.HasValue &&
+                    (
+                        (x.MovementDate.Value.Date < today && x.StatusId != 3) ||
+                        x.MovementDate.Value.Date == today
+                    )
+                    && x.Responsible == userCode
+                ),
+
+                ["Sản xuất"] = await manufacturingOrders.CountAsync(x =>
+                    x.ScheduleDate.HasValue &&
+                    (
+                        (x.ScheduleDate.Value.Date < today && x.StatusId != 3) ||
+                        x.ScheduleDate.Value.Date == today
+                    )
+                    && x.Responsible == userCode
+                ),
             };
+
 
             var result = new HandyDashboardDTO
             {

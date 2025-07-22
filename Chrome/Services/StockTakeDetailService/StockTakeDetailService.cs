@@ -45,7 +45,7 @@ namespace Chrome.Services.StockTakeDetailService
                         ProductName = sd.ProductCodeNavigation!.ProductName!,
                         Lotno = sd.Lotno,
                         LocationCode = sd.LocationCode,
-                        Quantity = sd.Quantity / (sd.ProductCodeNavigation.BaseQuantity),
+                        Quantity = sd.Quantity ,
                         CountedQuantity = sd.CountedQuantity
                     })
                     .ToListAsync();
@@ -85,7 +85,7 @@ namespace Chrome.Services.StockTakeDetailService
                         ProductName = sd.ProductCodeNavigation!.ProductName!,
                         Lotno = sd.Lotno,
                         LocationCode = sd.LocationCode,
-                        Quantity = sd.Quantity / (sd.ProductCodeNavigation.BaseQuantity),
+                        Quantity = sd.Quantity,
                         CountedQuantity = sd.CountedQuantity
                     })
                     .ToListAsync();
@@ -120,7 +120,7 @@ namespace Chrome.Services.StockTakeDetailService
                         ProductName = sd.ProductCodeNavigation!.ProductName!,
                         Lotno = sd.Lotno,
                         LocationCode = sd.LocationCode,
-                        Quantity = sd.Quantity / (sd.ProductCodeNavigation.BaseQuantity),
+                        Quantity = sd.Quantity,
                         CountedQuantity = sd.CountedQuantity
                     })
                     .ToListAsync();

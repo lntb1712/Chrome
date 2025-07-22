@@ -160,7 +160,7 @@ namespace Chrome.Services.PickListDetailService
                 {
                     return new ServiceResponse<bool>(false, "Dữ liệu đầu vào không hợp lệ. PickNo và ProductCode là bắt buộc.");
                 }
-                var existingDetail = await _context.PickListDetails.FirstOrDefaultAsync(x => x.PickNo == decodedPickNo && x.ProductCode == pickListDetail.ProductCode);
+                var existingDetail = await _context.PickListDetails.FirstOrDefaultAsync(x => x.PickNo == decodedPickNo && x.ProductCode == pickListDetail.ProductCode && x.LotNo == pickListDetail.LotNo);
 
                 if (existingDetail == null)
                 {

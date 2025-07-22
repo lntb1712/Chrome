@@ -121,10 +121,10 @@ namespace Chrome.Services.ManufacturingOrderService
                             .Where(rd => rd.ProductCode == inventory.ProductCode &&
                                          rd.LotNo == inventory.Lotno &&
                                          rd.ReservationCodeNavigation!.StatusId != 3)
-                            .SumAsync(rd => (double?)rd.QuantityReserved)*product.BaseQuantity ?? 0;
+                            .SumAsync(rd => (double?)rd.QuantityReserved) ?? 0;
 
                         var availableQuantity = (inventory.Quantity ?? 0) - reservedQuantity;
-
+                        remainingQuantity = (double)(remainingQuantity / product.BaseQuantity)!;
                         if (availableQuantity > 0)
                         {
                             remainingQuantity -= availableQuantity;
