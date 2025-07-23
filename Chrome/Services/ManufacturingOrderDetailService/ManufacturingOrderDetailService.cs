@@ -67,7 +67,7 @@ namespace Chrome.Services.ManufacturingOrderDetailService
 
                 // Lấy tồn kho hiện tại của sản phẩm tại kho đó
                 var inventoryList = await _inventoryRepository.GetInventoryByProductCodeAsync(productCode, manufacturingOrder.WarehouseCode!).ToListAsync();
-                var quantityOnHand = inventoryList.Sum(x => x.Quantity)/inventoryList.First().ProductCodeNavigation.BaseQuantity;
+                var quantityOnHand = inventoryList.Sum(x => x.Quantity);
 
                 // Lấy tổng số lượng reservation đang giữ cho sản phẩm đó tại kho
                 var reservations = await _reservationRepository.GetAllReservationsAsync(new string[] { manufacturingOrder.WarehouseCode! }).Where(x => x.StatusId != 3 && !x.ReservationCode.StartsWith("MV")).ToListAsync();
