@@ -132,7 +132,27 @@ namespace Chrome.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, $"Lỗi: {ex.Message}");
             }
         }
-
+        [HttpGet("GetTotalPriceOfWarehouse")]
+        public async Task <IActionResult> GetTotalPriceOfWarehouse ([FromQuery] string[] warehouseCodes)
+        {
+            try
+            {
+                var response = await _inventoryService.GetTotalPriceOfWarehouse(warehouseCodes);
+                if(!response.Success)
+                {
+                    return NotFound(new
+                    {
+                        Success = false,
+                        Message = response.Message
+                    });
+                }
+                return Ok(response);
+            }
+            catch(Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, $"Lỗi : {ex.Message}");
+            }
+        }
         [HttpPost("AddInventory")]
         public async Task<IActionResult> AddInventory([FromBody] InventoryRequestDTO inventoryRequestDTO)
         {
@@ -176,6 +196,7 @@ namespace Chrome.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, $"Lỗi: {ex.Message}");
             }
         }
+      
 
         [HttpDelete("DeleteInventory")]
         public async Task<IActionResult> DeleteInventory([FromQuery] string warehouseCode, [FromQuery] string locationCode, [FromQuery] string productCode, [FromQuery] string lotNo)

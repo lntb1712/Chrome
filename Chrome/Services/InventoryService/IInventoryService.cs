@@ -13,5 +13,6 @@ namespace Chrome.Services.InventoryService
         Task<ServiceResponse<bool>> DeleteInventoryAsync(string warehouseCode, string locationCode, string productCode, string lotNo);
         Task<ServiceResponse<bool>> UpdateInventoryAsync(InventoryRequestDTO inventoryRequestDTO , bool saveChanges = true);
         Task<ServiceResponse<List<WarehouseUsageDTO>>> GetInventoryUsedPercent(string[] warehouseCodes);
+        Task<ServiceResponse<double>> GetTotalPriceOfWarehouse(string[] warehouseCodes);
     }
 }

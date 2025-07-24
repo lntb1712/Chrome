@@ -1,8 +1,10 @@
-﻿using Chrome.DTO;
+﻿using Azure;
+using Chrome.DTO;
 using Chrome.DTO.InventoryDTO;
 using Chrome.Models;
 using Chrome.Repositories.InventoryRepository;
 using Chrome.Repositories.ProductMasterRepository;
+using DocumentFormat.OpenXml.Wordprocessing;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 
@@ -227,7 +229,9 @@ namespace Chrome.Services.InventoryService
                     Quantity = g.Sum(x => x.Quantity),
                     BaseQuantity = g.Sum(x => x.Quantity * (x.ProductCodeNavigation.BaseQuantity)),
                     UOM = g.First().ProductCodeNavigation.Uom!,
-                    BaseUOM = g.First().ProductCodeNavigation.BaseUom!
+                    BaseUOM = g.First().ProductCodeNavigation.BaseUom!,
+                    TotalPrice = g.Sum(x => x.Quantity) * g.First().ProductCodeNavigation.Valuation
+
                 })
                 .OrderBy(x => x.ProductCode)
                 .Skip((page - 1) * pageSize)
@@ -264,7 +268,8 @@ namespace Chrome.Services.InventoryService
                     Quantity = g.Sum(x => x.Quantity),
                     BaseQuantity = g.Sum(x => x.Quantity * (x.ProductCodeNavigation.BaseQuantity)),
                     UOM = g.First().ProductCodeNavigation.Uom!,
-                    BaseUOM = g.First().ProductCodeNavigation.BaseUom!
+                    BaseUOM = g.First().ProductCodeNavigation.BaseUom!,
+                    TotalPrice = g.Sum(x => x.Quantity) * g.First().ProductCodeNavigation.Valuation
                 })
                 .OrderBy(x => x.ProductCode)
                 .Skip((page - 1) * pageSize)
@@ -336,6 +341,20 @@ namespace Chrome.Services.InventoryService
             var pagedResponse = new PagedResponse<ProductWithLocationsDTO>(items, page, pageSize, totalItems);
 
             return new ServiceResponse<PagedResponse<ProductWithLocationsDTO>>(true, "Lấy danh sách thành công", pagedResponse);
+        }
+
+        public async Task<ServiceResponse<double>> GetTotalPriceOfWarehouse(string[] warehouseCodes)
+        {
+            if (warehouseCodes.Length == 0 )
+            {
+                return new ServiceResponse<double>(false, "Dữ liệu nhận vào không hợp lệ");
+            }
+
+            var query = _inventoryRepository.GetInventories(warehouseCodes);
+
+            double totalInventoryValue = (double)await query.SumAsync(x => x.Quantity * x.ProductCodeNavigation.Valuation);
+            
+            return new  ServiceResponse <double> (true, "Lấy tổng thành công", totalInventoryValue);
         }
 
         public async Task<ServiceResponse<PagedResponse<InventorySummaryDTO>>> SearchProductInventoryAsync(string[] warehouseCodes, string textToSearch, int page, int pageSize)
