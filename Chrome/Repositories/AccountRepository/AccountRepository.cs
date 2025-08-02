@@ -43,9 +43,11 @@ namespace Chrome.Repositories.AccountRepository
             var lstAccount = await _context.AccountManagements
                                            .Include(x => x.Group)
                                            .ThenInclude(x => x!.GroupFunctions)
-                                           .FirstOrDefaultAsync(x=>x.UserName == userName);
+                                           .FirstOrDefaultAsync(x =>
+                                               EF.Functions.Collate(x.UserName, "SQL_Latin1_General_CP1_CS_AS") == userName);
             return lstAccount!;
         }
+
 
         public async Task<AccountManagement> GetAccountWithUserNameAndPassword(string userName, string password)
         {
