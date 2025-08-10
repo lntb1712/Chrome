@@ -23,19 +23,6 @@ With its **clean architecture** and **extensive services**, it can easily integr
 
 ---
 
-## 🏗️ Project Structure
-
-```
-Chrome/
-├── Chrome.API             # API layer (Controllers, Filters, Middleware)
-├── Chrome.Application     # Business logic services, DTOs, validation
-├── Chrome.Domain          # Entities, enums, interfaces
-├── Chrome.Infrastructure  # EF Core repositories, database context
-└── Chrome.Shared          # Common utilities, constants, exceptions
-```
-
----
-
 ## 🛠️ Tech Stack
 
 - **Backend Framework:** [.NET 8](https://dotnet.microsoft.com/) / .NET Core  
