@@ -75,13 +75,8 @@ dotnet run --project Chrome.API
 
 ### 5️⃣ Access API Documentation
 Open Swagger UI in your browser:  
-<<<<<<< HEAD
 👉 [http://localhost:7016/swagger](http://localhost:7016/swagger)
-=======
-👉 [http://localhost:5000/swagger](http://localhost:5000/swagger)
->>>>>>> 7b50316eb7f91585eabcc1047cc4c6d678c8fb87
 
----
 
 ## 📚 Core Features
 
@@ -135,16 +130,6 @@ To contribute:
 Make sure to follow **Clean Architecture** and **SOLID principles** in your code.
 
 ---
-
-<<<<<<< HEAD
-=======
-## 📜 License
-
-This project is licensed under the **MIT License** – see the [LICENSE](LICENSE) file for details.
-
----
-
->>>>>>> 7b50316eb7f91585eabcc1047cc4c6d678c8fb87
 ## 📧 Contact
 
 For any inquiries or collaboration opportunities, please contact:  
